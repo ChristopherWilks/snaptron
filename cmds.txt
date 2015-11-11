@@ -11,3 +11,4 @@ cat all_SRA_introns_ids.tsv | perl -ne 'chomp; $s=$_; @f=split(/\t/,$s); @f1=spl
 
 time python ./joiner.py 'chr6:1-10000000|samples_count_i:5 AND chromosome_s:chr6' > t1
 time python ./joiner.py 'chr6:1-10000000|samples_count_i:5' > t1
+time python ./joiner.py 'chr6:1-10000000|samples_count_i:[5 TO 200000] AND chromosome_s:chr6' > t1
