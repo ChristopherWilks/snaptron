@@ -1,0 +1,13 @@
+zcat all_SRA_introns.tsv.gz | head | perl -ne 'BEGIN { $counter=0;} chomp; ($c,$s,$e,$st,$s1,$s2,$f1,$f2)=split(/\t/,$_); @f1=split(/,/,$f1); @f2=split(/,/,$f2); $score1=scalar @f1; $score2=scalar @f2; $st=($st eq "-"?18:2); $size=($e-$s)+1; $cigar=length("$f1:$f2"); print "i$counter\t$st\t$c\t$s\t$score2\t$cigar"."M\t*\t0\t$size\t$f1:$f2\t$f1:$f2\n"; $counter++;' >> t1
+
+
+zcat all_SRA_introns.tsv.gz | perl -ne 'BEGIN { $counter=0;} chomp; ($c,$s,$e,$st,$s1,$s2,$f1,$f2)=split(/\t/,$_); @f1=split(/,/,$f1); @f2=split(/,/,$f2); $score1=scalar @f1; $score2=scalar @f2; $st=($st eq "-"?18:2); $size=($e-$s)+1; $cigar=length("$f1:$f2"); print "i$counter\t$st\t$c\t$s\t$score2\t$cigar"."M\t*\t0\t$size\t$f1:$f2\t$f1:$f2\n"; $counter++;' >> t1
+
+#sums and counts last 2 columns
+cat all_SRA_introns.tsv.100000 | perl -ne 'chomp; $s=$_; @f=split(/\t/,$_); @f1=split(/,/,$f[6]); @f2=split(/,/,$f[7]); $f1=scalar @f1; $f2=scalar @f2; pop(@f); pop(@f); $s=join("\t",@f); $s1=0; $s2=0; map { $s1+=$_; } @f1; map { $s2+=$_; } @f2; print "$s\t$f1\t$f2\t$s1\t$s2\n";'
+
+cat all_SRA_introns_ids.tsv | perl -ne 'chomp; $s=$_; @f=split(/\t/,$s); @f1=split(/,/,$f[7]); @f2=split(/,/,$f[8]); $f1=scalar @f1; $f2=scalar @f2; $s2=0; map { $s2+=$_; } @f2; $avg=$s2/$f2; $median=-1; $m_=$f2/2; $m_=int($m_); @f2a=sort {$a<=>$b} @f2; if(($f2 % 2)==0) { $m2_=$f2/2; $m2_-=1; $median=($f2a[$m_]+$f2a[$m2_])/2; } else { $median=$f2a[$m_]; }  printf("$s\t$f1\t$f2\t$s2\t%.3f\t%.3f\n",$avg,$median);'
+
+
+time python ./joiner.py 'chr6:1-10000000|samples_count_i:5 AND chromosome_s:chr6' > t1
+time python ./joiner.py 'chr6:1-10000000|samples_count_i:5' > t1
