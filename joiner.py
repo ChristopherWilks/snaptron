@@ -116,13 +116,14 @@ def main():
     if len(solr_input) >= 1:
        #filter_set=set() 
        filter_set = stream_solr(solr_input,filter_set=None,sample_set=None)
-    sys.stderr.write("found %d introns in solr\n" % (len(filter_set)))
+       sys.stderr.write("found %d introns in solr\n" % (len(filter_set)))
     #run_tabix(tabix_input,filter_set=filter_set,sample_set=sample_set)
-    run_tabix(tabix_input,filter_set=filter_set,sample_set=sample_set)
-    sys.stderr.write("found %d samples\n" % (len(sample_set)))
+    if len(tabix_input) >= 1:
+       run_tabix(tabix_input,filter_set=filter_set,sample_set=sample_set)
+       sys.stderr.write("found %d samples\n" % (len(sample_set)))
     #if filter_set != None:
     #    stream_solr(solr_input,filter_set=filter_set,sample_set=sample_set) 
-    stream_samples(sample_set,samples)
+    #stream_samples(sample_set,samples)
 
 if __name__ == '__main__':
     main()
