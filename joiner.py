@@ -7,9 +7,13 @@ import re
 import shlex
 from collections import namedtuple
 import urllib2
+import operator
+
+operators={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
 
 TABIX="tabix"
-TABIX_DB='/data2/gigatron2/all_SRA_introns_ids_stats.tsv.gz'
+TABIX_INTERVAL_DB='/data2/gigatron2/all_SRA_introns_ids_stats.tsv.gz'
+TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'samples_count':'sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz'}
 SAMPLE_MD_FILE='/data2/gigatron2/all_illumina_sra_for_human_ids.tsv'
 SAMPLE_IDS_COL=7
 INTRON_ID_COL=0
@@ -17,18 +21,24 @@ INTRON_ID_COL=0
 INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
 SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
 
-INTRON_HEADER='gigatron_id_i,chromosome_s,start_i,end_i,strand_s,donor_s,acceptor_s,samples_t,read_coverage_by_sample_t,samples_count_i,coverage_count_i,coverage_sum_i,coverage_avg_d,coverage_median_d'
+INTRON_HEADER='gigatron_id,chromosome,start,end,strand,donor,acceptor,samples,read_coverage_by_sample,samples_count,coverage_count,coverage_sum,coverage_avg,coverage_median'
 SAMPLE_HEADER=""
+INTRON_HEADER_FIELDS=INTRON_HEADER.split(",")
+INTRON_HEADER_FIELDS_MAP={}
+i=0
+for field in INTRON_HEADER_FIELDS:
+   INTRON_HEADER_FIELDS_MAP[field]=i 
+   i++
 
-def run_tabix(args,filter_set=None,sample_set=None,filtering=False):
-    #args_=shlex.split("%s %s %s" % (TABIX,TABIX_DB,args))
-    sys.stderr.write("running %s %s %s\n" % (TABIX,TABIX_DB,args))
+
+def run_tabix(qargs,rquerys,tabix_db,filter_set=None,sample_set=None,filtering=False):
+    sys.stderr.write("running %s %s %s\n" % (TABIX,tabix_db,qargs))
     if not filtering:
         sys.stdout.write("Type\t%s\n" % (INTRON_HEADER))
     ids_found=set()
-    #tabixp = subprocess.Popen(args_,stdout=subprocess.PIPE,shell=True)
-    tabixp = subprocess.Popen("%s %s %s" % (TABIX,TABIX_DB,args),stdout=subprocess.PIPE,shell=True)
+    tabixp = subprocess.Popen("%s %s %s" % (TABIX,tabix_db,qargs),stdout=subprocess.PIPE,shell=True)
     for line in tabixp.stdout:
+        #build either filter set or sample set or both
         if sample_set != None or filter_set != None:
              fields=line.rstrip().split("\t")
              if filter_set != None and fields[INTRON_ID_COL] not in filter_set:
@@ -39,15 +49,29 @@ def run_tabix(args,filter_set=None,sample_set=None,filtering=False):
              if sample_set != None:
                  sample_ids=set(fields[SAMPLE_IDS_COL].split(","))
                  sample_set.update(sample_ids)
+        #filter return stream based on range queries (if any)
+        if rquerys:
+            fields=line.split("\t")
+            skip=False
+            for rfield in rquerys.keys():
+                (op,val)=rquerys[rfield]
+                if rfield not in INTRON_HEADER_FIELDS_MAP:
+                    sys.stderr.write("bad field %s in range query,exiting\n" % (rfield))
+                    sys.exit(-1)
+                fidx = INTRON_HEADER_FIELDS_MAP[rfield]
+                if not op(fields[fidx],val):
+                    skip=True
+                    break
+            if skip:
+                continue
         #now just stream back the result
-        sys.stdout.write("I\t%s" % (line))
+        if not filtering:
+            sys.stdout.write("I\t%s" % (line))
     exitc=tabixp.wait() 
     if exitc != 0:
         raise RuntimeError("%s %s %s returned non-0 exit code\n" % (TABIX,TABIX_DB,args))
-
     if filtering:
         return ids_found
-                       
 
 def stream_samples(sample_set,sample_map):
     sys.stdout.write("Type\t%s\n" % (SAMPLE_HEADER))
@@ -106,24 +130,67 @@ def stream_solr(solr_query,filter_set=None,sample_set=None):
     if filter_set == None:
         return ids_found
 
+comp_op_pattern=re.compile(r'([=><!]+)')
+def range_query_parser(rangeq):
+    rquery={}
+    if rangeq is None or len(rangeq) < 1:
+        return (None,None,rquery)
+    fields = rangeq.split(',')
+    (first_tdb,first_rquery)#first_col,first_val1,first_val2)
+    #for (field_,tdb) in TABIX_DBS.iteritems():
+    for field in fields:
+        m=comp_op_pattern.search(field)
+        (col,val)=re.split(comp_op_patern,field)
+        if not m or not col or col not in TABIX_DBS:
+            continue
+        op=m.group(1)
+        if op not in operators:
+            sys.stderr.write("bad operator %s in range query,exiting\n" % (str(op)))
+            sys.exit(-1)
+        rquery[col]=(operators[op],val)
+        if first_tdb:
+            continue 
+        #only do the following for the first range query
+        tdb=TABIX_DBS[col]
+        first_tdb=tdb
+        extension=""
+        if op == '=':
+            extension="-%d" % (val)
+        if op == '<=':
+            extension="-%d" % (val)
+            val=1
+        if op == '<':
+            extension="-%d" % (val-1)
+            val=1
+        if op == '>':
+            val=val+1
+        first_rquery="1:%d%s" % (val,extension)
+    return (first_tdb,first_rquery,rquery)
+
+#cases:
+#1) just interval (one function call)
+#2) interval + range query(s) (one tabix function call + field filter(s))
+#3) one or more range queries (one tabix range function call + field filter(s))
+#4) interval + sample (2 function calls: 1 solr for sample filter + 1 tabix using sample filter)
+#5) sample (1 solr call -> use interval ids to return all intervals)
+#6) sample + range query(s) (2 function calls: 1 solr for sample filter + 1 tabix using sample filter + field filter)
 def main():
     input_ = sys.argv[1]
-    (tabix_input,solr_input) = input_.split('|')
+    (intervalq,rangeq,sampleq) = input_.split('|')
     samples = load_sample_metadata(SAMPLE_MD_FILE) 
     sys.stderr.write("loaded %d samples metadata\n" % (len(samples)))
+    if len(sampleq) >= 1:
+       filter_set = stream_solr(sampleq)
+    sys.stderr.write("found %d introns in solr\n" % (len(filter_set)))
+    #whether or not we use the interval query as a filter set or the whole query
     sample_set=set()
-    filter_set=None
-    if len(solr_input) >= 1:
-       #filter_set=set() 
-       filter_set = stream_solr(solr_input,filter_set=None,sample_set=None)
-       sys.stderr.write("found %d introns in solr\n" % (len(filter_set)))
-    #run_tabix(tabix_input,filter_set=filter_set,sample_set=sample_set)
-    if len(tabix_input) >= 1:
-       run_tabix(tabix_input,filter_set=filter_set,sample_set=sample_set)
-       sys.stderr.write("found %d samples\n" % (len(sample_set)))
-    #if filter_set != None:
-    #    stream_solr(solr_input,filter_set=filter_set,sample_set=sample_set) 
-    #stream_samples(sample_set,samples)
+    (first_tdb,first_rquery,rquery) = range_query_parser(rangeq)
+    if len(intervalq) >= 1:
+        run_tabix(intervalq,rquery,TABIX_INTERVAL_DB,sample_set=sample_set)
+    elif len(rangeq) >= 1:
+        run_tabix(first_rquery,rquery,first_tdb,sample_set=sample_set)
+    sys.stderr.write("found %d samples\n" % (len(sample_set)))
+    stream_samples(sample_set,samples)
 
 if __name__ == '__main__':
     main()
