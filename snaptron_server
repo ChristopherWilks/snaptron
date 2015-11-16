@@ -1,0 +1,189 @@
+#!/usr/bin/env python2.7
+# ONLY for running the CGHub Slicer web service CherryPy web service (backend only, no SSL)
+
+import sys
+import syslog
+import os
+import pwd
+import grp
+import traceback
+# requires python_daemon-1.6 from pypi (not the plain `daemon' package)
+from daemon import DaemonContext
+from lockfile.pidlockfile import PIDLockFile
+import errno
+from optparse import OptionParser
+
+import cherrypy
+
+#from slicer.slicer import analyses_endpoint
+#from slicer.checksum import checksums_endpoint
+
+from snaptron.joiner import snaptron_endpoint
+
+description = "Backend web server runner for the SnapTron web service"
+
+raw_exec_path = os.path.abspath(sys.argv[0])
+exec_name = os.path.basename(raw_exec_path)
+# pid file needs to be in directory writable by user running the daemon (probably snaptron)
+piddir = "/var/run/" + exec_name
+pidfile = piddir + "/" + exec_name + ".pid"
+
+parser = OptionParser()
+# TODO: change default user/group to snaptron/snaptron
+
+parser.add_option("--user", action="store", type='string', dest="user", default=pwd.getpwuid( os.getuid() )[ 0 ],
+                  help="specify user to run under")
+parser.add_option("--group", action="store", type='string', dest="group", default=grp.getgrgid( os.getgid() )[ 0 ],
+                  help="specify group to run under")
+parser.add_option("--init-script", action="store_true", dest="init_script", default=False,
+                  help="creates init-script for this script with current options")
+parser.add_option("--path-to-tabix", action="store", type='string', dest="tabix_path", default='/cghub/apps/tabix',
+                  help="requires --init-script, used to set the path to where the tabix binary is located (directory)")
+parser.add_option("--read-size", action="store", type='string', dest="read_size", default='16777216',
+                  help="sets the READ_SIZE variable in the slicer code for streaming READ_SIZE number of bytes from disk")
+parser.add_option('--pid-file', action="store", type='string', dest="pid_file", default=pidfile,
+                  help="[default: /var/run/%s/%s.pid] The full path of the file to which the daemon's process ID will "
+                       "be written." % (
+                           exec_name, exec_name))
+parser.add_option('--log-spill', action="store", type='string', dest="log_spill", default='/dev/null',
+                  help="[default: ./%s.log] The path of the file to which the daemon's stderr and stdout will be "
+                       "redirected. Most of the diagnostic output will go to syslog but some might spill over to "
+                       "stderr or stdout, especially on errors during daemonization." % exec_name)
+parser.add_option("--no-daemon", dest="daemonize", action="store_false", default=True,
+                  help="don't daemonize if specified")
+
+(options, args) = parser.parse_args()
+
+exec_path = "\"export PATH=%s:$PATH && %s %s '--group' '%s'\"" % (options.tabix_path, sys.executable, raw_exec_path, options.group)
+
+#code from UCSC/CGHub/Hannes Schmidt
+# The lock file path will be evaluated by DaemonContext after the chdir to /,
+# so we need to convert a relative path to an absolute one. Also, the init script generation
+# should not use relative paths.
+options.pid_file = os.path.abspath(options.pid_file)
+options.log_spill = os.path.abspath(options.log_spill)
+
+def log(level, msg):
+    syslog.syslog(level, msg)
+    # CR: I think we might want to not log to syslog if in --no-daemon aka --debug mode
+    # sys.stdout.write(msg+"\n")
+
+def snaptron_service(environ, start_response):
+    environ['read_size'] = options.read_size
+    return snaptron_endpoint(environ, start_response)
+
+def lookup_user(username, err_str):
+    try:
+        return pwd.getpwnam(username)[2]
+    except KeyError:
+        raise ValueError("Invalid owner '%s' for %s" % (username, err_str))
+
+
+def lookup_group(grpname, err_str):
+    try:
+        return grp.getgrnam(grpname)[2]
+    except KeyError:
+        raise ValueError("Invalid group '%s' for %s" % (grpname, err_str))
+
+
+def daemonize(uid, gid, pidfile, log_spill):
+    """
+    Daemonize, creating and locking pid file, changing users, closing files, and creating our own process group.
+    """
+    piddir = os.path.dirname(pidfile)
+    log_spill = open(log_spill, "w") if log_spill else None
+    if not os.path.exists(piddir):
+        os.makedirs(piddir, 0755)
+        os.chown(piddir, uid, gid)
+    pid_lock_file = SmartPIDLockFile(pidfile)
+    daemon = DaemonContext(pidfile=pid_lock_file, uid=uid, gid=gid, stderr=log_spill, stdout=log_spill)
+    daemon.open()
+    return daemon
+
+
+def generate_init_script(options):
+    from pkg_resources import resource_string
+
+    init_script = resource_string(__name__, 'init-script')
+    args = ' '.join("'%s'" % arg.replace("'", "\\'")
+                    for arg in sys.argv[1:] if arg != '--init-script')
+    variables = vars(options).copy()
+    variables.update(dict(args=args,
+                          exec_path=exec_path,
+                          exec_name=exec_name,
+                          description=description))
+    print init_script % variables
+
+
+# CR: Require cghub-python-lib like any other package in setup.py. Don't copy code unless there is
+# good reason why requiring it as a dependency doesn't work.
+
+# from https://bitbucket.org/cghub/cghub-python-lib/src/e9a070c314e0501d2cf34a0ad8a235f0cbd965ab/cghub/util/lockfile.py
+class SmartPIDLockFile(PIDLockFile):
+    """
+    A PID lock file that breaks the lock if the owning process doesn't exist
+    """
+
+    def process_alive(self, pid):
+        try:
+            os.kill(pid, 0)
+            # now we know the process exists
+            return True
+        except OSError as e:
+            if e.errno == errno.ESRCH:
+                # now we know the process doesn't exist
+                return False
+            else:
+                # now we're not sure
+                return None
+
+    def acquire(self, timeout=None):
+        owner = self.read_pid()
+        if owner is not None and owner != os.getpid() and self.process_alive(owner) is False:
+            log(syslog.LOG_WARNING, "Breaking lock '%s' since owning process %i is dead." % ( self.lock_file, owner ))
+            self.break_lock()
+        PIDLockFile.acquire(self, timeout)
+
+
+def run_server():
+    cherrypy.tree.graft(snaptron_service, "/snaptron")
+
+    #cherrypy.config.update({'server.socket_host': "127.0.0.1", 'server.socket_port': 1555, 'server.thread_pool': 30})
+    #cherrypy.config.update({'server.socket_host': "10.1.1.50", 'server.socket_port': 1555, 'server.thread_pool': 30})
+    #TODO: put real static IP here
+    cherrypy.config.update({'server.socket_host': "127.0.0.1", 'server.socket_port': 8090, 'server.thread_pool': 30})
+
+    cherrypy.engine.start()
+    cherrypy.engine.block()
+
+
+def main():
+    syslog.openlog(os.path.basename(sys.argv[0]), syslog.LOG_PID, syslog.LOG_LOCAL0)
+    daemon = None
+    uid = lookup_user(options.user, 'daemon process')
+    gid = lookup_group(options.group, 'daemon process')
+    if options.init_script:
+        generate_init_script(options)
+        return 0
+    sys.stderr.write("Logging to syslog\n")
+    try:
+        if options.daemonize:
+            sys.stdout.write("running daemon mode\n")
+            daemon = daemonize(uid, gid, options.pid_file, options.log_spill)
+        run_server()
+    except KeyboardInterrupt:
+        log(syslog.LOG_NOTICE, "Received keyboard interrupt; terminating")
+        raise
+    except:
+        log(syslog.LOG_ALERT, "Uncaught exception: %s" % sys.exc_info()[1])
+        log(syslog.LOG_ALERT, "Backtrace: %s" % traceback.extract_tb(sys.exc_info()[2]))
+        log(syslog.LOG_ALERT, "Terminating")
+        raise
+    finally:
+        if daemon is not None:
+            daemon.close()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
