@@ -10,7 +10,7 @@ import urllib2
 import operator
 
 operators={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
-
+DEBUG_MODE=False
 TABIX="tabix"
 TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.gz'
 TABIX_DB_PATH='/data2/gigatron2'
@@ -32,9 +32,10 @@ for field in INTRON_HEADER_FIELDS:
    i+=1
 
 
-def run_tabix(qargs,rquerys,tabix_db,filter_set=None,sample_set=None,filtering=False):
+def run_tabix(qargs,rquerys,tabix_db,filter_set=None,sample_set=None,filtering=False,debug=True):
     tabix_db = "%s/%s" % (TABIX_DB_PATH,tabix_db)
-    sys.stderr.write("running %s %s %s\n" % (TABIX,tabix_db,qargs))
+    if debug:
+        sys.stderr.write("running %s %s %s\n" % (TABIX,tabix_db,qargs))
     if not filtering:
         sys.stdout.write("Type\t%s\n" % (INTRON_HEADER))
     ids_found=set()
@@ -107,13 +108,15 @@ def stream_solr(solr_query,filter_set=None,sample_set=None):
     if not filter_set and not sample_set:
         header=header_just_id
     solr_url = "%s%s&wt=csv&csv.separator=%%09&rows=%d&fl=%s" % (INTRON_URL,urllib.quote_plus(solr_query),MAX_SOLR_ROWS,header)
-    sys.stderr.write("opening %s\n" % (solr_url))
+    if DEBUG_MODE:
+        sys.stderr.write("opening %s\n" % (solr_url))
     #sys.stderr.write("opening %s%s&wt=csv&fl=gigatron_id_i,chromosome_s,start_i,end_i,strand_s,donor_s,acceptor_s,samples_t,read_coverage_by_sample_t,samples_count_i,coverage_count_i,coverage_sum_i,coverage_avg_d,coverage_median_d&csv.separator=%%09&rows=100000000\n" % ((INTRON_URL,urllib.quote_plus(solr_query))))
     #solrR = urllib2.urlopen("%s%s&wt=csv&fl=gigatron_id_i,chromosome_s,start_i,end_i,strand_s,donor_s,acceptor_s,samples_t&csv.separator=%%09" % (INTRON_URL,urllib.quote_plus(solr_query)))
     #solrR = urllib2.urlopen("%s%s&wt=csv&fl=gigatron_id_i,chromosome_s,start_i,end_i,strand_s,donor_s,acceptor_s,samples_t,read_coverage_by_sample_t,samples_count_i,coverage_count_i,coverage_sum_i,coverage_avg_d,coverage_median_d&csv.separator=%%09&rows=100000000\n" % ((INTRON_URL,urllib.quote_plus(solr_query))))
     solrR = urllib2.urlopen(solr_url)
     line=solrR.readline()
-    sys.stderr.write("streaming solr results now (querying done)\n")
+    if DEBUG_MODE:
+        sys.stderr.write("streaming solr results now (querying done)\n")
     ids_found=set()
     while(line):
         line=line.rstrip()
@@ -181,20 +184,26 @@ def range_query_parser(rangeq):
 #6) sample + range query(s) (2 function calls: 1 solr for sample filter + 1 tabix using sample filter + field filter)
 def main():
     input_ = sys.argv[1]
+    DEBUG_MODE_=DEBUG_MODE
+    if len(sys.argv) > 2:
+        DEBUG_MODE_=True
     (intervalq,rangeq,sampleq) = input_.split('|')
-    samples = load_sample_metadata(SAMPLE_MD_FILE) 
-    sys.stderr.write("loaded %d samples metadata\n" % (len(samples)))
+    samples = load_sample_metadata(SAMPLE_MD_FILE)
+    if DEBUG_MODE_:
+        sys.stderr.write("loaded %d samples metadata\n" % (len(samples)))
     if len(sampleq) >= 1:
        filter_set = stream_solr(sampleq)
-       sys.stderr.write("found %d introns in solr\n" % (len(filter_set)))
+       if DEBUG_MODE_:
+           sys.stderr.write("found %d introns in solr\n" % (len(filter_set)))
     #whether or not we use the interval query as a filter set or the whole query
     sample_set=set()
     (first_tdb,first_rquery,rquery) = range_query_parser(rangeq)
     if len(intervalq) >= 1:
-        run_tabix(intervalq,rquery,TABIX_INTERVAL_DB,sample_set=sample_set)
+        run_tabix(intervalq,rquery,TABIX_INTERVAL_DB,sample_set=sample_set,debug=DEBUG_MODE_)
     elif len(rangeq) >= 1:
-        run_tabix(first_rquery,rquery,first_tdb,sample_set=sample_set)
-    sys.stderr.write("found %d samples\n" % (len(sample_set)))
+        run_tabix(first_rquery,rquery,first_tdb,sample_set=sample_set,debug=DEBUG_MODE_)
+    if DEBUG_MODE_:
+        sys.stderr.write("found %d samples\n" % (len(sample_set)))
     #stream_samples(sample_set,samples)
 
 if __name__ == '__main__':

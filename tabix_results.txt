@@ -1,0 +1,14 @@
+cwilks@stingray:/data/gigatron$ time tabix all_SRA_introns_ids_stats.tsv.gz chr17:41196312-41277500 | wc -l
+6079
+
+real    0m0.117s
+user    0m0.111s
+sys     0m0.010s
+
+cwilks@stingray:/data/gigatron/snaptron$ time tabix /data2/gigatron2/by_sample_count.gz 1:5| wc -l
+6698386
+
+real    1m22.148s
+user    1m17.616s
+sys     0m8.857s
+

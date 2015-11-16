@@ -18,7 +18,7 @@ import cherrypy
 #from slicer.slicer import analyses_endpoint
 #from slicer.checksum import checksums_endpoint
 
-from snaptron.joiner import snaptron_endpoint
+from snaptronws import snaptron_endpoint
 
 description = "Backend web server runner for the SnapTron web service"
 
@@ -151,7 +151,7 @@ def run_server():
     #cherrypy.config.update({'server.socket_host': "127.0.0.1", 'server.socket_port': 1555, 'server.thread_pool': 30})
     #cherrypy.config.update({'server.socket_host': "10.1.1.50", 'server.socket_port': 1555, 'server.thread_pool': 30})
     #TODO: put real static IP here
-    cherrypy.config.update({'server.socket_host': "127.0.0.1", 'server.socket_port': 8090, 'server.thread_pool': 30})
+    cherrypy.config.update({'server.socket_host': "10.161.159.186", 'server.socket_port': 1555, 'server.thread_pool': 30})
 
     cherrypy.engine.start()
     cherrypy.engine.block()

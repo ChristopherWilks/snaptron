@@ -1,0 +1,53 @@
+load started 9:25 11/12/2015
+Query OK, 42882032 rows affected (1 hour 44 min 44.35 sec)
+Records: 42882032  Deleted: 0  Skipped: 0  Warnings: 0
+
+mysql> select count(*) from intron2 where samples_count=5;
++----------+
+| count(*) |
++----------+
+|   895774 |
++----------+
+1 row in set (1 min 20.16 sec)
+
+mysql> select count(*) from intron2 where samples_count>=5;
++----------+
+| count(*) |
++----------+
+|  6698386 |
++----------+
+1 row in set (12 min 30.65 sec)
+
+
+mysql> select count(gigatron_id) FROM intron2 where chromosome='chr6' and start>=1 and start <=10000000;
++--------------------+
+| count(gigatron_id) |
++--------------------+
+|             120275 |
++--------------------+
+1 row in set (45.46 sec)
+
+mysql> select count(gigatron_id) FROM intron2 WHERE chromosome='chr6' and MBRContains(LineFromText('LINESTRING(1 1,10000000 10000000)'),start_end);
++--------------------+
+| count(gigatron_id) |
++--------------------+
+|             120099 |
++--------------------+
+1 row in set (8.48 sec)
+
+mysql> explain select count(gigatron_id) FROM intron2 WHERE chromosome='chr6' and MBRContains(LineFromText('LINESTRING(1 1,10000000 10000000)'),start_end);
++----+-------------+---------+-------+---------------+-----------+---------+------+--------+-------------+
+| id | select_type | table   | type  | possible_keys | key       | key_len | ref  | rows   | Extra       |
++----+-------------+---------+-------+---------------+-----------+---------+------+--------+-------------+
+|  1 | SIMPLE      | intron2 | range | start_end     | start_end | 34      | NULL | 325528 | Using where |
++----+-------------+---------+-------+---------------+-----------+---------+------+--------+-------------+
+1 row in set (0.02 sec)
+
+mysql> select count(gigatron_id) FROM intron2 WHERE MBRContains(LineFromText('LINESTRING(41196312 41196312,41277500 41277500)'),start_end);
++--------------------+
+| count(gigatron_id) |
++--------------------+
+|              26492 |
++--------------------+
+1 row in set (6.39 sec)
+
