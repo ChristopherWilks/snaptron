@@ -265,7 +265,7 @@ def query(query, add_checksum=True):
 
 
 def translate_range_query(squery):
-    squery=re.sub(r'AND',r'|',squery)
+    squery=re.sub(r'\*',r'|',squery)
     squery=re.sub(r'GT',r'>',squery)
     squery=re.sub(r'GE',r'>=',squery)
     squery=re.sub(r'LE',r'<=',squery)
@@ -273,6 +273,7 @@ def translate_range_query(squery):
     squery=re.sub(r'\$',r':',squery)
     squery=re.sub(r'EQ',r'=',squery)
     squery=re.sub(r'!',r'!=',squery)
+    squery=re.sub(r'AND',r',',squery)
     return squery
 
 #cant have anything else in the data path or its probably a security issue
@@ -312,7 +313,6 @@ def snaptron_endpoint(environ, start_response):
     logger.info("AFTER rquery=%s" % (rquery))
     #now get the sample part of this query
     #s2query=query.get('squery', [])
-    #args=[PYTHON_PATH, LOCAL_APP, "'%s'" % (rquery)]
     args=[PYTHON_PATH, LOCAL_APP, rquery]
     #create subprocess run object 
     sproc = run_command(args)
@@ -330,7 +330,7 @@ def snaptron_endpoint(environ, start_response):
 
 #only for basic testing
 if __name__ == '__main__':
-    rquery=r'chr6$1-10000000ANDsamples_countEQ5AND'
+    rquery=r'chr6$1-10000000*samples_countEQ5*'
     logger.info("BEFORE rquery=%s" % (rquery))
     rquery = translate_range_query(rquery)
     logger.info("AFTER rquery=%s" % (rquery))
