@@ -12,3 +12,83 @@ real    1m22.148s
 user    1m17.616s
 sys     0m8.857s
 
+
+cwilks@stingray:/data2/gigatron2$ time tabix /data2/gigatron2/by_sample_count.gz 1:5| wc -l
+6698386
+
+real    1m23.102s
+user    1m19.158s
+sys     0m8.666s
+
+cwilks@stingray:/data2/gigatron2$ time tabix /data2/gigatron2/by_sample_count.gz 1:5-6| wc -l
+1539080
+
+real    0m10.786s
+user    0m10.641s
+sys     0m0.229s
+
+cwilks@stingray:/data2/gigatron2$ time tabix /data2/gigatron2/by_sample_count.gz 1:5-10| wc -l
+2968036
+
+real    0m11.704s
+user    0m11.628s
+sys     0m0.291s
+
+cwilks@stingray:/data2/gigatron2$ time tabix /data2/gigatron2/by_sample_count.gz 1:5-20| wc -l
+4262501
+
+real    0m12.697s
+user    0m12.547s
+sys     0m0.500s
+
+
+cwilks@stingray:/data2/gigatron2$ time tabix /data2/gigatron2/by_sample_count.gz 1:5| wc -l
+6698386
+
+real    1m20.023s
+user    1m16.998s
+sys     0m7.747s
+
+cwilks@stingray:/data2/gigatron2$ time tabix /data2/gigatron2/by_sample_count.gz 1:5-100000| wc -l
+6698386
+
+real    1m19.606s
+user    1m16.916s
+sys     0m7.324s
+
+
+cwilks@stingray:/data2/gigatron2$ time tabix /data2/gigatron2/by_sample_count.gz 1:5-50| wc -l
+5274658
+
+real    0m14.280s
+user    0m14.175s
+sys     0m0.663s
+
+cwilks@stingray:/data2/gigatron2$ time tabix /data2/gigatron2/by_sample_count.gz 1:5-100| wc -l
+5730323
+
+real    0m15.298s
+user    0m15.096s
+sys     0m0.928s
+
+cwilks@stingray:/data2/gigatron2$ time tabix /data2/gigatron2/by_sample_count.gz 1:5-1000| wc -l
+6392945
+
+real    0m21.912s
+user    0m21.503s
+sys     0m2.037s
+
+cwilks@stingray:/data2/gigatron2$ time tabix /data2/gigatron2/by_sample_count.gz 1:1-1000| wc -l
+42576591
+
+real    0m23.776s
+user    0m23.459s
+sys     0m3.711s
+
+cwilks@stingray:/data2/gigatron2$ time tabix /data2/gigatron2/by_sample_count.gz 1:1-100000| wc -l
+42882032
+
+real    1m21.936s
+user    1m19.203s
+sys     0m9.302s
+

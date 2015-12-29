@@ -8,6 +8,7 @@ import shlex
 from collections import namedtuple
 import urllib2
 import operator
+import time
 
 operators={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
 DEBUG_MODE=False
@@ -17,6 +18,7 @@ TABIX_DB_PATH='/data2/gigatron2'
 TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'samples_count':'sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz'}
 SAMPLE_MD_FILE='/data2/gigatron2/all_illumina_sra_for_human_ids.tsv'
 SAMPLE_IDS_COL=7
+SAMPLE_ID_COL=0
 INTRON_ID_COL=0
 
 INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
@@ -98,44 +100,21 @@ def load_sample_metadata(file_):
 
 import urllib
 MAX_SOLR_ROWS=1000000000
-def stream_solr(solr_query,filter_set=None,sample_set=None):
-    header_just_id='gigatron_id_i'
-    header_just_id_samples='gigatron_id_i,samples_t'
-    #headerF=header.split(',')
-    header=INTRON_HEADER
-    if not filter_set:
-        header=header_just_id_samples
-    if not filter_set and not sample_set:
-        header=header_just_id
-    solr_url = "%s%s&wt=csv&csv.separator=%%09&rows=%d&fl=%s" % (INTRON_URL,urllib.quote_plus(solr_query),MAX_SOLR_ROWS,header)
-    if DEBUG_MODE:
+def stream_solr(solr_query,filter_set=None,sample_set=None,debug_mode=False):
+    header_just_id='intropolis_sample_id_i'
+    solr_url = "%s%s&wt=csv&csv.separator=%%09&rows=%d&fl=%s" % (SAMPLE_URL,urllib.quote_plus(solr_query),MAX_SOLR_ROWS,header_just_id)
+    if debug_mode:
         sys.stderr.write("opening %s\n" % (solr_url))
-    #sys.stderr.write("opening %s%s&wt=csv&fl=gigatron_id_i,chromosome_s,start_i,end_i,strand_s,donor_s,acceptor_s,samples_t,read_coverage_by_sample_t,samples_count_i,coverage_count_i,coverage_sum_i,coverage_avg_d,coverage_median_d&csv.separator=%%09&rows=100000000\n" % ((INTRON_URL,urllib.quote_plus(solr_query))))
-    #solrR = urllib2.urlopen("%s%s&wt=csv&fl=gigatron_id_i,chromosome_s,start_i,end_i,strand_s,donor_s,acceptor_s,samples_t&csv.separator=%%09" % (INTRON_URL,urllib.quote_plus(solr_query)))
-    #solrR = urllib2.urlopen("%s%s&wt=csv&fl=gigatron_id_i,chromosome_s,start_i,end_i,strand_s,donor_s,acceptor_s,samples_t,read_coverage_by_sample_t,samples_count_i,coverage_count_i,coverage_sum_i,coverage_avg_d,coverage_median_d&csv.separator=%%09&rows=100000000\n" % ((INTRON_URL,urllib.quote_plus(solr_query))))
     solrR = urllib2.urlopen(solr_url)
-    line=solrR.readline()
-    if DEBUG_MODE:
+    if debug_mode:
         sys.stderr.write("streaming solr results now (querying done)\n")
-    ids_found=set()
+    line=solrR.readline()
     while(line):
         line=line.rstrip()
         fields=line.split("\t")
-        if filter_set != None and fields[INTRON_ID_COL] not in filter_set:
-            line=solrR.readline()
-            continue
         if sample_set != None:
-            #fields[SAMPLE_IDS_COL]=fields[SAMPLE_IDS_COL].replace(r'"',r'')
-            #sample_ids=set(fields[SAMPLE_IDS_COL].split(','))
-            fields[1]=fields[1].replace(r'"',r'')
-            sample_ids=set(fields[1].split(','))
-            sample_set.update(sample_ids)
-        if filter_set == None:
-            ids_found.add(fields[0])
-        #sys.stdout.write("I\t%s\n" % (line))
+            sample_set.add(fields[SAMPLE_ID_COL]) 
         line=solrR.readline()
-    if filter_set == None:
-        return ids_found
 
 comp_op_pattern=re.compile(r'([=><!]+)')
 def range_query_parser(rangeq):
@@ -175,6 +154,52 @@ def range_query_parser(rangeq):
         first_rquery="1:%d%s" % (val,extension)
     return (first_tdb,first_rquery,rquery)
 
+#this does the reverse: given a set of sample ids,
+#return all the introns associated with each sample
+import cPickle
+def stream_introns_from_samples(sample_set):
+    start = time.time()
+    sample2introns={}
+    if os.path.exists("./sample2introns.pkl"):
+        #f=open("./introns.pkl","rb")
+        #introns=cPickle.load(f)
+        #f.close()
+        f=open("./sample2introns.pkl","rb")
+        sample2introns=cPickle.load(f)
+        f.close()
+    else:
+        f=open("/data2/gigatron2/all_SRA_introns_ids_stats.tsv.new","r")
+        for line in f:
+            if "gigatron_id" in line:
+                continue
+            fields=line.rstrip().split('\t')
+            sample_ids=fields[SAMPLE_IDS_COL].split(',')
+            #introns[fields[0]]=line
+            for sample_id in sample_ids:
+                if sample_id not in sample2introns:
+                    sample2introns[sample_id]=set()
+                sample2introns[sample_id].add(int(fields[0]))
+        f.close()
+    if not os.path.exists("./sample2introns.pkl"):
+        #f=open("./introns.pkl","wb")
+        #cPickle.dump(introns,f,cPickle.HIGHEST_PROTOCOL)
+        #f.close()
+        f=open("./sample2introns.pkl","rb")
+        cPickle.dump(sample2introns,f,cPickle.HIGHEST_PROTOCOL)
+        f.close()
+    end = time.time()
+    taken=end-start
+    print("loaded introns in %d" % (taken))
+    introns_seen=set()
+    for sample_id in sample_set:
+        #for intron_id in sample2introns[sample_id]:
+        #    if intron_id in seen:
+        #        continue
+        introns_seen.update(sample2introns[sample_id])
+    sys.stdout.write("s2I\t%s\n" % (str(len(introns_seen))))
+    #for intron_id in introns_seen:
+    #    sys.stdout.write("I\t%s\n" % (introns[intron_id]))
+    
 #cases:
 #1) just interval (one function call)
 #2) interval + range query(s) (one tabix function call + field filter(s))
@@ -191,12 +216,14 @@ def main():
     samples = load_sample_metadata(SAMPLE_MD_FILE)
     if DEBUG_MODE_:
         sys.stderr.write("loaded %d samples metadata\n" % (len(samples)))
+    sample_set=set()
     if len(sampleq) >= 1:
-       filter_set = stream_solr(sampleq)
+       stream_solr(sampleq,sample_set=sample_set)
        if DEBUG_MODE_:
            sys.stderr.write("found %d introns in solr\n" % (len(filter_set)))
+       if len(intervalq) == 0 and len(rangeq) == 0:
+           stream_introns_from_samples(sample_set)
     #whether or not we use the interval query as a filter set or the whole query
-    sample_set=set()
     (first_tdb,first_rquery,rquery) = range_query_parser(rangeq)
     if len(intervalq) >= 1:
         run_tabix(intervalq,rquery,TABIX_INTERVAL_DB,sample_set=sample_set,debug=DEBUG_MODE_)
