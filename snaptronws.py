@@ -265,13 +265,14 @@ def query(query, add_checksum=True):
 
 
 def translate_range_query(squery):
+    squery=re.sub(r'EQ',r'=',squery)
+    return squery
     squery=re.sub(r'\*',r'|',squery)
     squery=re.sub(r'GT',r'>',squery)
     squery=re.sub(r'GE',r'>=',squery)
     squery=re.sub(r'LE',r'<=',squery)
     squery=re.sub(r'LT',r'<',squery)
     squery=re.sub(r'\$',r':',squery)
-    squery=re.sub(r'EQ',r'=',squery)
     squery=re.sub(r'!',r'!=',squery)
     squery=re.sub(r'AND',r',',squery)
     return squery
@@ -281,7 +282,10 @@ READ_SIZE_PATTERN = re.compile(r'^\d+$')
 def snaptron_endpoint(environ, start_response):
     http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}
     query_string = environ.get('QUERY_STRING')
-    query = urlparse.parse_qs(environ.get('QUERY_STRING'))
+    query_string = query_string.replace("'","")
+    query_string = query_string.replace('"','')
+    #query = urlparse.parse_qs(environ.get('QUERY_STRING'))
+    query = urlparse.parse_qs(query_string)
     #first log message (outside of errors) so put in a newline
     logger.info("\nQUERY_STRING %s" % query_string)
 
@@ -310,7 +314,7 @@ def snaptron_endpoint(environ, start_response):
     rquery=query.get('rquery', [])
     logger.info("BEFORE rquery=%s" % (rquery[0]))
     rquery = translate_range_query(rquery[0])
-    logger.info("AFTER rquery=%s" % (rquery))
+    #logger.info("AFTER rquery=%s" % (rquery))
     #now get the sample part of this query
     #s2query=query.get('squery', [])
     args=[PYTHON_PATH, LOCAL_APP, rquery]
@@ -330,7 +334,8 @@ def snaptron_endpoint(environ, start_response):
 
 #only for basic testing
 if __name__ == '__main__':
-    rquery=r'chr6$1-10000000*samples_countEQ5*'
+    #rquery=r'chr6$1-10000000*samples_countEQ5*'
+    rquery=r'chr6:1-10000000|samples_countEQ5|'
     logger.info("BEFORE rquery=%s" % (rquery))
     rquery = translate_range_query(rquery)
     logger.info("AFTER rquery=%s" % (rquery))
