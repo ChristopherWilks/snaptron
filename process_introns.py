@@ -122,6 +122,8 @@ if __name__ == '__main__':
     sys.stderr.write('\t'.join(["chr","start","end","length","strand","annotated?","left_motif","right_motif","left_annotated?","right_annotated?","rest...","\n"]))
     for line in sys.stdin:
         tokens = line.strip().split('\t')
+	if tokens[0] == 'gigatron_id_i':
+		continue
         junction = tuple(tokens[1:4])
         #check to see if we want this junction
         annotated = junction in annotated_junctions
@@ -133,8 +135,8 @@ if __name__ == '__main__':
 	tokens_length = len(tokens)
         left_motif, right_motif = tokens[5], tokens[6]
 	middle_stuff = tokens[7:]
-        print '\t'.join(junction + (str(length), strand,
+        print '\t'.join([tokens[0], '\t'.join(junction), str(length), strand,
             '1' if annotated else '0', left_motif, right_motif,
             '1' if (junction[0], junction[1]) in five_p else '0',
             '1' if (junction[0], junction[2]) in three_p else '0',
-	    '\t'.join(middle_stuff)))
+	    '\t'.join(middle_stuff)])
