@@ -127,7 +127,7 @@ def main():
             #check for overlaps in the repeats via chosen coordinate
             roverlaps = rtrees[refid].find(coord,coord) 
             #if no repeat overlaps skip
-            if roverlaps == 0:
+            if len(roverlaps) == 0:
                 continue
             process_overlaps(eoverlaps,coord,roverlaps,line) 
 
