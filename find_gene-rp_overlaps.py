@@ -15,12 +15,12 @@ from bx.intervals.intersection import IntervalTree
 
 def load_exons(exonsF):
     etrees={}
-    typePattern = re.compile(r' gene_(bio)?type "([^"]+)')
-    tnamePattern = re.compile(r' transcript_name "([^"]+)')
-    gnamePattern = re.compile(r' gene_name "([^"]+)')
+    typePattern = re.compile(r' gene_(bio)?type "([^"]+)"')
+    tnamePattern = re.compile(r' transcript_name "([^"]+)"')
+    gnamePattern = re.compile(r' gene_name "([^"]+)"')
     gtype = ""
     tname = ""
-    seen = {}
+    seen = set()
     exonsIN = open(exonsF)
     for line in exonsIN:
         line = line.rstrip()
@@ -30,7 +30,7 @@ def load_exons(exonsF):
         rest = fields[8]
         m = typePattern.search(rest)
         if m:
-            gtype = m.group(1)
+            gtype = m.group(2)
         m = tnamePattern.search(rest)
         if m:
             tname = m.group(1)
@@ -42,6 +42,7 @@ def load_exons(exonsF):
         #present already in interval tree
         if "%s_%s" % (st,en) in seen:
             continue
+        seen.add("%s_%s" % (st,en))
         if refid not in etrees:
             etrees[refid] = IntervalTree()
         itv = Interval(int(st),int(en), value=[tname,gtype])
@@ -99,8 +100,8 @@ def main():
     repeatsF = sys.argv[2]
     intronsF = sys.argv[3]    
 
-    rtrees = load_repeats(repeatsF)
     etrees = load_exons(exonsF)
+    rtrees = load_repeats(repeatsF)
     
     with open(intronsF,"r") as intronsIN:
         for line in intronsIN:
@@ -110,16 +111,18 @@ def main():
             #chr/reference doesnt exist in the exon interval tree or in the repeat interval tree
             if refid not in etrees or refid not in rtrees:
                 continue
+            st = int(st)
+            en = int(en)
             estarts = etrees[refid].find(st,st)
             eends = etrees[refid].find(en,en)
-            #both ends are in an exon, skip
-            if len(estarts) > 0 and len(eends) > 0: 
+            #both ends are in an exon, or both are not, either way skip
+            if (len(estarts) > 0 and len(eends) > 0) or (len(estarts) == 0 and len(eends) == 0): 
                 continue
             #default to start as the repeat overlapping end
-            eoverlaps = estarts
+            eoverlaps = eends
             coord = st
             if len(eends) == 0:
-                eoverlaps = eends
+                eoverlaps = estarts
                 coord = en
             #check for overlaps in the repeats via chosen coordinate
             roverlaps = rtrees[refid].find(coord,coord) 
