@@ -101,9 +101,9 @@ def process_overlaps(eo,uo,rgo,ro,iline):
     (rglables,rggenes,rggenetypes) = process_overlap_values(eo,'RG')
     (rlables,repeats,repeatclasses) = process_overlap_values(ro,'RP')
     #sys.stdout.write("%d\t%s\t%s\t%s\t%s\t%s\n" % (coord,genes,genetypes,repeats,repeatclasses,iline))
-    lables = ";".join(elables,ulables,rglables,rlables)
-    features = ";".join(egenes,ugenes,rgenes,rrepeats)
-    ftypes = ";".join(egenetypes,ugenetypes,rggenetypes,repeatclasses) 
+    lables = ";".join([elables,ulables,rglables,rlables])
+    features = ";".join([egenes,ugenes,rggenes,repeats])
+    ftypes = ";".join([egenetypes,ugenetypes,rggenetypes,repeatclasses]) 
     sys.stdout.write("%s\t%s\t%s\t%s\n" % (iline,lables,features,ftypes))
 
 
@@ -114,12 +114,13 @@ def main():
     repeatsF = sys.argv[4]
     intronsF = sys.argv[5]    
 
-    es_trees = load_exons(es_exonsF)
-    uc_trees = load_exons(uc_exonsF)
-    rg_trees = load_exons(rg_exonsF)
+    es_etrees = load_exons(es_exonsF)
+    uc_etrees = load_exons(uc_exonsF)
+    rg_etrees = load_exons(rg_exonsF)
     rtrees = load_repeats(repeatsF)
 
-    sys.stdout.write("gigatron_id\tchromosome\tstart\tend\tstrand\tdonor\tacceptor\tsamples\tread_coverage_by_sample\tsamples_count\tcoverage_count\tcoverage_sum\tcoverage_avg\tcoverage_median\toverlapped_features\toverlapped_feature_sources\toverlapped_feature_types\n")
+    #sys.stdout.write("gigatron_id\tchromosome\tstart\tend\tstrand\tdonor\tacceptor\tsamples\tread_coverage_by_sample\tsamples_count\tcoverage_count\tcoverage_sum\tcoverage_avg\tcoverage_median\toverlapped_features\toverlapped_feature_sources\toverlapped_feature_types\n")
+    sys.stdout.write('\t'.join(["gigatron_id","chromosome","start","end","length","strand","annotated?","left_motif","right_motif","left_annotated?","right_annotated?","samples","read_coverage_by_sample","samples_count","coverage_sum","coverage_avg","coverage_median","overlapped_features","overlapped_feature_sources","overlapped_feature_types","\n"]))
 #\trepeats_overlapped\trepeat_classes\n")
     with open(intronsF,"r") as intronsIN:
         for line in intronsIN:
@@ -127,10 +128,12 @@ def main():
             (refid,st,en,length,orient)=fields[1:6]
             refid = refid.replace("chr","")
             #chr/reference doesnt exist in the exon interval tree or in the repeat interval tree
-            if refid not in etrees and refid not in rtrees:
-                continue
             st = int(st)
             en = int(en)
+            eoverlaps=[]
+            uoverlaps=[]
+            rgoverlaps=[]
+            roverlaps=[]
             if refid in es_etrees:
                 eoverlaps = es_etrees[refid].find(st,en)
             if refid in uc_etrees:
