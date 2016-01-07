@@ -24,9 +24,9 @@ INTRON_ID_COL=0
 INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
 SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
 
-INTRON_HEADER='gigatron_id,chromosome,start,end,strand,donor,acceptor,samples,read_coverage_by_sample,samples_count,coverage_count,coverage_sum,coverage_avg,coverage_median'
+INTRON_HEADER='gigatron_id	chromosome	start	end	strand	donor	acceptor	samples	read_coverage_by_sample	samples_count	coverage_count	coverage_sum	coverage_avg	coverage_median'
 SAMPLE_HEADER=""
-INTRON_HEADER_FIELDS=INTRON_HEADER.split(",")
+INTRON_HEADER_FIELDS=INTRON_HEADER.split('\t')
 INTRON_HEADER_FIELDS_MAP={}
 i=0
 for field in INTRON_HEADER_FIELDS:

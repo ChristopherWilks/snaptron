@@ -21,3 +21,9 @@ time python ./snaptron.py 'chr11:82970135-82997450|samples_count>=100,coverage_s
 
 
 ./snaptron_server --no-daemon
+
+curl "http://128.220.35.129:8443/snaptron?" --data-urlencode "chr6:1-10000000|samples_count=5|"
+curl -vv -G "http://128.220.35.129:8443/snaptron/?rquery=chr6:1-10000000|samples_countEQ5|"
+curl -vv -G "http://stingray.cs.jhu.edu:8443/snaptron/?rquery=chr6:1-10000000|samples_countEQ5|"
+
+curl http://stingray.cs.jhu.edu:8443/snaptron/?rquery='chr6:1-10000000|samples_count=5|'

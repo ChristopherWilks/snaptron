@@ -265,7 +265,7 @@ def query(query, add_checksum=True):
 
 
 def translate_range_query(squery):
-    squery=re.sub(r'EQ',r'=',squery)
+    #squery=re.sub(r'EQ',r'=',squery)
     return squery
     squery=re.sub(r'\*',r'|',squery)
     squery=re.sub(r'GT',r'>',squery)
