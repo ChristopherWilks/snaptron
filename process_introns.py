@@ -46,7 +46,7 @@ gzip -cd all_SRA_introns.tsv.gz | pypy process_introns.py \
     --annotation [GTF files]
     >[output file]
 
-We used the annotations:
+We used the annotations (must be passed in this order):
 gencode.v19.annotation.gtf.gz
     (from ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_19/)
 Homo_sapiens.GRCh37.75.gtf.gz
@@ -91,11 +91,12 @@ if __name__ == '__main__':
         )
     args = parser.parse_args()
 
-    annotated_junctions = set()
-    five_p = set()
-    three_p = set()
+    annotated_junctions = {}
+    five_p = {}
+    three_p = {}
     refs = ['chr' + str(i) for i in xrange(1, 23)] + ['chrM', 'chrX', 'chrY']
-    for annotation in args.annotations:
+    types=['ES','UC','RG']
+    for index,annotation in enumerate(args.annotations):
         extract_process = subprocess.Popen([sys.executable,
                                                 args.extract_splice_sites_path,
                                                 annotation],
@@ -104,12 +105,25 @@ if __name__ == '__main__':
             tokens = line.strip().split('\t')
             tokens[1] = str(int(tokens[1]) + 2)
             tokens[2] = str(int(tokens[2]))
+            #sys.stderr.write("index %d line %s\n" % (index,line))
+            tokens.append(types[index])
             if not tokens[0].startswith('chr'):
                 tokens[0] = 'chr' + tokens[0]
             if tokens[0] in refs:
-                annotated_junctions.add(tuple(tokens[:-1]))
-                five_p.add((tokens[0], tokens[1]))
-                three_p.add((tokens[0], tokens[2]))
+                hkey = tuple(tokens[:3])
+                if hkey not in annotated_junctions:
+                    annotated_junctions[hkey]=[]
+                annotated_junctions[hkey].append(tokens[4])
+                hkey = (tokens[0], tokens[1])
+                if hkey not in five_p:
+                    five_p[hkey]=[]
+                five_p[hkey].append(tokens[4])
+                #five_p.add((tokens[0], tokens[1]))
+                hkey = (tokens[0], tokens[2])
+                if hkey not in three_p:
+                    three_p[hkey]=[]
+                three_p[hkey].append(tokens[4])
+                #three_p.add((tokens[0], tokens[2]))
         extract_process.stdout.close()
         exit_code = extract_process.wait()
         if exit_code != 0:
@@ -118,25 +132,30 @@ if __name__ == '__main__':
                                                                     exit_code
                                                                 )
             )
-    sys.stderr.write("Header:\n")
-    sys.stderr.write('\t'.join(["chr","start","end","length","strand","annotated?","left_motif","right_motif","left_annotated?","right_annotated?","rest...","\n"]))
+    #sys.stderr.write("Header:\n")
+    sys.stderr.write('\t'.join(["gigatron_id","chromosome","start","end","length","strand","annotated?","left_motif","right_motif","left_annotated?","right_annotated?","samples","read_coverage_by_sample","samples_count","coverage_sum","coverage_avg","coverage_median","\n"]))
     for line in sys.stdin:
         tokens = line.strip().split('\t')
-	if tokens[0] == 'gigatron_id_i':
+        if tokens[0] == 'gigatron_id_i':
 		continue
         junction = tuple(tokens[1:4])
         #check to see if we want this junction
         annotated = junction in annotated_junctions
-        if int(annotated) == args.annotated_type:
-            continue
+        annot_type = None
+        if annotated:
+            annot_type = annotated_junctions[junction]
         start = int(junction[1])
         length = int(junction[2]) + 1 - start
         strand = tokens[4]
 	tokens_length = len(tokens)
         left_motif, right_motif = tokens[5], tokens[6]
 	middle_stuff = tokens[7:]
+        if (junction[0], junction[1]) in five_p:
+            five_atype = five_p[(junction[0], junction[1])]
+        if (junction[0], junction[2]) in three_p:
+            three_atype = three_p[(junction[0], junction[2])]
         print '\t'.join([tokens[0], '\t'.join(junction), str(length), strand,
             '1' if annotated else '0', left_motif, right_motif,
-            '1' if (junction[0], junction[1]) in five_p else '0',
-            '1' if (junction[0], junction[2]) in three_p else '0',
+            "%s:1" % (",".join(five_atype)) if (junction[0], junction[1]) in five_p else '0',
+            "%s:1" % (",".join(three_atype)) if (junction[0], junction[2]) in three_p else '0',
 	    '\t'.join(middle_stuff)])
