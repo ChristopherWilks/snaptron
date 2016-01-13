@@ -125,6 +125,8 @@ def main():
     with open(intronsF,"r") as intronsIN:
         for line in intronsIN:
             fields = line.split('\t') 
+            if fields[0] == 'gigatron_id':
+                continue
             (refid,st,en,length,orient)=fields[1:6]
             refid = refid.replace("chr","")
             #chr/reference doesnt exist in the exon interval tree or in the repeat interval tree
@@ -144,6 +146,8 @@ def main():
             if refid in rtrees:
                 roverlaps = rtrees[refid].find(st,en) 
             #if no repeat overlaps skip
+            if len(eoverlaps) > 0 or len(uoverlaps) > 0 or len(rgoverlaps) > 0:
+                sys.stderr.write("found gene overlap %d\n" % int(fields[0]))
             process_overlaps(eoverlaps,uoverlaps,rgoverlaps,roverlaps,line) 
 
 
