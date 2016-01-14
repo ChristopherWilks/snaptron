@@ -13,18 +13,19 @@ import time
 operators={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
 DEBUG_MODE=False
 TABIX="tabix"
-TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.gz'
+#TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.gz'
+TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
 TABIX_DB_PATH='/data2/gigatron2'
-TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'samples_count':'sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz'}
+TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'length':'by_length.gz','snaptron_id':'by_id.gz','samples_count':'sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz'}
 SAMPLE_MD_FILE='/data2/gigatron2/all_illumina_sra_for_human_ids.tsv'
-SAMPLE_IDS_COL=7
+SAMPLE_IDS_COL=12
 SAMPLE_ID_COL=0
-INTRON_ID_COL=0
+INTRON_ID_COL=1
 
 INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
 SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
 
-INTRON_HEADER='gigatron_id	chromosome	start	end	strand	donor	acceptor	samples	read_coverage_by_sample	samples_count	coverage_count	coverage_sum	coverage_avg	coverage_median'
+INTRON_HEADER='gigatron_id	chromosome	start	end	length	strand	annotated?	left_motif	right_motif	left_annotated?	right_annotated?	samples	read_coverage_by_sample	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'
 SAMPLE_HEADER=""
 INTRON_HEADER_FIELDS=INTRON_HEADER.split('\t')
 INTRON_HEADER_FIELDS_MAP={}
@@ -41,7 +42,7 @@ def run_tabix(qargs,rquerys,tabix_db,filter_set=None,sample_set=None,filtering=F
     if not filtering:
         sys.stdout.write("Type\t%s\n" % (INTRON_HEADER))
     ids_found=set()
-    tabixp = subprocess.Popen("%s %s %s" % (TABIX,tabix_db,qargs),stdout=subprocess.PIPE,shell=True)
+    tabixp = subprocess.Popen("%s %s %s | cut -f 2-" % (TABIX,tabix_db,qargs),stdout=subprocess.PIPE,shell=True)
     for line in tabixp.stdout:
         fields=[]
         #build either filter set or sample set or both
