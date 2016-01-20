@@ -118,7 +118,7 @@ def stream_solr(solr_query,filter_set=None,sample_set=None,debug_mode=False):
         line=solrR.readline()
 
 comp_op_pattern=re.compile(r'([=><!]+)')
-def range_query_parser(rangeq):
+def range_query_parser(rangeq,rquery_will_be_index=False):
     rquery={}
     if rangeq is None or len(rangeq) < 1:
         return (None,None,rquery)
@@ -135,13 +135,28 @@ def range_query_parser(rangeq):
         if op not in operators:
             sys.stderr.write("bad operator %s in range query,exiting\n" % (str(op)))
             sys.exit(-1)
-        rquery[col]=(operators[op],val)
         if first_tdb:
+            rquery[col]=(operators[op],val)
             continue 
+        #add first rquery to the rquery hash if we're not going to be
+        #used as an index 
+        #OR the case where it's floating point and we need to work around
+        #Tabix's lack of support for that
+        if not rquery_will_be_index or 'avg' in col or 'median' in col:
+            rquery[col]=(operators[op],val)
+        #if we are used for the index,
+        #then for 2nd pass columns where the value could be 0 (GTEx)
+        #we need to add another predicate to avoid the 0
+        #since tabix doesn't handle 0's and will return them
+        #even for a >=1 query
+        #elif col[-1] == '2' and val > 0.0:
+        #    rquery[col]=(operators['>'],0.0)
         #only do the following for the first range query
         tdb=TABIX_DBS[col]
         first_tdb=tdb
         extension=""
+        #since tabix only takes integers, round to nearest integer
+        val = round(val)
         if op == '=':
             extension="-%d" % (val)
         if op == '<=':
@@ -225,7 +240,8 @@ def main():
        if len(intervalq) == 0 and len(rangeq) == 0:
            stream_introns_from_samples(sample_set)
     #whether or not we use the interval query as a filter set or the whole query
-    (first_tdb,first_rquery,rquery) = range_query_parser(rangeq)
+    rquery_index = len(intervalq) < 1 and len(rangeq) >= 1
+    (first_tdb,first_rquery,rquery) = range_query_parser(rangeq,rquery_will_be_index=rquery_index)
     if len(intervalq) >= 1:
         run_tabix(intervalq,rquery,TABIX_INTERVAL_DB,sample_set=sample_set,debug=DEBUG_MODE_)
     elif len(rangeq) >= 1:
