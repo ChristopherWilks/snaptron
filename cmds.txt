@@ -19,7 +19,7 @@ time curl 'http://10.161.159.186:1555/snaptron?rquery=chr6$1-10000000**' | wc -l
 
 time python ./snaptron.py 'chr11:82970135-82997450|samples_count>=100,coverage_sum>=1000|' > /data2/gigatron2/ccdc90b.range2.sc100_cs1000
 
-
+source /data/gigatron/snaptron/python/bin/activate
 ./snaptron_server --no-daemon
 
 curl "http://128.220.35.129:8443/snaptron?" --data-urlencode "chr6:1-10000000|samples_count=5|"

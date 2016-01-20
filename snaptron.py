@@ -25,7 +25,7 @@ INTRON_ID_COL=1
 INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
 SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
 
-INTRON_HEADER='gigatron_id	chromosome	start	end	length	strand	annotated?	left_motif	right_motif	left_annotated?	right_annotated?	samples	read_coverage_by_sample	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'
+INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated?	left_motif	right_motif	left_annotated?	right_annotated?	samples	read_coverage_by_sample	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'
 SAMPLE_HEADER=""
 INTRON_HEADER_FIELDS=INTRON_HEADER.split('\t')
 INTRON_HEADER_FIELDS_MAP={}
