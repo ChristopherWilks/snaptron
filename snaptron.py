@@ -22,6 +22,7 @@ SAMPLE_IDS_COL=12
 SAMPLE_ID_COL=0
 INTRON_ID_COL=1
 
+DATA_SOURCE='SRA'
 INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
 SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
 
@@ -40,7 +41,7 @@ def run_tabix(qargs,rquerys,tabix_db,filter_set=None,sample_set=None,filtering=F
     if debug:
         sys.stderr.write("running %s %s %s\n" % (TABIX,tabix_db,qargs))
     if not filtering:
-        sys.stdout.write("Type\t%s\n" % (INTRON_HEADER))
+        sys.stdout.write("DataSource:Type\t%s\n" % (INTRON_HEADER))
     ids_found=set()
     tabixp = subprocess.Popen("%s %s %s | cut -f 2-" % (TABIX,tabix_db,qargs),stdout=subprocess.PIPE,shell=True)
     for line in tabixp.stdout:
@@ -74,7 +75,7 @@ def run_tabix(qargs,rquerys,tabix_db,filter_set=None,sample_set=None,filtering=F
                 continue
         #now just stream back the result
         if not filtering:
-            sys.stdout.write("I\t%s" % (line))
+            sys.stdout.write("%s:I\t%s" % (DATA_SOURCE,line))
     exitc=tabixp.wait() 
     if exitc != 0:
         raise RuntimeError("%s %s %s returned non-0 exit code\n" % (TABIX,TABIX_DB,args))
@@ -82,9 +83,9 @@ def run_tabix(qargs,rquerys,tabix_db,filter_set=None,sample_set=None,filtering=F
         return ids_found
 
 def stream_samples(sample_set,sample_map):
-    sys.stdout.write("Type\t%s\n" % (SAMPLE_HEADER))
+    sys.stdout.write("DataSource:Type\t%s\n" % (SAMPLE_HEADER))
     for sample_id in sample_set:
-        sys.stdout.write("S\t%s\n" % (sample_map[sample_id]))
+        sys.stdout.write("%s:S\t%s\n" % (DATA_SOURCE,sample_map[sample_id]))
 
 #use to load samples metadata to be returned
 #ONLY when the user requests by overlap coords OR
