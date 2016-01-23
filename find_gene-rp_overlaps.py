@@ -33,15 +33,18 @@ def load_exons_and_genes(genesF):
         #now save the exons as intervals
         if refid not in etrees:
             etrees[refid] = IntervalTree()
+        #use 1-based closed interval
+        tstart=int(tstart)+1 
         for (eStart,eEnd) in zip(eStarts,eEnds):
             if len(eStart) == 0:
                 continue
+            #use 1-based closed interval
+            eStart=int(eStart)+1
             #sys.stderr.write("%s %s %s\n"%(eStart,eEnd,cluster_id))
-            itv = Interval(int(eStart),int(eEnd), value=cluster_id)
+            itv = Interval(eStart,int(eEnd), value=cluster_id)
             etrees[refid].insert_interval(itv)
         #now map to the cluster_id and figure whether we can increase
         #the longest transcript coordinate span with these coordinates
-        tstart = int(tstart)
         tend = int(tend)
         if cluster_id not in t_to_gene_map:
             t_to_gene_map[cluster_id]=[tstart,tend,refid]
@@ -80,14 +83,15 @@ def load_repeats(repeatsF):
         orient = fields[9]
         tname = fields[10]
         gtype = fields[11]
-
+        #use 1-based closed interval
+        st=int(st)+1
         #present already in interval tree
-        if "%s_%s" % (st,en) in seen:
+        if "%d_%s" % (st,en) in seen:
             continue
-        seen.add("%s_%s" % (st,en))
+        seen.add("%d_%s" % (st,en))
         if refid not in rtrees:
             rtrees[refid] = IntervalTree()
-        itv = Interval(int(st),int(en), value=[tname,gtype])
+        itv = Interval(st,int(en), value=[tname,gtype])
         rtrees[refid].insert_interval(itv)
     repeatsIN.close()
     return rtrees
@@ -135,7 +139,8 @@ def main():
             map(lambda x: go1.add(x.value),gtrees[refid].find(st,st))
             map(lambda x: go2.add(x.value),gtrees[refid].find(en,en))
             cluster_ids = go1.intersection(go2)
-            #at least one gene must span both start and end of the intron
+            #only one gene must span both start and end of the intron
+            #if len(cluster_ids) == 0 or len(cluster_ids) > 1:
             if len(cluster_ids) == 0:
                 continue
             estarts = etrees[refid].find(st,st)
@@ -145,6 +150,7 @@ def main():
                 continue
             #actually forget about both exons, we just need to determine that the coordinate span is within at least one gene
             #instead of filtering, we'll take any exon as along as the original span is in a gene
+            #AND one end is not in an exon while the other is in an exon
             #estarts = filter_exons(estarts,cluster_ids) 
             #eends = filter_exons(eends,cluster_ids) 
             #default to start as the repeat overlapping end
