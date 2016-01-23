@@ -30,6 +30,7 @@ def load_exons_and_genes(genesF):
         refid = refid.replace("chr","")
         eStarts = fields[9].split(',')
         eEnds = fields[10].split(',')
+        alignID = fields[12]
         #now save the exons as intervals
         if refid not in etrees:
             etrees[refid] = IntervalTree()
@@ -41,7 +42,8 @@ def load_exons_and_genes(genesF):
             #use 1-based closed interval
             eStart=int(eStart)+1
             #sys.stderr.write("%s %s %s\n"%(eStart,eEnd,cluster_id))
-            itv = Interval(eStart,int(eEnd), value=cluster_id)
+            #must adjust for the open intervals (both) of the interval tree
+            itv = Interval(eStart-1,int(eEnd)+1, value=[cluster_id,alignID])
             etrees[refid].insert_interval(itv)
         #now map to the cluster_id and figure whether we can increase
         #the longest transcript coordinate span with these coordinates
@@ -59,7 +61,8 @@ def load_exons_and_genes(genesF):
         if refid not in gtrees:
             gtrees[refid] = IntervalTree()
         #sys.stderr.write("%d %d %s\n"%(st,en,cluster_id))
-        itv = Interval(int(st),int(en), value=cluster_id)
+        #must adjust for the open intervals (both) of the interval tree
+        itv = Interval(int(st)-1,int(en)+1,value=cluster_id)
         gtrees[refid].insert_interval(itv)
     return (etrees,gtrees)
 
@@ -91,7 +94,8 @@ def load_repeats(repeatsF):
         seen.add("%d_%s" % (st,en))
         if refid not in rtrees:
             rtrees[refid] = IntervalTree()
-        itv = Interval(st,int(en), value=[tname,gtype])
+        #must adjust for the open intervals (both) of the interval tree
+        itv = Interval(st-1,int(en)+1, value=[tname,gtype])
         rtrees[refid].insert_interval(itv)
     repeatsIN.close()
     return rtrees
@@ -103,10 +107,12 @@ def process_overlap_values(overlaps):
         names.append(overlap.value[0]) 
         types.append(overlap.value[1]) 
     return (";".join(names),";".join(types))
+    #return ";".join(names)
  
 
 def process_overlaps(eo,coord,ro,iline):
     (genes,genetypes) = process_overlap_values(eo)
+    #genes = process_overlap_values(eo)
     (repeats,repeatclasses) = process_overlap_values(ro)
     sys.stdout.write("%d\t%s\t%s\t%s\t%s\t%s\n" % (coord,genes,genetypes,repeats,repeatclasses,iline))
 
@@ -134,10 +140,10 @@ def main():
             en = int(en)
             go1 = set()
             go2 = set()
-            #goverlaps1 = gtrees[refid].find(st,st)
-            #goverlaps2 = gtrees[refid].find(en,en)
-            map(lambda x: go1.add(x.value),gtrees[refid].find(st,st))
-            map(lambda x: go2.add(x.value),gtrees[refid].find(en,en))
+            goverlaps1 = gtrees[refid].find(st,st)
+            goverlaps2 = gtrees[refid].find(en,en)
+            map(lambda x: go1.add(x.value),goverlaps1)
+            map(lambda x: go2.add(x.value),goverlaps2)
             cluster_ids = go1.intersection(go2)
             #only one gene must span both start and end of the intron
             #if len(cluster_ids) == 0 or len(cluster_ids) > 1:
