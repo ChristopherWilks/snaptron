@@ -164,7 +164,7 @@ def range_query_parser(rangeq,rquery_will_be_index=False):
         first_tdb=tdb
         extension=""
         #since tabix only takes integers, round to nearest integer
-        val = round(val)
+        val = int(round(val))
         if op == '=':
             extension="-%d" % (val)
         if op == '<=':
