@@ -70,9 +70,9 @@ def run_tabix(qargs,rquerys,tabix_db,filter_set=None,sample_set=None,filtering=F
                     sys.stderr.write("bad field %s in range query,exiting\n" % (rfield))
                     sys.exit(-1)
                 fidx = INTRON_HEADER_FIELDS_MAP[rfield]
-                val = int(fields[fidx])
-                if rfield in FLOAT_FIELDS:
-                    val = float(fields[fidx])
+                val = float(fields[fidx])
+                if not rfield in FLOAT_FIELDS:
+                    val = int(val)
                 if not op(val,rval):
                     skip=True
                     break
@@ -134,9 +134,9 @@ def range_query_parser(rangeq,rquery_will_be_index=False):
     for field in fields:
         m=comp_op_pattern.search(field)
         (col,op_,val)=re.split(comp_op_pattern,field)
-        val=int(val)
-        if col in FLOAT_FIELDS:
-            val=float(val)
+        val=float(val)
+        if col not in FLOAT_FIELDS:
+            val=int(val)
         if not m or not col or col not in TABIX_DBS:
             continue
         op=m.group(1)
