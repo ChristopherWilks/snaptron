@@ -26,6 +26,8 @@ DATA_SOURCE='SRA'
 INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
 SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
 
+FLOAT_FIELDS=set(['coverage_avg','coverage_median'])
+
 INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated?	left_motif	right_motif	left_annotated?	right_annotated?	samples	read_coverage_by_sample	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'
 SAMPLE_HEADER=""
 INTRON_HEADER_FIELDS=INTRON_HEADER.split('\t')
@@ -63,12 +65,15 @@ def run_tabix(qargs,rquerys,tabix_db,filter_set=None,sample_set=None,filtering=F
                 fields=line.rstrip().split("\t")
             skip=False
             for rfield in rquerys.keys():
-                (op,val)=rquerys[rfield]
+                (op,rval)=rquerys[rfield]
                 if rfield not in INTRON_HEADER_FIELDS_MAP:
                     sys.stderr.write("bad field %s in range query,exiting\n" % (rfield))
                     sys.exit(-1)
                 fidx = INTRON_HEADER_FIELDS_MAP[rfield]
-                if not op(float(fields[fidx]),val):
+                val = int(fields[fidx])
+                if rfield in FLOAT_FIELDS:
+                    val = float(fields[fidx])
+                if not op(val,rval):
                     skip=True
                     break
             if skip:
@@ -129,7 +134,9 @@ def range_query_parser(rangeq,rquery_will_be_index=False):
     for field in fields:
         m=comp_op_pattern.search(field)
         (col,op_,val)=re.split(comp_op_pattern,field)
-        val=float(val)
+        val=int(val)
+        if col in FLOAT_FIELDS:
+            val=float(val)
         if not m or not col or col not in TABIX_DBS:
             continue
         op=m.group(1)
