@@ -12,6 +12,8 @@ from bx.intervals.intersection import IntervalTree
 #itree[rp.refid].insert_interval(iv)
 #itree find
 #for olap in itree[refid].find(ref_i, ref_f):
+    
+by_sample_counts = {}
 
 def load_exons_and_genes(genesF):
     gtrees={}
@@ -43,7 +45,7 @@ def load_exons_and_genes(genesF):
             eStart=int(eStart)+1
             #sys.stderr.write("%s %s %s\n"%(eStart,eEnd,cluster_id))
             #must adjust for the open intervals (both) of the interval tree
-            itv = Interval(eStart-1,int(eEnd)+1, value=[cluster_id,alignID])
+            itv = Interval(eStart-1,int(eEnd)+1, value=[cluster_id,alignID,strand])
             etrees[refid].insert_interval(itv)
         #now map to the cluster_id and figure whether we can increase
         #the longest transcript coordinate span with these coordinates
@@ -83,7 +85,7 @@ def load_repeats(repeatsF):
         fields = line.split('\t')
         (refid,st,en) = fields[5:8]
         refid = refid.replace("chr","")
-        orient = fields[9]
+        strand = fields[9]
         tname = fields[10]
         gtype = fields[11]
         #use 1-based closed interval
@@ -95,26 +97,38 @@ def load_repeats(repeatsF):
         if refid not in rtrees:
             rtrees[refid] = IntervalTree()
         #must adjust for the open intervals (both) of the interval tree
-        itv = Interval(st-1,int(en)+1, value=[tname,gtype])
+        itv = Interval(st-1,int(en)+1, value=[tname,gtype,strand])
         rtrees[refid].insert_interval(itv)
     repeatsIN.close()
     return rtrees
 
-def process_overlap_values(overlaps):
+def process_overlap_values(overlaps,strand):
     names = []
     types = []
+    strands = []
+    overlap_counts = 0
+    same_sense_overlap_counts = 0
     for overlap in overlaps:
         names.append(overlap.value[0]) 
         types.append(overlap.value[1]) 
-    return (";".join(names),";".join(types))
-    #return ";".join(names)
+        strands.append(overlap.value[2]) 
+        overlap_counts=1 
+        if overlap.value[2] == strand:
+            same_sense_overlap_counts=1
+    return (overlap_counts,same_sense_overlap_counts,";".join(names),";".join(types),";".join(strands))
  
 
-def process_overlaps(eo,coord,ro,iline):
-    (genes,genetypes) = process_overlap_values(eo)
-    #genes = process_overlap_values(eo)
-    (repeats,repeatclasses) = process_overlap_values(ro)
-    sys.stdout.write("%d\t%s\t%s\t%s\t%s\t%s\n" % (coord,genes,genetypes,repeats,repeatclasses,iline))
+def process_overlaps(eo,coord,ro,strand,samples,iline):
+    (g_counts,g_sense_counts,genes,genetypes,gstrands) = process_overlap_values(eo,strand)
+    (r_counts,r_sense_counts,repeats,repeatclasses,rstrands) = process_overlap_values(ro,strand)
+    sense_matches = (g_sense_counts == r_sense_counts == 1)
+    for sample in samples:
+        #already know that we have a REL, check to see if we hav a matching sense REL
+        if sample not in by_sample_counts:
+            by_sample_counts[sample]=[0,0]
+        by_sample_counts[sample][0]+=1
+        by_sample_counts[sample][1]+=int(sense_matches)
+    sys.stdout.write("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (coord,genes,genetypes,gstrands,repeats,repeatclasses,rstrands,sense_matches,iline))
 
 
 def main():
@@ -126,11 +140,16 @@ def main():
     (etrees,gtrees) = load_exons_and_genes(genesF)
     #etrees = load_exons(exonsF)
     rtrees = load_repeats(repeatsF)
-    
+
+    #track junction counts by sample
+    #index 0 = total REL junctions
+    #index 1 = total REL junctions matching sense
+
     with open(intronsF,"r") as intronsIN:
         for line in intronsIN:
             fields = line.split('\t') 
-            (refid,st,en,orient)=fields[1:5]
+            (refid,st,en,ilen,strand)=fields[1:6]
+            samples = fields[11].split(',')
             refid = refid.replace("chr","")
 
             #chr/reference doesnt exist in the exon interval tree or in the repeat interval tree
@@ -170,7 +189,10 @@ def main():
             #if no repeat overlaps skip
             if len(roverlaps) == 0:
                 continue
-            process_overlaps(eoverlaps,coord,roverlaps,line) 
+            process_overlaps(eoverlaps,coord,roverlaps,strand,samples,line) 
+    with open("sample_counts.tsv","w") as f:
+        for (sample,counts) in by_sample_counts.iteritems():
+            f.write("%s\t%s\t%s\n" % (str(sample),str(counts[0]),str(counts[1])))
 
 
 if __name__ == '__main__':
@@ -197,7 +219,7 @@ def load_exons(exonsF):
         line = line.rstrip()
         fields = line.split('\t')
         (refid,source,type,st,en) = fields[:5]
-        orient = fields[6]
+        strand = fields[6]
         rest = fields[8]
         m = typePattern.search(rest)
         if m:
