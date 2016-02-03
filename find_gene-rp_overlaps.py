@@ -118,39 +118,54 @@ def process_overlap_values(overlaps,strand):
     return (overlap_counts,same_sense_overlap_counts,";".join(names),";".join(types),";".join(strands))
  
 
-def process_overlaps(eo,coord,ro,strand,samples,iline):
+def process_overlaps(eo,coord,ro,strand,samples,cov,iline):
     (g_counts,g_sense_counts,genes,genetypes,gstrands) = process_overlap_values(eo,strand)
     (r_counts,r_sense_counts,repeats,repeatclasses,rstrands) = process_overlap_values(ro,strand)
     sense_matches = (g_sense_counts == r_sense_counts == 1)
-    for sample in samples:
+    for (i,sample) in enumerate(samples):
         #already know that we have a REL, check to see if we hav a matching sense REL
         if sample not in by_sample_counts:
-            by_sample_counts[sample]=[0,0]
+            #count,sense_matches?,coverage
+            by_sample_counts[sample]=[0,0,0]
         by_sample_counts[sample][0]+=1
         by_sample_counts[sample][1]+=int(sense_matches)
+        by_sample_counts[sample][2]+=cov[i]
     sys.stdout.write("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (coord,genes,genetypes,gstrands,repeats,repeatclasses,rstrands,sense_matches,iline))
 
+def load_samples(samplesF):
+    samplesIN = open(samplesF)
+    samples={}
+    for line in samplesIN:
+        (sample_id,count,cov) = line.rstrip().split('\t')
+        samples[sample_id]=[count,cov]
+    samplesIN.close()
+    return samples
 
 def main():
     genesF = sys.argv[1]
     #exonsF = sys.argv[2]
     repeatsF = sys.argv[2]
-    intronsF = sys.argv[3]    
+    intronsF = sys.argv[3]
+    samplesF = sys.argv[4]
 
     (etrees,gtrees) = load_exons_and_genes(genesF)
     #etrees = load_exons(exonsF)
     rtrees = load_repeats(repeatsF)
+    
+    #load file of sample2[count,coverage] mapping
+    sample2stats = load_samples(samplesF)
 
     #track junction counts by sample
     #index 0 = total REL junctions
     #index 1 = total REL junctions matching sense
-
+    
     with open(intronsF,"r") as intronsIN:
         for line in intronsIN:
             fields = line.split('\t') 
             (refid,st,en,ilen,strand)=fields[1:6]
             samples = fields[11].split(',')
             refid = refid.replace("chr","")
+            cov = fields[12].split(',')
 
             #chr/reference doesnt exist in the exon interval tree or in the repeat interval tree
             if refid not in gtrees or refid not in etrees or refid not in rtrees:
@@ -189,10 +204,13 @@ def main():
             #if no repeat overlaps skip
             if len(roverlaps) == 0:
                 continue
-            process_overlaps(eoverlaps,coord,roverlaps,strand,samples,line) 
+            process_overlaps(eoverlaps,coord,roverlaps,strand,samples,cov,line) 
+
     with open("sample_counts.tsv","w") as f:
         for (sample,counts) in by_sample_counts.iteritems():
-            f.write("%s\t%s\t%s\n" % (str(sample),str(counts[0]),str(counts[1])))
+            (rel_counts,rel_sense_counts,rel_cov) = counts
+            (total_intron_counts,total_intron_cov) = sample2stats[sample]
+            f.write("%s\t%s/%s\t%s/%s\t%s/%s\n" % (str(sample),str(rel_sense_counts),str(rel_counts),str(rel_counts),str(total_intron_counts),str(rel_cov),str(total_intron_cov)))
 
 
 if __name__ == '__main__':
