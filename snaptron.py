@@ -15,6 +15,7 @@ DEBUG_MODE=False
 TABIX="tabix"
 #TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.gz'
 TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
+REFSEQ_ANNOTATION='refFlat.hg19.txt'
 TABIX_DB_PATH='/data2/gigatron2'
 TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'length':'by_length.gz','snaptron_id':'by_id.gz','samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz'}
 SAMPLE_MD_FILE='/data2/gigatron2/all_illumina_sra_for_human_ids.tsv'
