@@ -129,7 +129,7 @@ def process_overlaps(eo,coord,ro,strand,samples,cov,iline):
             by_sample_counts[sample]=[0,0,0]
         by_sample_counts[sample][0]+=1
         by_sample_counts[sample][1]+=int(sense_matches)
-        by_sample_counts[sample][2]+=cov[i]
+        by_sample_counts[sample][2]+=int(cov[i])
     sys.stdout.write("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (coord,genes,genetypes,gstrands,repeats,repeatclasses,rstrands,sense_matches,iline))
 
 def load_samples(samplesF):

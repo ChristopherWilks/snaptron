@@ -1,6 +1,8 @@
 zcat all_SRA_introns.tsv.gz | head | perl -ne 'BEGIN { $counter=0;} chomp; ($c,$s,$e,$st,$s1,$s2,$f1,$f2)=split(/\t/,$_); @f1=split(/,/,$f1); @f2=split(/,/,$f2); $score1=scalar @f1; $score2=scalar @f2; $st=($st eq "-"?18:2); $size=($e-$s)+1; $cigar=length("$f1:$f2"); print "i$counter\t$st\t$c\t$s\t$score2\t$cigar"."M\t*\t0\t$size\t$f1:$f2\t$f1:$f2\n"; $counter++;' >> t1
 
 
+
+
 zcat all_SRA_introns.tsv.gz | perl -ne 'BEGIN { $counter=0;} chomp; ($c,$s,$e,$st,$s1,$s2,$f1,$f2)=split(/\t/,$_); @f1=split(/,/,$f1); @f2=split(/,/,$f2); $score1=scalar @f1; $score2=scalar @f2; $st=($st eq "-"?18:2); $size=($e-$s)+1; $cigar=length("$f1:$f2"); print "i$counter\t$st\t$c\t$s\t$score2\t$cigar"."M\t*\t0\t$size\t$f1:$f2\t$f1:$f2\n"; $counter++;' >> t1
 
 #sums and counts last 2 columns
@@ -27,3 +29,13 @@ curl -vv -G "http://128.220.35.129:8443/snaptron/?rquery=chr6:1-10000000|samples
 curl -vv -G "http://stingray.cs.jhu.edu:8443/snaptron/?rquery=chr6:1-10000000|samples_countEQ5|"
 
 curl http://stingray.cs.jhu.edu:8443/snaptron/?rquery='chr6:1-10000000|samples_count=5|'
+
+
+#REL finding project
+
+cat all_SRA_introns_ids_stats_length_annotated.tsv.gtf | head -50 | perl -ne 'chomp; $s=$_; @f=split(/\t/,$s); $iid=$f[0]; @s1=split(/,/,$f[12]); @s2=split(/,/,$f[13]); $i=0; foreach $sample (@s1) { $samples{$sample}->[0]++; $samples{$sample}->[1]+=$s2[$i]; $i++; print STDERR "$sample\t$iid\n"; }  END { foreach $sample (sort {$a <=> $b} keys %samples) { ($count,$cov) = @{$samples{$sample}}; print "$sample\t$count\t$cov\n";}}'
+
+
+python find_gene-rp_overlaps.py knownGene_28-Jun-2015.clusterid.tsv ucsc_repeatmasker_2015_12_22.bed.sorted.gtf.no_chr_prefix all_SRA_introns_ids_stats_length_annotated.tsv.gtf all_SRA_introns_ids_stats_length_annotated.tsv.gtf.by_sample_count_coverate.tsv > annotated_repeated_introns.strands.tsv.new 2> errors &
+
+cat all_illumina_sra_for_human_ids.tsv | perl -ne 'chomp; @f=split(/\t/,$_); $read=join("\t",($f[11],$f[12],$f[28])); $library=join("\t",($f[22],$f[23],$f[24],$f[25],$f[26],$f[27])); $instrument=$f[31]; $s=join("\t",($f[0],$library,$instrument,$read)); print "$s\n";' > sarvens/relevant_sample_md_fields.tsv
