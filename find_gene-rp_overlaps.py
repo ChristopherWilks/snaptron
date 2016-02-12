@@ -102,25 +102,27 @@ def load_repeats(repeatsF):
     repeatsIN.close()
     return rtrees
 
-def process_overlap_values(overlaps,strand):
+def process_overlap_values(overlaps,strand,ignore_strand=False):
     names = []
     types = []
     strands = []
     overlap_counts = 0
     same_sense_overlap_counts = 0
+    spans = []
     for overlap in overlaps:
         names.append(overlap.value[0]) 
         types.append(overlap.value[1]) 
-        strands.append(overlap.value[2]) 
+        strands.append(overlap.value[2])
+	spans.append("%s-%s" % (overlap.start,overlap.end))
         overlap_counts=1 
-        if overlap.value[2] == strand:
+        if overlap.value[2] == strand or ignore_strand:
             same_sense_overlap_counts=1
-    return (overlap_counts,same_sense_overlap_counts,";".join(names),";".join(types),";".join(strands))
+    return (overlap_counts,same_sense_overlap_counts,";".join(names),";".join(types),";".join(strands),";".join(spans))
  
 
 def process_overlaps(eo,coord,ro,strand,samples,cov,iline):
-    (g_counts,g_sense_counts,genes,genetypes,gstrands) = process_overlap_values(eo,strand)
-    (r_counts,r_sense_counts,repeats,repeatclasses,rstrands) = process_overlap_values(ro,strand)
+    (g_counts,g_sense_counts,genes,genetypes,gstrands,gspans) = process_overlap_values(eo,strand)
+    (r_counts,r_sense_counts,repeats,repeatclasses,rstrands,rspans) = process_overlap_values(ro,strand)
     sense_matches = (g_sense_counts == r_sense_counts == 1)
     for (i,sample) in enumerate(samples):
         #already know that we have a REL, check to see if we hav a matching sense REL
@@ -130,7 +132,7 @@ def process_overlaps(eo,coord,ro,strand,samples,cov,iline):
         by_sample_counts[sample][0]+=1
         by_sample_counts[sample][1]+=int(sense_matches)
         by_sample_counts[sample][2]+=int(cov[i])
-    sys.stdout.write("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (coord,genes,genetypes,gstrands,repeats,repeatclasses,rstrands,sense_matches,iline))
+    sys.stdout.write("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (coord,genes,genetypes,gstrands,gspans,repeats,repeatclasses,rstrands,rspans,sense_matches,iline))
 
 def load_samples(samplesF):
     samplesIN = open(samplesF)
@@ -161,7 +163,8 @@ def main():
     
     with open(intronsF,"r") as intronsIN:
         for line in intronsIN:
-            fields = line.split('\t') 
+        #for line in sys.stdin:
+            fields = line.rstrip().split('\t') 
             (refid,st,en,ilen,strand)=fields[1:6]
             samples = fields[11].split(',')
             refid = refid.replace("chr","")

@@ -20,3 +20,5 @@ head -1 sra_sarven_REL_report_by_sample_counts.sorted.tsv | perl -ne 'chomp; @f=
 #check file
 head -2 sra_sarven_REL_report_by_sample_counts.sorted.tsv | tail -1 | perl -ne 'chomp; @f=split(/\t/,$_); $len=scalar(@f); print "$len\n"; foreach $s (@f) { print "$s,";} print "\n";'
 
+#check fractions
+cut -f 2 sample_counts.tsv | perl -ne 'chomp; $s=$_; ($s1,$s2) = split(/\//,$s); $d=$s1/$s2; print "$d\n"; $count1++ if($d >= 0.5); $count2++ if($d < 0.5); END { print STDERR "$count1 $count2\n";}' > /dev/null
