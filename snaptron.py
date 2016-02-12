@@ -15,13 +15,17 @@ DEBUG_MODE=False
 TABIX="tabix"
 #TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.gz'
 TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
-REFSEQ_ANNOTATION='refFlat.hg19.txt'
+REFSEQ_ANNOTATION='refFlat.hg19.txt.sorted'
 TABIX_DB_PATH='/data2/gigatron2'
 TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'length':'by_length.gz','snaptron_id':'by_id.gz','samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz'}
 SAMPLE_MD_FILE='/data2/gigatron2/all_illumina_sra_for_human_ids.tsv'
 SAMPLE_IDS_COL=12
 SAMPLE_ID_COL=0
 INTRON_ID_COL=1
+
+INTERVAL_PATTERN = re.compile(r'^chr[12]?[0-9XYM]:\d+-\d+$')
+CHROM_PATTERN = re.compile(r'^chr[12]?[0-9XYM]$')
+MAX_GENE_PROXIMITY = 10000
 
 DATA_SOURCE='SRA'
 INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
@@ -39,11 +43,11 @@ for field in INTRON_HEADER_FIELDS:
    i+=1
 
 
-def run_tabix(qargs,rquerys,tabix_db,filter_set=None,sample_set=None,filtering=False,debug=True):
+def run_tabix(qargs,rquerys,tabix_db,filter_set=None,sample_set=None,filtering=False,print_header=True,debug=True):
     tabix_db = "%s/%s" % (TABIX_DB_PATH,tabix_db)
     if debug:
         sys.stderr.write("running %s %s %s\n" % (TABIX,tabix_db,qargs))
-    if not filtering:
+    if not filtering and print_header:
         sys.stdout.write("DataSource:Type\t%s\n" % (INTRON_HEADER))
     ids_found=set()
     tabixp = subprocess.Popen("%s %s %s | cut -f 2-" % (TABIX,tabix_db,qargs),stdout=subprocess.PIPE,shell=True)
@@ -224,7 +228,48 @@ def stream_introns_from_samples(sample_set):
     sys.stdout.write("s2I\t%s\n" % (str(len(introns_seen))))
     #for intron_id in introns_seen:
     #    sys.stdout.write("I\t%s\n" % (introns[intron_id]))
+   
+def search_by_gene_name(geneq,rquery,intron_filters=None):
+    gene_map = {}
+    with open("%s/%s" % (TABIX_DB_PATH,REFSEQ_ANNOTATION),"r") as f:
+        for line in f:
+            fields = line.rstrip().split('\t')
+            (gene_name,chrom,st,en) = (fields[0].upper(),fields[2],int(fields[4]),int(fields[5]))
+            if not CHROM_PATTERN.search(chrom):
+                continue
+            if gene_name in gene_map:
+                add_tuple = True
+                if chrom in gene_map[gene_name]:
+                    for (idx,gene_tuple) in enumerate(gene_map[gene_name][chrom]):
+                        (st2,en2) = gene_tuple
+                        if abs(en2-en) <= MAX_GENE_PROXIMITY:
+                            add_tuple = False
+                            if st < st2:
+                                gene_map[gene_name][chrom][idx][0] = st
+                            if en > en2:
+                                gene_map[gene_name][chrom][idx][1] = en
+                #add onto current set of coordinates
+                if add_tuple:
+                    if chrom not in gene_map[gene_name]:
+                        gene_map[gene_name][chrom]=[]
+                    gene_map[gene_name][chrom].append([st,en]) 
+            else:
+                gene_map[gene_name]={}
+                gene_map[gene_name][chrom]=[[st,en]]
+    geneq = geneq.upper()
+    if geneq not in gene_map:
+        sys.stderr.write("ERROR no gene found by name %s\n" % (geneq))
+        sys.exit(-1)
+    print_header = True
+    for (chrom,coord_tuples) in sorted(gene_map[geneq].iteritems()):
+        for coord_tuple in coord_tuples:
+            (st,en) = coord_tuple
+            run_tabix("%s:%d-%d" % (chrom,st,en),rquery,TABIX_INTERVAL_DB,print_header=print_header)
+            print_header = False
+        
     
+
+ 
 #cases:
 #1) just interval (one function call)
 #2) interval + range query(s) (one tabix function call + field filter(s))
@@ -252,7 +297,10 @@ def main():
     rquery_index = len(intervalq) < 1 and len(rangeq) >= 1
     (first_tdb,first_rquery,rquery) = range_query_parser(rangeq,rquery_will_be_index=rquery_index)
     if len(intervalq) >= 1:
-        run_tabix(intervalq,rquery,TABIX_INTERVAL_DB,sample_set=sample_set,debug=DEBUG_MODE_)
+        if INTERVAL_PATTERN.search(intervalq):
+            run_tabix(intervalq,rquery,TABIX_INTERVAL_DB,sample_set=sample_set,debug=DEBUG_MODE_)
+        else:
+            search_by_gene_name(intervalq,rquery)
     elif len(rangeq) >= 1:
         run_tabix(first_rquery,rquery,first_tdb,sample_set=sample_set,debug=DEBUG_MODE_)
     if DEBUG_MODE_:
