@@ -28,7 +28,7 @@ curl "http://128.220.35.129:8443/snaptron?" --data-urlencode "chr6:1-10000000|sa
 curl -vv -G "http://128.220.35.129:8443/snaptron/?rquery=chr6:1-10000000|samples_countEQ5|"
 curl -vv -G "http://stingray.cs.jhu.edu:8443/snaptron/?rquery=chr6:1-10000000|samples_countEQ5|"
 
-curl http://stingray.cs.jhu.edu:8443/snaptron/?rquery='chr6:1-10000000|samples_count=5|'
+curl http://stingray.cs.jhu.edu:8443/snaptron/?rquery='chr6:1-10000000|samples_count=5||'
 
 
 #REL finding project
@@ -39,3 +39,7 @@ cat all_SRA_introns_ids_stats_length_annotated.tsv.gtf | head -50 | perl -ne 'ch
 python find_gene-rp_overlaps.py knownGene_28-Jun-2015.clusterid.tsv ucsc_repeatmasker_2015_12_22.bed.sorted.gtf.no_chr_prefix all_SRA_introns_ids_stats_length_annotated.tsv.gtf all_SRA_introns_ids_stats_length_annotated.tsv.gtf.by_sample_count_coverate.tsv > annotated_repeated_introns.strands.tsv.new 2> errors &
 
 cat all_illumina_sra_for_human_ids.tsv | perl -ne 'chomp; @f=split(/\t/,$_); $read=join("\t",($f[11],$f[12],$f[28])); $library=join("\t",($f[22],$f[23],$f[24],$f[25],$f[26],$f[27])); $instrument=$f[31]; $s=join("\t",($f[0],$library,$instrument,$read)); print "$s\n";' > sarvens/relevant_sample_md_fields.tsv
+
+curl http://stingray.cs.jhu.edu:8443/snaptron/?rquery='chr6:1-10000000|samples_count=5||'
+
+curl --data 'fields="[{"intervals":["chr6:1-10000000"],"samples_count":[{"op":"=","val":5}]}]"' http://stingray.cs.jhu.edu:8443/snaptron

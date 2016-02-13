@@ -3,6 +3,7 @@
 import sys
 import re
 import os
+import cgi
 import subprocess
 import datetime
 import logging
@@ -164,7 +165,7 @@ def bad_request(start_response, msg):
     #status = "400 Bad Request:%s" % (msg)
     status = "400 Bad Request:%s" % (msg)
     sys.stderr.write("%s\n" % (status))
-    status_response = "%s\n%s\n" % (status,support_blurb)
+    status_response = "%s\n" % (status)
     response_headers = [('Content-type', 'text/plain')]
     start_response(status, response_headers)
     return status_response
@@ -280,21 +281,41 @@ def translate_range_query(squery):
     squery=re.sub(r'AND',r',',squery)
     return squery
 
+#adapted from http://stackoverflow.com/questions/530526/accessing-post-data-from-wsgi
+def process_post(environ, start_response):
+    penv = environ.copy()
+    post_data = cgi.FieldStorage(fp=environ['wsgi.input'],environ=penv,keep_blank_values=False)
+    if not post_data or len(post_data) == 0:
+        raise ValueError('no parameters in GET or POST')    
+    if 'fields' not in post_data:
+        raise ValueError('no \"fields\" parameter in POST')
+    jstring = post_data['fields'].value
+    #only need to pass on the json string
+    #jstruct = json.loads(jstring) 
+    return jstring
+
+
 #cant have anything else in the data path or its probably a security issue
 READ_SIZE_PATTERN = re.compile(r'^\d+$')
 def snaptron_endpoint(environ, start_response):
     http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}
     query_string = environ.get('QUERY_STRING')
-    query_string = query_string.replace("'","")
-    query_string = query_string.replace('"','')
-    #query = urlparse.parse_qs(environ.get('QUERY_STRING'))
-    query = urlparse.parse_qs(query_string)
-    #first log message (outside of errors) so put in a newline
-    logger.info("\nQUERY_STRING %s" % query_string)
+   
+    query = {}
+    if len(query_string) == 0:
+        try:
+            query['rquery']=[process_post(environ, start_response)]
+        except ValueError, ve:
+            return bad_request(start_response, ve)
+    else:
+        #first log message (outside of errors) so put in a newline
+        logger.info("\nQUERY_STRING %s" % query_string)
+        query_string = query_string.replace("'","")
+        query_string = query_string.replace('"','')
+        #query = urlparse.parse_qs(environ.get('QUERY_STRING'))
+        query = urlparse.parse_qs(query_string)
 
     add_checksum = False
-    #if function_path == 'header' or function_path == 'slices':
-    #    add_checksum = True
 
     logger.debug("REQUEST ENVIRONMENT:")
     for (key, val) in environ.iteritems():
@@ -316,10 +337,8 @@ def snaptron_endpoint(environ, start_response):
 
     rquery=query.get('rquery', [])
     logger.info("BEFORE rquery=%s" % (rquery[0]))
-    rquery = translate_range_query(rquery[0])
-    #logger.info("AFTER rquery=%s" % (rquery))
-    #now get the sample part of this query
-    #s2query=query.get('squery', [])
+    rquery = rquery[0]
+    #rquery = translate_range_query(rquery[0])
     args=[PYTHON_PATH, LOCAL_APP, rquery]
     #create subprocess run object 
     sproc = run_command(args)

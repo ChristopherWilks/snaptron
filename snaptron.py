@@ -8,6 +8,7 @@ import shlex
 from collections import namedtuple
 import urllib2
 import time
+import json
 
 import gzip
 
@@ -387,6 +388,51 @@ def search_by_gene_name(geneq,rquery,intron_filters=None,save_introns=False):
     return (iids,sids)
 
 
+def parse_json_query(input_):
+    jstring = list(input_)
+    #get rid of extra quotes
+    jstring[0]=''
+    jstring[-1]=''
+    #jstring = "'%s'" % ''.join(jstring)
+    jstring = ''.join(jstring)
+    js = json.loads(jstring)
+    fields={}
+    fmap={'rangesq':[]}
+    #fmap = {'intervals':intervals,'genes':intervals,'rangesq':[],'mds':[],'snaptron_id':[]}
+    #for now assume only one OR clause (so no ORing)
+    clause = js[0]
+    for field in snapconf.TABIX_DBS.keys():
+        if field == 'chromosome':
+            field = 'intervals'
+        if field in clause:
+            if field not in fields:
+                fields[field]=[]
+            #adds array of values to a new entry in this field's array
+            fields[field].append(clause[field])
+            #hack to support legacy query format (temporary), we're only assuming one val per array
+            if field not in snapconf.RANGE_FIELDS:
+                #adjust to map intervals and genes to same array
+                if field == 'genes':
+                    field = 'intervals'
+                if field not in fmap:
+                    fmap[field]=[]
+                fmap[field].append(clause.get(field)[0])
+            else:
+                rmap = clause.get(field)[0]
+                fmap['rangesq'].append("%s%s%s" % (field,rmap['op'],rmap['val']))
+            
+    #for now we just return one interval/gene 
+    intervalq = fmap['intervals'][0]
+    rangeq = ','.join(fmap['rangesq'])
+    mdq = []
+    if 'mds' in fmap:
+        mdq = fmap['mds'][0]
+    idq = []
+    if 'snaptron_id' in fmap:
+        idq = fmap['snaptron_id'][0]
+
+    return (intervalq,rangeq,mdq,idq)
+
 #cases:
 #1) just interval (one function call)
 #2) interval + range query(s) (one tabix function call + field filter(s))
@@ -400,7 +446,12 @@ def main():
     DEBUG_MODE_=DEBUG_MODE
     if len(sys.argv) > 2:
         DEBUG_MODE_=True
-    (intervalq,rangeq,sampleq,idq) = input_.split('|')
+    (intervalq,rangeq,sampleq,idq) = (None,None,None,None)
+    if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
+        (intervalq,rangeq,sampleq,idq) = parse_json_query(input_)
+    #support legacy '|' format
+    else:
+        (intervalq,rangeq,sampleq,idq) = input_.split('|')
     sample_map = load_sample_metadata(snapconf.SAMPLE_MD_FILE)
     if DEBUG_MODE_:
         sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))

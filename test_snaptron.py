@@ -34,6 +34,8 @@ rqp = snaptron.range_query_parser
 sbi = snaptron.search_introns_by_ids
 sbg = snaptron.search_by_gene_name
 
+pjq = snaptron.parse_json_query
+
 tdbs = snapconf.TABIX_DBS
 
 class TestTabixCalls(unittest.TestCase):
@@ -63,6 +65,16 @@ class TestTabixCalls(unittest.TestCase):
     
 
 #actual tests 
+    def test_basic_json_parsing(self):
+        '''tests to see if our json parsing for the original hacky query language works'''
+        query = '[{"intervals":["chr6:1-10000000"],"samples_count":[{"op":"=","val":5}]}]'
+        (iq,rq,sq,idq) = pjq(query)
+        self.assertEqual(iq,"chr6:1-10000000")
+        self.assertEqual(rq,"samples_count=5")
+        self.assertEqual(sq,[])
+        self.assertEqual(idq,[])
+        
+
     def test_basic_interval(self):
         '''make sure we're getting back an expected set of intropolis ids'''
         i = 0
