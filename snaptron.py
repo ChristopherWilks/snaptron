@@ -72,7 +72,7 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
     if stream_back and print_header:
         sys.stdout.write("DataSource:Type\t%s\n" % (snapconf.INTRON_HEADER))
     if stream_back and POST:
-        sys.stdout.write("datatypes:%s\t%s\n" % (str,snapconf.INTRON_TYPE_HEADER))
+        sys.stdout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
     ids_found=set()
     samples_set=set()
     tabixp = subprocess.Popen("%s %s %s | cut -f 2-" % (snapconf.TABIX,tabix_db,qargs),stdout=subprocess.PIPE,shell=True)
