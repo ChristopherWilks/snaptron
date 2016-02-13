@@ -107,7 +107,7 @@ def process_overlap_values(overlaps,strand,ignore_strand=False):
     types = []
     strands = []
     overlap_counts = 0
-    same_sense_overlap_counts = 0
+    same_sense_overlap_counts = [0,0]
     spans = []
     for overlap in overlaps:
         names.append(overlap.value[0]) 
@@ -115,24 +115,29 @@ def process_overlap_values(overlaps,strand,ignore_strand=False):
         strands.append(overlap.value[2])
 	spans.append("%s-%s" % (overlap.start,overlap.end))
         overlap_counts=1 
+        same_sense_overlap_counts[1]=1
         if overlap.value[2] == strand or ignore_strand:
-            same_sense_overlap_counts=1
+            same_sense_overlap_counts[0]=1
     return (overlap_counts,same_sense_overlap_counts,";".join(names),";".join(types),";".join(strands),";".join(spans))
  
 
 def process_overlaps(eo,coord,ro,strand,samples,cov,iline):
     (g_counts,g_sense_counts,genes,genetypes,gstrands,gspans) = process_overlap_values(eo,strand)
     (r_counts,r_sense_counts,repeats,repeatclasses,rstrands,rspans) = process_overlap_values(ro,strand)
-    sense_matches = (g_sense_counts == r_sense_counts == 1)
+    sense_matches = (g_sense_counts[0] == r_sense_counts[0] == 1)
+    gsense_matches = (g_sense_counts[0] == r_sense_counts[1] == 1)
+    rsense_matches = (g_sense_counts[1] == r_sense_counts[0] == 1)
     for (i,sample) in enumerate(samples):
         #already know that we have a REL, check to see if we hav a matching sense REL
         if sample not in by_sample_counts:
             #count,sense_matches?,coverage
-            by_sample_counts[sample]=[0,0,0]
+            by_sample_counts[sample]=[0,0,0,0,0]
         by_sample_counts[sample][0]+=1
         by_sample_counts[sample][1]+=int(sense_matches)
-        by_sample_counts[sample][2]+=int(cov[i])
-    sys.stdout.write("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (coord,genes,genetypes,gstrands,gspans,repeats,repeatclasses,rstrands,rspans,sense_matches,iline))
+        by_sample_counts[sample][2]+=int(gsense_matches)
+        by_sample_counts[sample][3]+=int(rsense_matches)
+        by_sample_counts[sample][4]+=int(cov[i])
+    sys.stdout.write("%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (coord,genes,genetypes,gstrands,gspans,repeats,repeatclasses,rstrands,rspans,sense_matches,gsense_matches,rsense_matches,iline))
 
 def load_samples(samplesF):
     samplesIN = open(samplesF)
@@ -211,9 +216,9 @@ def main():
 
     with open("sample_counts.tsv","w") as f:
         for (sample,counts) in by_sample_counts.iteritems():
-            (rel_counts,rel_sense_counts,rel_cov) = counts
+            (rel_counts,rel_sense_counts,gsense_counts,rsense_counts,rel_cov) = counts
             (total_intron_counts,total_intron_cov) = sample2stats[sample]
-            f.write("%s\t%s/%s\t%s/%s\t%s/%s\n" % (str(sample),str(rel_sense_counts),str(rel_counts),str(rel_counts),str(total_intron_counts),str(rel_cov),str(total_intron_cov)))
+            f.write("%s\t%s/%s\t%s/%s\t%s/%s\t%s/%s\t%s/%s\n" % (str(sample),str(rel_sense_counts),str(rel_counts),str(gsense_counts),str(rel_counts),str(rsense_counts),str(rel_counts),str(rel_counts),str(total_intron_counts),str(rel_cov),str(total_intron_cov)))
 
 
 if __name__ == '__main__':
