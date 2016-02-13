@@ -67,7 +67,7 @@ class TestTabixCalls(unittest.TestCase):
 #actual tests 
     def test_basic_json_parsing(self):
         '''tests to see if our json parsing for the original hacky query language works'''
-        query = '[{"intervals":["chr6:1-10000000"],"samples_count":[{"op":"=","val":5}]}]'
+        query = "'[{\"intervals\":[\"chr6:1-10000000\"],\"samples_count\":[{\"op\":\"=\",\"val\":5}]}]'"
         (iq,rq,sq,idq) = pjq(query)
         self.assertEqual(iq,"chr6:1-10000000")
         self.assertEqual(rq,"samples_count=5")
