@@ -32,6 +32,7 @@ import snapconf
 import snaputil
 
 DEBUG_MODE=True
+POST=False
 
 #setup lucene reader for sample related searches
 lucene.initVM()
@@ -68,8 +69,10 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
     filter_by_samples = (sample_filters != None and len(sample_filters) > 0)
     if debug:
         sys.stderr.write("running %s %s %s\n" % (snapconf.TABIX,tabix_db,qargs))
-    if not stream_back and print_header:
+    if stream_back and print_header:
         sys.stdout.write("DataSource:Type\t%s\n" % (snapconf.INTRON_HEADER))
+    if stream_back and POST:
+        sys.stdout.write("datatypes:%s\t%s\n" % (str,snapconf.INTRON_TYPE_HEADER))
     ids_found=set()
     samples_set=set()
     tabixp = subprocess.Popen("%s %s %s | cut -f 2-" % (snapconf.TABIX,tabix_db,qargs),stdout=subprocess.PIPE,shell=True)
@@ -442,13 +445,15 @@ def parse_json_query(input_):
 #5) sample (1 lucene call -> use snaptron_ids to do a by_ids search (multiple tabix calls))
 #6) sample + range query(s) (2 function calls: 1 lucene for sample filter + 1 tabix using snaptron_id filter + field filter)
 def main():
+    global POST
     input_ = sys.argv[1]
     DEBUG_MODE_=DEBUG_MODE
     if len(sys.argv) > 2:
-        DEBUG_MODE_=True
+       DEBUG_MODE_=True
     (intervalq,rangeq,sampleq,idq) = (None,None,None,None)
     if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
         (intervalq,rangeq,sampleq,idq) = parse_json_query(input_)
+        POST=True
     #support legacy '|' format
     else:
         (intervalq,rangeq,sampleq,idq) = input_.split('|')
