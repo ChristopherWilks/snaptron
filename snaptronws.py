@@ -304,7 +304,7 @@ def snaptron_endpoint(environ, start_response):
     query = {}
     if len(query_string) == 0:
         try:
-            query['rquery']=[process_post(environ, start_response)]
+            query_string=process_post(environ, start_response)
         except ValueError, ve:
             return bad_request(start_response, ve)
     else:
@@ -335,11 +335,11 @@ def snaptron_endpoint(environ, start_response):
     logger.info("READ_SIZE=%s" % read_size)
     read_size = int(read_size)
 
-    rquery=query.get('rquery', [])
-    logger.info("BEFORE rquery=%s" % (rquery[0]))
-    rquery = rquery[0]
+    #rquery=query.get('rquery', [])
+    #logger.info("BEFORE rquery=%s" % (rquery[0]))
+    #rquery = rquery[0]
     #rquery = translate_range_query(rquery[0])
-    args=[PYTHON_PATH, LOCAL_APP, rquery]
+    args=[PYTHON_PATH, LOCAL_APP, query_string]
     #create subprocess run object 
     sproc = run_command(args)
 

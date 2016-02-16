@@ -20,6 +20,8 @@ time curl 'http://10.161.159.186:1555/snaptron?rquery=chr6$1-10000000*samples_co
 time curl 'http://10.161.159.186:1555/snaptron?rquery=chr6$1-10000000**' | wc -l
 
 time python ./snaptron.py 'chr11:82970135-82997450|samples_count>=100,coverage_sum>=1000|' > /data2/gigatron2/ccdc90b.range2.sc100_cs1000
+python ./snaptron_new.py 'regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000' | wc -l
+curl --data 'fields="[{"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":100}],"coverage_sum":[{"op":">:","val":1000}]}]"' http://stingray.cs.jhu.edu:8443/snaptron | wc -l
 
 source /data/gigatron/snaptron/python/bin/activate
 ./snaptron_server --no-daemon

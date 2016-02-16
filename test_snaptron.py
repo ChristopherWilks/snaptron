@@ -11,7 +11,9 @@ import snaptron
 IQs=['chr1:10160-10161','CD99']
 #RQs=['1:100000-100000','1:5-5']
 #IRQs are a set of combination of indexes from IQs and RQs
-RQs=[{'length':[snapconf.operators['='],54]},{'samples_count':[snapconf.operators['='],10]}]
+#RQs=[{'length':[snapconf.operators['='],54]},{'samples_count':[snapconf.operators['='],10]}]
+RQs=[{'length':[snapconf.operators[':'],54]},{'samples_count':[snapconf.operators[':'],10]}]
+RQs_flat=['length:54','samples_count:10']
 IDs=[set(['33401689','33401829']),set(['6','9'])]
 #holds the set of intropolis ids for each specific query for the original SRA set of inropolis junctions
 EXPECTED_IIDS={
@@ -35,6 +37,10 @@ sbi = snaptron.search_introns_by_ids
 sbg = snaptron.search_by_gene_name
 
 pjq = snaptron.parse_json_query
+pp = snaptron.process_params
+
+qr = snaptron.query_regions
+qi = snaptron.query_ids
 
 tdbs = snapconf.TABIX_DBS
 
@@ -67,14 +73,27 @@ class TestTabixCalls(unittest.TestCase):
 #actual tests 
     def test_basic_json_parsing(self):
         '''tests to see if our json parsing for the original hacky query language works'''
-        query = "'[{\"intervals\":[\"chr6:1-10000000\"],\"samples_count\":[{\"op\":\"=\",\"val\":5}]}]'"
+        query = "'[{\"intervals\":[\"chr6:1-10000000\"],\"samples_count\":[{\"op\":\"=\",\"val\":5}],\"snaptron_id\":[1,4]}]'"
         (iq,rq,sq,idq) = pjq(query)
-        self.assertEqual(iq,"chr6:1-10000000")
-        self.assertEqual(rq,"samples_count=5")
+        self.assertEqual(iq[0],"chr6:1-10000000")
+        self.assertEqual(rq['rfilter'][0],"samples_count=5")
         self.assertEqual(sq,[])
-        self.assertEqual(idq,[])
-        
-
+        self.assertEqual(idq,['snaptron:1'])
+       
+    def test_range_query_parsing(self):
+        '''tests the parsing of the string of ranges-as-filters constraints'''
+        rfilters={}
+        tests_ = [['samples_count',':',5],['coverage_sum','>:',3],['coverage_avg','<',5.5]]
+        rfilters['rfilter']=["".join(map(lambda y: str(y),x)) for x in tests_]
+        snaptron_ids = set()
+        ranges_parsed = rqp(rfilters,snaptron_ids)
+        #for col in ['samples_count','coverage_sum','coverage_avg']:
+        for (col,op,val) in tests_:
+            self.assertEqual(col in ranges_parsed,True)
+            (op_,val_) = ranges_parsed[col]
+            self.assertEqual(snapconf.operators[op],op_)
+            self.assertEqual(val,val_)
+   
     def test_basic_interval(self):
         '''make sure we're getting back an expected set of intropolis ids'''
         i = 0
@@ -112,7 +131,53 @@ class TestTabixCalls(unittest.TestCase):
         #get intropolis ids
         iids = self.idc(IDs[d], filtering=True)
         self.assertEqual(iids, EXPECTED_IIDS[str(IDs[d])])
+
+
+
+class TestQueryCalls(unittest.TestCase):
+    '''
+    Test the main top level methods in snaptron for querying with various predicates (regions, ranges, ids)
+    '''
+
+    def setUp(self):
+        pass
+
+    def process_query(self,input_):
+        (iq,idq,rq,sq) = pp(input_)
+        return {'iq':iq,'rq':rq,'sq':sq,'idq':idq}
+
+    def test_interval_query(self):
+        q = 0
+        i = 0
+        queries = self.process_query('regions=%s' % (IQs[i]))
+        iq = queries['iq'][q]
+        rq = ''
+        (iids,sids) = qr([iq],rq,set(),filtering=True)
+        self.assertEqual(iids, EXPECTED_IIDS[IQs[i]])
     
+    def test_interval_with_range_query(self):
+        q = 0
+        i = 0
+        r = 0
+        queries = self.process_query('regions=%s&rfilter=%s' % (IQs[i],RQs_flat[r]))
+        iq = queries['iq'][q]
+        rq = queries['rq']
+        (iids,sids) = qr([iq],rq,set(),filtering=True)
+        self.assertEqual(iids, EXPECTED_IIDS[IQs[i]+str(RQs[r])])
+         
+    def test_interval_with_range_with_ids_query(self):
+        q = 0
+        i = 0
+        r = 0
+        d = 1
+        queries = self.process_query('regions=%s&rfilter=%s&ids=snaptron:%s' % (IQs[i],RQs_flat[r],",".join(IDs[d])))
+        iq = queries['iq'][q]
+        rq = queries['rq']
+        snaptron_ids = set()
+        qi(queries['idq'],snaptron_ids)
+        (iids,sids) = qr([iq],rq,snaptron_ids,filtering=True)
+        self.assertEqual(iids, EXPECTED_IIDS[IQs[i]+str(RQs[r])+str(IDs[d])])
+   
 if __name__ == '__main__':
     unittest.main()
                

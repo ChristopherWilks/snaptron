@@ -308,10 +308,10 @@ def range_query_parser(rangeq,snaptron_ids):
     rquery=None
     if rangeq is None or len(rangeq) < 1:
         return None
-    fields = rangeq.split(',')
-    for field in fields:
-        m=snapconf.RANGE_QUERY_FIELD_PATTERN.search(field)
-        (col,op_,val)=re.split(snapconf.RANGE_QUERY_OPS,field)
+    filters = rangeq.get('rfilter',[])
+    for filter_ in filters:
+        m=snapconf.RANGE_QUERY_FIELD_PATTERN.search(filter_)
+        (col,op_,val)=re.split(snapconf.RANGE_QUERY_OPS,filter_)
         if not m or not col or col not in snapconf.TABIX_DBS or col not in snapconf.LUCENE_TYPES:
             continue
         op=m.group(1)
@@ -333,20 +333,7 @@ def range_query_parser(rangeq,snaptron_ids):
         rquery[col]=(snapconf.operators[op],val)
     return rquery
 
-def parse_id_query(idq,snaptron_ids,sample_ids):
-    fields = idq.split(';')
-    if len(fields) > 2:
-        sys.stderr.write("upto 2 ID fields allowed (snaptron_id and/or sample_id) in the ID query section, exiting\n")
-        sys.exit(-1)
-    for field in fields:
-        (id_type,ids) = field.split(':')
-        if id_type == 'snaptron_id':
-            snaptron_ids.update(set(ids.split(',')))
-        else:
-            sample_ids.update(set(ids.split(',')))
-
-
-def search_by_gene_name(geneq,rquery,intron_filters=None,save_introns=False):
+def search_by_gene_name(geneq,rquery,intron_filters=None,save_introns=False,print_header=True):
     gene_map = {}
     with open("%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.REFSEQ_ANNOTATION),"r") as f:
         for line in f:
@@ -377,7 +364,6 @@ def search_by_gene_name(geneq,rquery,intron_filters=None,save_introns=False):
     if geneq not in gene_map:
         sys.stderr.write("ERROR no gene found by name %s\n" % (geneq))
         sys.exit(-1)
-    print_header = True
     iids = set()
     sids = set()
     for (chrom,coord_tuples) in sorted(gene_map[geneq].iteritems()):
@@ -392,6 +378,7 @@ def search_by_gene_name(geneq,rquery,intron_filters=None,save_introns=False):
 
 
 def parse_json_query(input_):
+    '''takes the more extensible JSON from a POST and converts it into a basic query assuming only 1 value per distinct argument'''
     jstring = list(input_)
     #get rid of extra quotes
     jstring[0]=''
@@ -400,7 +387,7 @@ def parse_json_query(input_):
     jstring = ''.join(jstring)
     js = json.loads(jstring)
     fields={}
-    fmap={'rangesq':[]}
+    fmap={'rfilter':[]}
     #fmap = {'intervals':intervals,'genes':intervals,'rangesq':[],'mds':[],'snaptron_id':[]}
     #for now assume only one OR clause (so no ORing)
     clause = js[0]
@@ -422,19 +409,87 @@ def parse_json_query(input_):
                 fmap[field].append(clause.get(field)[0])
             else:
                 rmap = clause.get(field)[0]
-                fmap['rangesq'].append("%s%s%s" % (field,rmap['op'],rmap['val']))
+                fmap['rfilter'].append("%s%s%s" % (field,rmap['op'],rmap['val']))
             
     #for now we just return one interval/gene 
     intervalq = fmap['intervals'][0]
-    rangeq = ','.join(fmap['rangesq'])
+    #rangeq = ','.join(fmap['rangesq'])
     mdq = []
     if 'mds' in fmap:
         mdq = fmap['mds'][0]
     idq = []
     if 'snaptron_id' in fmap:
-        idq = fmap['snaptron_id'][0]
+        idq.append("snaptron:%s" % (fmap['snaptron_id'][0]))
 
-    return (intervalq,rangeq,mdq,idq)
+    #return ([intervalq],[rangeq],mdq,idq)
+    return ([intervalq],{'rfilter':fmap['rfilter']},mdq,idq)
+
+
+def process_params(input_):
+    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[]}
+    params_ = input_.split('&')
+    for param_ in params_:
+        (key,val) = param_.split("=")
+        if key not in params:
+            sys.stderr.write("unknown parameter %s, exiting\n" % param)
+            sys.exit(-1)
+        if key == 'regions' or key == 'ids':
+            subparams = val.split(',')
+            for subparam in subparams:
+                params[key].append(subparam)
+        else:
+            params[key].append(val) 
+    return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'])
+
+
+
+def query_ids(idq,snaptron_ids):
+    sample_ids = set()
+    (id_type,first_id) = idq[0].split(':')
+    idq[0] = first_id
+    if id_type == 'snaptron':
+        snaptron_ids.update(set(idq))
+    else:
+        sample_ids.update(set(idq))
+    if len(sample_ids) > 0:
+        intron_ids_from_samples(sample_ids,snaptron_ids)
+
+
+def query_samples(sampleq,sample_map,snaptron_ids):
+    sample_ids = set()
+    search_samples_lucene(sample_map,sampleq,sample_ids,stream_sample_metadata=False)
+    if DEBUG_MODE:
+        sys.stderr.write("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
+    snaptron_ids_from_samples = set()
+    intron_ids_from_samples(sample_ids,snaptron_ids_from_samples)
+    new_snaptron_ids = snaptron_ids_from_samples
+    if len(snaptron_ids) > 0 and len(snaptron_ids_from_samples) > 0:
+        #snaptron_ids = snaptron_ids.intersection(snaptron_ids_from_samples)
+        new_snaptron_ids = snaptron_ids.intersection(snaptron_ids_from_samples)
+    #elif len(snaptron_ids_from_samples) > 0:
+    #    snaptron_ids = snaptron_ids_from_samples
+    return new_snaptron_ids
+
+
+def query_regions(intervalq,rangeq,snaptron_ids,filtering=False):
+    rquery = range_query_parser(rangeq,snaptron_ids)
+    #intervals/genes are OR'd, but all ranges are ANDed together with each interval/gene search
+    print_header = True
+    snaptron_ids_returned = set()
+    sample_ids_returned = set()
+    for interval in intervalq:
+        ids = None
+        sids = None
+        if snapconf.INTERVAL_PATTERN.search(interval):
+           (ids,sids) = run_tabix(interval,rquery,snapconf.TABIX_INTERVAL_DB,intron_filters=snaptron_ids,debug=DEBUG_MODE,print_header=print_header,save_introns=filtering)
+        else:
+           (ids,sids) = search_by_gene_name(interval,rquery,intron_filters=snaptron_ids,print_header=print_header)
+        print_header = False
+        if filtering:
+            snaptron_ids_returned.update(ids)
+            sample_ids_returned.update(sids)
+    return (snaptron_ids_returned,sample_ids_returned)
+
 
 #cases:
 #1) just interval (one function call)
@@ -451,12 +506,16 @@ def main():
     if len(sys.argv) > 2:
        DEBUG_MODE_=True
     (intervalq,rangeq,sampleq,idq) = (None,None,None,None)
+    #(intervalq,rangeq,sampleq,idq) = ([],[],[],[])
+    sys.stderr.write("%s\n" % input_)
     if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
         (intervalq,rangeq,sampleq,idq) = parse_json_query(input_)
         POST=True
-    #support legacy '|' format
+    #update support simple '&' CGI format
     else:
-        (intervalq,rangeq,sampleq,idq) = input_.split('|')
+    #    (intervalq,rangeq,sampleq,idq) = input_.split('|')
+        (intervalq,idq,rangeq,sampleq) = process_params(input_)
+
     sample_map = load_sample_metadata(snapconf.SAMPLE_MD_FILE)
     if DEBUG_MODE_:
         sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
@@ -467,31 +526,18 @@ def main():
     #and the set of snaptron_ids dervied from the passed in sample_ids are OR'd together in the filtering
     snaptron_ids = set()
     if len(idq) >= 1:
-        sample_ids = set()
-        parse_id_query(idq,snaptron_ids,sample_ids)
-        if len(sample_ids) > 0:
-            intron_ids_from_samples(sample_ids,snaptron_ids)
-        #didn't get any snaptron ids here, assuming AND, we quit
-        if len(snaptron_ids) == 0:
-            return
+        query_ids(idq,snaptron_ids)
 
     #if we have any sample related queries, do them to get snaptron_id filter set
+    #NOTE we are NOT currently support sample-id querying
     if len(sampleq) >= 1:
-        sample_ids = set()
-        search_samples_lucene(sample_map,sampleq,sample_ids,stream_sample_metadata=False)
-        if DEBUG_MODE_:
-            sys.stderr.write("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
-        snaptron_ids_from_samples = set()
-        intron_ids_from_samples(sample_ids,snaptron_ids_from_samples)
-        if len(snaptron_ids) > 0 and len(snaptron_ids_from_samples) > 0:
-            snaptron_ids = snaptron_ids.intersection(snaptron_ids_from_samples)
-        elif len(snaptron_ids_from_samples) > 0:
-            snaptron_ids = snaptron_ids_from_samples
-        #if no snaptron_ids were found we're done, in keeping with the strict AND policy (currently)
-        if len(snaptron_ids) == 0:
-            return
+        snaptron_ids = query_samples(sampleq,sample_map,snaptron_ids)
 
     #end result here is that we have a list of snaptron_ids to filter by
+    #or if no snaptron_ids were found we're done, in keeping with the strict AND policy (currently)
+    #TODO: update this when we start supporting OR in the POSTs, this will need to change
+    if len(snaptron_ids) == 0 and (len(idq) >=1 or len(sampleq) >= 1):
+        return
 
     #NOW start normal query processing between: 1) interval 2) range or 3) or just snaptron ids
     #note: 1) and 3) use tabix, 2) uses lucene
@@ -500,11 +546,7 @@ def main():
     #if len(snaptron_ids) > 0 and len(intervalq) == 0 and (len(rangeq) == 0 or not first_tdb):
     #back to usual processing, interval queries come first possibly with filters from the point range queries and/or ids
     if len(intervalq) >= 1:
-        rquery = range_query_parser(rangeq,snaptron_ids)
-        if snapconf.INTERVAL_PATTERN.search(intervalq):
-            run_tabix(intervalq,rquery,snapconf.TABIX_INTERVAL_DB,intron_filters=snaptron_ids,debug=DEBUG_MODE_)
-        else:
-            search_by_gene_name(intervalq,rquery,intron_filters=snaptron_ids)
+        query_regions(intervalq,rangeq,snaptron_ids)
     elif len(snaptron_ids) >= 1:
         rquery = range_query_parser(rangeq,snaptron_ids)
         search_introns_by_ids(snaptron_ids,rquery)
@@ -515,66 +557,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-#####deprecated
-comp_op_pattern=re.compile(r'([=><!]+)')
-def range_query_parser_deprecated(rangeq,snaptron_ids,rquery_will_be_index=False):
-    rquery={}
-    #snaptron_ids = []
-    if rangeq is None or len(rangeq) < 1:
-        return (None,None,rquery)
-    fields = rangeq.split(',')
-    (first_tdb,first_rquery)=(None,None)
-    for field in fields:
-        m=comp_op_pattern.search(field)
-        (col,op_,val)=re.split(comp_op_pattern,field)
-        if not m or not col or col not in snapconf.TABIX_DBS:
-            continue
-        op=m.group(1)
-        if op not in snapconf.operators:
-            sys.stderr.write("bad operator %s in range query,exiting\n" % (str(op)))
-            sys.exit(-1)
-        #queries by id are a different type of query, we simply record the id
-        #and then move on, if there is only a id query that will be caught higher up
-        if col == 'snaptron_id':
-            snaptron_ids.update(set(val.split('-')))
-            continue
-        val=float(val)
-        if col not in snapconf.FLOAT_FIELDS:
-            val=int(val)
-        if first_tdb:
-            rquery[col]=(snapconf.operators[op],val)
-            continue 
-            #return (None,None,None,only_ids)
-        #add first rquery to the rquery hash if we're not going to be
-        #used as an index 
-        #OR the case where it's floating point and we need to work around
-        #Tabix's lack of support for that
-        if not rquery_will_be_index or 'avg' in col or 'median' in col:
-            rquery[col]=(snapconf.operators[op],val)
-        #if we are used for the index,
-        #then for 2nd pass columns where the value could be 0 (GTEx)
-        #we need to add another predicate to avoid the 0
-        #since tabix doesn't handle 0's and will return them
-        #even for a >=1 query
-        #elif col[-1] == '2' and val > 0.0:
-        #    rquery[col]=(operators['>'],0.0)
-        #only do the following for the first range query
-        tdb=snapconf.TABIX_DBS[col]
-        first_tdb=tdb
-        extension=""
-        #since tabix only takes integers, round to nearest integer
-        val = int(round(val))
-        if op == '=':
-            extension="-%d" % (val)
-        if op == '<=':
-            extension="-%d" % (val)
-            val=1
-        if op == '<':
-            extension="-%d" % (val-1)
-            val=1
-        if op == '>':
-            val=val+1
-        first_rquery="1:%d%s" % (val,extension)
-    return (first_tdb,first_rquery,rquery)

@@ -15,7 +15,8 @@ NFR = NumericRangeQuery.newFloatRange
 #from collections import namedtuple
 #bunch of constants for use throughout snaptron
 
-operators={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
+operators_old={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
+operators={'>:':operator.ge,'<:':operator.le,'>':operator.gt,'<':operator.lt,':':operator.eq,'!:':operator.ne}
 TABIX="tabix"
 #TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.gz'
 TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
@@ -42,7 +43,8 @@ LUCENE_MAX_SAMPLE_HITS=1000000
 LUCENE_TYPES={'snaptron_id':[IntField,int,NIR],'length':[IntField,int,NIR],'strand':[StringField,str,TERM],'annotated?':[IntField,int,NIR],'left_motif':[StringField,str,TERM],'right_motif':[StringField,str,TERM],'left_annotated?':[TextField,str,TERM],'right_annotated?':[TextField,str,TERM],'length':[IntField,int,NIR],'samples_count':[IntField,int,NIR],'coverage_sum':[IntField,int,NIR],'coverage_avg':[FloatField,float,NFR],'coverage_median':[FloatField,float,NFR],'source_dataset_id':[IntField,int,NIR],'coverage_avg2':[FloatField,float,NFR],'coverage_median2':[FloatField,float,NFR]}
 
 RANGE_QUERY_DELIMITER=','
-RANGE_QUERY_OPS='([=><!]+)'
+#RANGE_QUERY_OPS='([=><!]+)'
+RANGE_QUERY_OPS='([:><!]+)'
 RANGE_QUERY_FIELD_PATTERN=re.compile(RANGE_QUERY_OPS)
 SAMPLE_QUERY_DELIMITER='==='
 SAMPLE_QUERY_FIELD_DELIMITER='::'
