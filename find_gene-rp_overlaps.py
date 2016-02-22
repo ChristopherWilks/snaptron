@@ -6,6 +6,8 @@ from bx.intervals.intersection import Interval
 #from bx.intervals.intersection import IntervalNode
 from bx.intervals.intersection import IntervalTree
 
+import gzip
+
 #itree per chromosome create interval tree
 #itree[rp.refid] = IntervalTree()
 #iv = Interval(rp.ref_i, rp.ref_f, value=rp.rep_cl)
@@ -166,7 +168,7 @@ def main():
     #index 0 = total REL junctions
     #index 1 = total REL junctions matching sense
     
-    with open(intronsF,"r") as intronsIN:
+    with gzip.open(intronsF,"r") as intronsIN:
         for line in intronsIN:
         #for line in sys.stdin:
             fields = line.rstrip().split('\t') 
