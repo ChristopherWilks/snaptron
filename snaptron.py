@@ -34,6 +34,8 @@ import snaputil
 DEBUG_MODE=True
 POST=False
 
+REQ_FIELDS = []
+
 #setup lucene reader for sample related searches
 lucene.initVM()
 analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
@@ -61,6 +63,15 @@ def filter_by_ranges(fields,rquerys):
             skip=True
             break
     return skip
+
+
+def stream_intron(fout,line,fields):
+    if len(fields) == 0:
+        fields = line.split('\t')
+    newline = line
+    if len(REQ_FIELDS) > 0:
+       newline = "\t".join([fields[x] for x in REQ_FIELDS]) + "\n"
+    fout.write("%s" % (newline))
 
 
 def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,save_introns=False,save_samples=False,stream_back=True,print_header=True,debug=True):
@@ -96,7 +107,8 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
                 sample_set.update(samples)
         #filter return stream based on range queries (if any)
         if stream_back:
-            sys.stdout.write("%s:I\t%s" % (snapconf.DATA_SOURCE,line))
+            #sys.stdout.write("%s:I\t%s" % (snapconf.DATA_SOURCE,line))
+            stream_intron(sys.stdout,line,fields)
         if save_introns:
             ids_found.add(fields[snapconf.INTRON_ID_COL])
     exitc=tabixp.wait() 
@@ -195,8 +207,9 @@ def search_ranges_lucene(rangeq,snaptron_ids,stream_back=False):
         sid = doc.get("snaptron_id")
         #stream back the full record from the record in Lucene
         if stream_back and (snaptron_ids == None or len(snaptron_ids) == 0 or sid in snaptron_ids):
-            sys.stdout.write("%s:I\t%s\n" % (snapconf.DATA_SOURCE,doc.get('all')))
-        #track the sample ids if asked to
+            #sys.stdout.write("%s:I\t%s\n" % (snapconf.DATA_SOURCE,doc.get('all')))
+            stream_intron(sys.stdout,doc.get('all'),[])
+        #track the snaptron ids if asked to
         elif snaptron_ids != None:
             snaptron_ids.add(sid)
            
@@ -426,7 +439,7 @@ def parse_json_query(input_):
 
 
 def process_params(input_):
-    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[]}
+    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[]}
     params_ = input_.split('&')
     for param_ in params_:
         (key,val) = param_.split("=")
@@ -437,6 +450,10 @@ def process_params(input_):
             subparams = val.split(',')
             for subparam in subparams:
                 params[key].append(subparam)
+        elif key == 'fields':
+            fields = val.split(',')
+            for field in fields:
+                REQ_FIELDS.append(snapconf.INTRON_HEADER_FIELDS_MAP[field])
         else:
             params[key].append(val) 
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'])
