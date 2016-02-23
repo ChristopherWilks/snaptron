@@ -35,6 +35,7 @@ DEBUG_MODE=True
 POST=False
 
 REQ_FIELDS = []
+RESULT_COUNT = False
 
 #setup lucene reader for sample related searches
 lucene.initVM()
@@ -75,6 +76,12 @@ def stream_intron(fout,line,fields):
 
 
 def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,save_introns=False,save_samples=False,stream_back=True,print_header=True,debug=True):
+    ids_found=set()
+    samples_set=set()
+    #this trumps whatever stream_back instructions we were given
+    if RESULT_COUNT:
+        stream_back = False
+        save_introns = True
     tabix_db = "%s/%s" % (snapconf.TABIX_DB_PATH,tabix_db)
     filter_by_introns = (intron_filters != None and len(intron_filters) > 0)
     filter_by_samples = (sample_filters != None and len(sample_filters) > 0)
@@ -84,8 +91,6 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
         sys.stdout.write("DataSource:Type\t%s\n" % (snapconf.INTRON_HEADER))
     if stream_back and POST:
         sys.stdout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
-    ids_found=set()
-    samples_set=set()
     tabixp = subprocess.Popen("%s %s %s | cut -f 2-" % (snapconf.TABIX,tabix_db,qargs),stdout=subprocess.PIPE,shell=True)
     for line in tabixp.stdout:
         fields=line.rstrip().split("\t")
@@ -195,9 +200,10 @@ def search_samples_lucene(sample_map,sampleq,sample_set,stream_sample_metadata=F
 
 #based on the example code at
 #http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
-def search_ranges_lucene(rangeq,snaptron_ids,stream_back=False):
+def search_ranges_lucene(rangeq,snaptron_ids,stream_back=False,filtering=False):
     parsed_query = lucene_range_query_parse(rangeq)
     hits = rsearcher.search(parsed_query, snapconf.LUCENE_MAX_RANGE_HITS)
+    sids = set()
     if DEBUG_MODE: 
         sys.stderr.write("Found %d document(s) that matched range query '%s':\n" % (hits.totalHits, parsed_query))
     if stream_back:
@@ -210,8 +216,11 @@ def search_ranges_lucene(rangeq,snaptron_ids,stream_back=False):
             #sys.stdout.write("%s:I\t%s\n" % (snapconf.DATA_SOURCE,doc.get('all')))
             stream_intron(sys.stdout,doc.get('all'),[])
         #track the snaptron ids if asked to
-        elif snaptron_ids != None:
+        if snaptron_ids != None:
             snaptron_ids.add(sid)
+        if filtering:
+            sids.add(sid)
+    return (sids,set())
            
  
 def stream_samples(sample_set,sample_map):
@@ -272,7 +281,7 @@ def search_introns_by_ids(snaptron_ids,rquery,filtering=False):
         if filtering:
             found_snaptron_ids.update(ids)
         print_header = False
-    return found_snaptron_ids
+    return (found_snaptron_ids,set())
 
 #this does the reverse: given a set of sample ids,
 #return all the introns associated with each sample
@@ -439,6 +448,7 @@ def parse_json_query(input_):
 
 
 def process_params(input_):
+    global RESULT_COUNT
     params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[]}
     params_ = input_.split('&')
     for param_ in params_:
@@ -453,6 +463,10 @@ def process_params(input_):
         elif key == 'fields':
             fields = val.split(',')
             for field in fields:
+                if field == 'rc':
+                    #only provide the total count of results
+                    RESULT_COUNT=True
+                    continue
                 REQ_FIELDS.append(snapconf.INTRON_HEADER_FIELDS_MAP[field])
         else:
             params[key].append(val) 
@@ -562,15 +576,20 @@ def main():
     #UPDATE: prefer tabix queries of either interval or snaptron_ids rather than lucene search of range queries due to speed
     #if len(snaptron_ids) > 0 and len(intervalq) == 0 and (len(rangeq) == 0 or not first_tdb):
     #back to usual processing, interval queries come first possibly with filters from the point range queries and/or ids
+    found_snaptron_ids = set()
+    found_sample_ids = set()
     if len(intervalq) >= 1:
-        query_regions(intervalq,rangeq,snaptron_ids)
+        (found_snaptron_ids,found_sample_ids) = query_regions(intervalq,rangeq,snaptron_ids,filtering=RESULT_COUNT)
     elif len(snaptron_ids) >= 1:
         rquery = range_query_parser(rangeq,snaptron_ids)
-        search_introns_by_ids(snaptron_ids,rquery)
+        (found_snaptron_ids,found_sample_ids) = search_introns_by_ids(snaptron_ids,rquery,filtering=RESULT_COUNT)
     #finally if there's no interval OR id query to use with tabix, use a point range query (first_rquery) with additional filters from the following point range queries and/or ids in lucene
     elif len(rangeq) >= 1:
         #run_tabix(first_rquery,rquery,first_tdb,filter_set=snaptron_ids,sample_set=sample_set,debug=DEBUG_MODE_)
-        search_ranges_lucene(rangeq,snaptron_ids,stream_back=True)
+        (found_snaptron_ids,found_sample_ids) = search_ranges_lucene(rangeq,snaptron_ids,stream_back=True,filtering=RESULT_COUNT)
+    
+    if RESULT_COUNT:
+        sys.stdout.write("%d\n" % (len(found_snaptron_ids)))
 
 if __name__ == '__main__':
     main()
