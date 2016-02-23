@@ -85,10 +85,15 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
     tabix_db = "%s/%s" % (snapconf.TABIX_DB_PATH,tabix_db)
     filter_by_introns = (intron_filters != None and len(intron_filters) > 0)
     filter_by_samples = (sample_filters != None and len(sample_filters) > 0)
+    custom_header = snapconf.INTRON_HEADER
+    if len(REQ_FIELDS) > 0:
+        custom_header = "\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)])
     if debug:
         sys.stderr.write("running %s %s %s\n" % (snapconf.TABIX,tabix_db,qargs))
     if stream_back and print_header:
-        sys.stdout.write("DataSource:Type\t%s\n" % (snapconf.INTRON_HEADER))
+        if not RESULT_COUNT and len(REQ_FIELDS) == 0:
+            sys.stdout.write("DataSource:Type\t")
+        sys.stdout.write("%s\n" % (custom_header))
     if stream_back and POST:
         sys.stdout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
     tabixp = subprocess.Popen("%s %s %s | cut -f 2-" % (snapconf.TABIX,tabix_db,qargs),stdout=subprocess.PIPE,shell=True)
