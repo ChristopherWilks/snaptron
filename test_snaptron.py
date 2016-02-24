@@ -130,7 +130,7 @@ class TestTabixCalls(unittest.TestCase):
         '''make sure we're getting back an expected set of intropolis ids'''
         d = 0
         #get intropolis ids
-        iids = self.idc(IDs[d], filtering=True)
+        (iids,sids) = self.idc(IDs[d], filtering=True)
         self.assertEqual(iids, EXPECTED_IIDS[str(IDs[d])])
 
 

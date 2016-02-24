@@ -72,7 +72,8 @@ def stream_intron(fout,line,fields):
     newline = line
     if len(REQ_FIELDS) > 0:
        newline = "\t".join([fields[x] for x in REQ_FIELDS]) + "\n"
-    fout.write("%s" % (newline))
+    #fout.write("%s" % (newline))
+    fout.write("%s:I\t%s" % (snapconf.DATA_SOURCE,newline))
 
 
 def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,save_introns=False,save_samples=False,stream_back=True,print_header=True,debug=True):
@@ -91,7 +92,7 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
     if debug:
         sys.stderr.write("running %s %s %s\n" % (snapconf.TABIX,tabix_db,qargs))
     if stream_back and print_header:
-        if not RESULT_COUNT and len(REQ_FIELDS) == 0:
+        if not RESULT_COUNT: #and len(REQ_FIELDS) == 0:
             sys.stdout.write("DataSource:Type\t")
         sys.stdout.write("%s\n" % (custom_header))
     if stream_back and POST:
