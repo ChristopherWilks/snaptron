@@ -35,6 +35,7 @@ def tearDownModule():
 #shortcuts for snaptron methods used in tests
 tc = snaptron.run_tabix
 rqp = snaptron.range_query_parser
+srl = snaptron.search_ranges_lucene
 sbi = snaptron.search_introns_by_ids
 sbg = snaptron.search_by_gene_name
 
@@ -51,7 +52,8 @@ class TestTabixCalls(unittest.TestCase):
     check tabix for basic queries (both interval and range including ids)
     def run_tabix(qargs,rquerys,tabix_db,filter_set=None,sample_set=None,filtering=False,print_header=True,debug=True):
     returns an id set if filtering==True
-    can also populate sample_set if defined
+    can also populate sample_set if defined.
+    These are true unit tests.
     '''
 
     def setUp(self):
@@ -139,6 +141,7 @@ class TestTabixCalls(unittest.TestCase):
 class TestQueryCalls(unittest.TestCase):
     '''
     Test the main top level methods in snaptron for querying with various predicates (regions, ranges, ids)
+    These are full round trip tests (so not really unittests as such, more system/integration tests)
     '''
 
     def setUp(self):
@@ -191,6 +194,16 @@ class TestQueryCalls(unittest.TestCase):
         (iids,sids) = qr([iq],rq,snaptron_ids,filtering=True)
         self.assertEqual(iids, EXPECTED_IIDS[IQs[i]+str(RQs_flat[r])+str(RQs_flat[r+1])])
     
+    def test_fp_ranges(self):
+        q = 0
+        i = 2
+        r = 1
+        queries = self.process_query('rfilter=%s&rfilter=%s' % (RQs_flat[r],RQs_flat[r+1]))
+        rq = queries['rq']
+        snaptron_ids = set()
+        (iids,sids) = srl(rq,snaptron_ids,filtering=True)
+        self.assertEqual(iids, EXPECTED_IIDS[str(RQs_flat[r])+str(RQs_flat[r+1])])
+    
     def test_interval_with_range_query_contains(self):
         q = 0
         i = 3
@@ -204,5 +217,3 @@ class TestQueryCalls(unittest.TestCase):
    
 if __name__ == '__main__':
     unittest.main()
-               
-#RQs[0]:set(["1042183","4655249","8228366","8228479","8613428","8813669","8992620","9191837","9191838","12439314","16533047","16585013","17895417","19061596","19061599","19659394","20360595","20360638","20360704","20360763","20360865","23543324","23821668","25640534","25640535","26783371","28153140","28463313","31138498","31576775","32888166","32888167","35125664","37187404","37876025","37876029","38244820","38418223","42053224"])
