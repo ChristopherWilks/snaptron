@@ -28,10 +28,13 @@ SAMPLE_MD_FILE='/data2/gigatron2/all_illumina_sra_for_human_ids.tsv'
 SAMPLE_IDS_COL=12
 SAMPLE_ID_COL=0
 INTRON_ID_COL=0
+START_COL=2
+END_COL=3
 
 #search by gene constants
 REFSEQ_ANNOTATION='refFlat.hg19.txt.sorted'
-INTERVAL_PATTERN = re.compile(r'^chr[12]?[0-9XYM]:\d+-\d+$')
+TABIX_PATTERN = re.compile(r'^([chrMXY\d]+):(\d+)-(\d+)$')
+INTERVAL_PATTERN = re.compile(r'^(chr[12]?[0-9XYM]):(\d+)-(\d+)$')
 CHROM_PATTERN = re.compile(r'^chr[12]?[0-9XYM]$')
 MAX_GENE_PROXIMITY = 10000
 

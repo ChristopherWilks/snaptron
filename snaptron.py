@@ -36,6 +36,7 @@ POST=False
 
 REQ_FIELDS = []
 RESULT_COUNT = False
+RETURN_ONLY_CONTAINED = False
 
 #setup lucene reader for sample related searches
 lucene.initVM()
@@ -76,7 +77,15 @@ def stream_intron(fout,line,fields):
     fout.write("%s:I\t%s" % (snapconf.DATA_SOURCE,newline))
 
 
-def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,save_introns=False,save_samples=False,stream_back=True,print_header=True,debug=True):
+def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,save_introns=False,save_samples=False,stream_back=True,print_header=True,contains=None,debug=True):
+    if contains is None:
+        contains = RETURN_ONLY_CONTAINED
+    m = snapconf.TABIX_PATTERN.search(qargs)
+    #if not m:
+    #    sys.stderr.write("bad interval,exiting %s\n" % (qargs))
+    #    sys.exit(-1)
+    start = m.group(2)
+    end = m.group(3)
     ids_found=set()
     samples_set=set()
     #this trumps whatever stream_back instructions we were given
@@ -100,6 +109,9 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
     tabixp = subprocess.Popen("%s %s %s | cut -f 2-" % (snapconf.TABIX,tabix_db,qargs),stdout=subprocess.PIPE,shell=True)
     for line in tabixp.stdout:
         fields=line.rstrip().split("\t")
+        #first attempt to filter by violation of containment (if in effect)
+        if contains and (fields[snapconf.START_COL] < start or fields[snapconf.END_COL] > end):
+            continue
         #now filter, this order is important (filter first, than save ids/print)
         if filter_by_introns and fields[snapconf.INTRON_ID_COL] not in intron_filters:
             #sys.stderr.write("field %s not in filter_set\n" % (fields[snapconf.INTRON_ID_COL]))
@@ -455,7 +467,8 @@ def parse_json_query(input_):
 
 def process_params(input_):
     global RESULT_COUNT
-    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[]}
+    global RETURN_ONLY_CONTAINED
+    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[],'contains':0}
     params_ = input_.split('&')
     for param_ in params_:
         (key,val) = param_.split("=")
@@ -474,6 +487,9 @@ def process_params(input_):
                     RESULT_COUNT=True
                     continue
                 REQ_FIELDS.append(snapconf.INTRON_HEADER_FIELDS_MAP[field])
+        elif key == 'contains':
+            if val == '1':
+                RETURN_ONLY_CONTAINED = True
         else:
             params[key].append(val) 
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'])
