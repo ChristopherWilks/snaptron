@@ -7,7 +7,6 @@ python ./find_gene-rp_overlaps.py knownGene_28-Jun-2015.clusterid.tsv ucsc_repea
 
 cat ../all_illumina_sra_for_human_ids.tsv | perl -ne 'chomp; @f=split(/\t/,$_); $ri=$f[28]; $count=-1; $i=undef; for($ri=~/BASE_COORD:\s+(\d+)/g) { $count++; $i=$1; } $length="NA"; $paired=$f[26]; $paired=~s/ -.*$//; if($count>-1 && $paired =~ /PAIRED/) { $length=$i; }  if(($paired=~/PAIRED/ && $count==0) || ($paired!~/PAIRED/ && $count==1)) { $paired="NA"; } $read=join("\t",($f[11],$f[12],$length,$paired)); $library=join("\t",($f[23],$f[24],$f[25],$f[22])); $descr=$f[27]; $instrument=$f[31]; $instrument=~s/INSTRUMENT_MODEL: //; $tissue=join("\t",($f[69],$f[70],$f[71],$f[72],$f[73],$f[74])); $isid=$f[0]; $srr=$f[1]; $s=join("\t",($isid,$srr,$read,$instrument,$library,$tissue,$descr)); print "$s\n";' > ${report}
 
-#perl join_junction_and_sample_md.pl ${report} sample_counts.tsv SRA_BrainList_w_iids.tsv.just_iids | cut -f 1-9,11- > sample_counts.tsv.formatted_md.tsv
 perl join_junction_and_sample_md.pl ${report} sample_counts.tsv SRA_BrainList_w_iids.tsv.just_iids > sample_counts.tsv.formatted_md.tsv
 
 #echo 'intropolis_sample_id	SRR	in_sarvens_samples	REL Sense Frac	REL Total Frac	REL Cov Frac	REL Spot Frac	RELSense/REL	REL/Total	RelCov/TotCov	spots	bases	read_length	paired	platform_parameters	library_strategy	library_source	library_selection	library_name	cell_type	tissue	cell_line	strain	age	disease	library_construction_protocol' >sra_sarven_REL_report_by_sample_counts.sorted.tsv
