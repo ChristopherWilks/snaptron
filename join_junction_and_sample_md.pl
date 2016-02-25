@@ -31,20 +31,20 @@ sub join_and_format
 		my $sid = shift @fields;
 		my $in_sarvens = ($sarven_iids->{$sid}?1:0);
 		my $md = $sample_mds->{$sid};
-                my @mds = split(/\t/,$md);
-                my $srr = shift @mds;
+    my @mds = split(/\t/,$md);
+    my $srr = shift @mds;
 		$md = join("\t",@mds);
 		my $spots = $mds[0];
 		#my @fracs;
 		print "$sid\t$srr\t$in_sarvens";
 		my $rel_vs_spots=-1;
-                my $original_nums = join("\t",@fields);
+    my $original_nums = join("\t",@fields);
 		$original_nums=~s/\//\t/g;
 		foreach my $div (@fields)
 		{
 			my ($num,$den) = split(/\//,$div);
-		        #push(@fracs,($num/$den));
-		        my $frac=$num/$den;
+	    #push(@fracs,($num/$den));
+	    my $frac=$num/$den;
 			printf("\t%.3f",$frac);
 			if($rel_vs_spots == -1 && $spots && $spots !~/e/)
 			{
@@ -86,6 +86,7 @@ sub load_sample_mds
 sub load_ids
 {
 	my $file = shift;
+  return {} if(!$file);
 	my %hash;
 	open(IN,"<$file");
 	while(my $line = <IN>)
