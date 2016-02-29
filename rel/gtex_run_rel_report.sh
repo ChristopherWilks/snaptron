@@ -1,9 +1,9 @@
 #!/bin/bash
 
-report='relevant_sample_md_fields.processed.tsv3'
+report='relevant_sample_md_fields.processed.tsv3a'
 
 #generates an artifact (but really the mai) file called 'sample_counts.tsv'
-#python ../find_gene-rp_overlaps.py knownGene_28-Jun-2015.clusterid.tsv ucsc_repeatmasker_2015_12_22.bed.sorted.gtf.no_chr_prefix consolidated_gtex_junctions.tsv.extended.gz consolidated_gtex_junctions.tsv.extended.gz.by_sample_count_coverate.tsv > annotated_repeated_introns.strands.tsv 2>errors &
+python ../find_gene-rp_overlaps.py knownGene_28-Jun-2015.clusterid.tsv ucsc_repeatmasker_2015_12_22.bed.sorted.gtf.no_chr_prefix consolidated_gtex_junctions.tsv.extended.liftedover_hg19.gz consolidated_gtex_junctions.tsv.extended.gz.by_sample_count_coverate.tsv > annotated_repeated_introns.strands.tsv2 2>errors
 
 #trust GTEX metadata where pairing is concerned (even if spots != spots_with_mates and LibraryLayout is PAIRED)
 cut -f 1,2,12,13,14,15,20-24,28,37,38,43-45,47-49 gtex_pheno_table.w_ids.tsv | perl -ne 'chomp; ($idx,$srr,$spots,$bases,$spots_with_mates,$avgLength,$LibraryName,$LibraryStrategy,$LibrarySelection,$LibrarySource,$LibraryLayout,$Model,$ScientificName,$SampleName,$Sex,$Disease,$Tumor,$Analyte_Type,$Histological_Type,$Body_Site)=split(/\t/,$_); $read=join("\t",($spots,$bases,$avgLength,$LibraryLayout)); $instrument=$Model; $tissue=join("\t",($Analyte_Type,$Body_Site,$Histological_Type,$Tumor,$Sex,$Disease)); $library=join("\t",($LibraryStrategy,$LibrarySource,$LibrarySelection,$LibraryName)); $s=join("\t",($idx,$srr,$read,$instrument,$library,$tissue,$ScientificName,$SampleName)); print "$s\n";'  > ${report}
