@@ -26,7 +26,8 @@ DEBUG_MODE=True
 #CMD_BUFFER_SIZE=16777216
 #CMD_BUFFER_SIZE=4194304
 PYTHON_PATH='/data/gigatron/snaptron/python/bin/python'
-LOCAL_APP = '/data/gigatron/snaptron/snaptron.py'
+SNAPTRON_APP = '/data/gigatron/snaptron/snaptron.py'
+SAMPLE_APP = '/data/gigatron/snaptron/snample.py'
 CMD_BUFFER_SIZE = -1
 #in seconds, so just under an hour to cache the authorization result for a specific token/acm_url
 TIME_TO_MEMOIZE_AUTH_RESULT=3500
@@ -101,12 +102,12 @@ class StreamingResponseIterator:
             logger.error("in _wait, found an error message")
             stderr = "".join(self.stderr)
             for line in stderr.split("\n"):
-                errors.append("%s:%s" % (LOCAL_APP, line.rstrip()))
-                logger.error("%s:%s" % (LOCAL_APP, line.rstrip()))
+                errors.append("%s:%s" % (SNAPTRON_APP, line.rstrip()))
+                logger.error("%s:%s" % (SNAPTRON_APP, line.rstrip()))
             #alert the server to the error by THROWING AN EXCEPTION (not re-calling start_response)
             if self.stream_subproc.returncode != 0 or (not DEBUG_MODE and len(self.stderr) > 0):
-                raise Exception("%s failed on %s" % (LOCAL_APP, ":::".join(errors)))
-            #raise Exception("%s failed on %s" % (LOCAL_APP, ":::".join(errors)))
+                raise Exception("%s failed on %s" % (SNAPTRON_APP, ":::".join(errors)))
+            #raise Exception("%s failed on %s" % (SNAPTRON_APP, ":::".join(errors)))
 
     def _terminate(self):
         if self.closed:
@@ -231,7 +232,7 @@ def run_command(cmd_and_args):
 RANGE_PATTERN = re.compile(r'^[0-9a-zA-Z_\-]+:\d+-\d+$')
 def query(query, add_checksum=True):
 
-    args = [PYTHON_PATH, LOCAL_APP]
+    args = [PYTHON_PATH, SNAPTRON_APP]
     #get the one or more range tuples (expect chr:start-end) 
     ranges = query.get('range', [])
 
@@ -312,12 +313,11 @@ def snaptron_endpoint(environ, start_response):
         logger.info("\nQUERY_STRING %s" % query_string)
         query_string = query_string.replace("'","")
         query_string = query_string.replace('"','')
-        #query = urlparse.parse_qs(environ.get('QUERY_STRING'))
         query = urlparse.parse_qs(query_string)
 
     add_checksum = False
 
-    logger.debug("REQUEST ENVIRONMENT:")
+    logger.debug("SNAPTRON REQUEST ENVIRONMENT:")
     for (key, val) in environ.iteritems():
         logger.debug("key=%s val=%s" % (key, val))
         #see if we're in test/debug mode for the chunked error
@@ -335,11 +335,52 @@ def snaptron_endpoint(environ, start_response):
     logger.info("READ_SIZE=%s" % read_size)
     read_size = int(read_size)
 
-    #rquery=query.get('rquery', [])
-    #logger.info("BEFORE rquery=%s" % (rquery[0]))
-    #rquery = rquery[0]
     #rquery = translate_range_query(rquery[0])
-    args=[PYTHON_PATH, LOCAL_APP, query_string]
+    args=[PYTHON_PATH, SNAPTRON_APP, query_string]
+    #create subprocess run object 
+    sproc = run_command(args)
+
+    #do the response 
+    status = "200 OK"
+    response_headers = [('Content-type', 'text/plain')]
+    start_response(status, response_headers)
+    request_id=None
+    si = StreamingResponseIterator(start_response, sproc, request_id, read_size)
+    if force_stream_error == str(1):
+        logger.debug("bforce_stream_error %s\n" % force_stream_error)
+        si = DebugStreamIterator(si)
+    return si
+
+def sample_endpoint(environ, start_response):
+    http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}
+    query_string = environ.get('QUERY_STRING')
+   
+    query = {}
+    #first log message (outside of errors) so put in a newline
+    logger.info("\nQUERY_STRING %s" % query_string)
+    query_string = query_string.replace("'","")
+    query_string = query_string.replace('"','')
+    query = urlparse.parse_qs(query_string)
+
+    logger.debug("SAMPLES REQUEST ENVIRONMENT:")
+    for (key, val) in environ.iteritems():
+        logger.debug("key=%s val=%s" % (key, val))
+        #see if we're in test/debug mode for the chunked error
+    try:
+        force_stream_error = str(environ['HTTP_X_FORCE_STREAM_ERROR'])
+    except KeyError:
+        force_stream_error = "0"
+
+    read_size = READ_SIZE
+    #see if the read_size is being overriden (as in a test server is calling this)
+    if 'read_size' in environ:
+        read_size = str(environ['read_size'])
+        if READ_SIZE_PATTERN.search(read_size) is None:
+            return bad_request(start_response, "bad read_size in environment")
+    logger.info("READ_SIZE=%s" % read_size)
+    read_size = int(read_size)
+
+    args=[PYTHON_PATH, SAMPLE_APP, query_string]
     #create subprocess run object 
     sproc = run_command(args)
 
@@ -361,8 +402,8 @@ if __name__ == '__main__':
     logger.info("BEFORE rquery=%s" % (rquery))
     rquery = translate_range_query(rquery)
     logger.info("AFTER rquery=%s" % (rquery))
-    #sproc = run_command([PYTHON_PATH, LOCAL_APP, 'chr6:1-10000000|samples_count=5|','1'])
-    sproc = run_command([PYTHON_PATH, LOCAL_APP, rquery])
+    #sproc = run_command([PYTHON_PATH, SNAPTRON_APP, 'chr6:1-10000000|samples_count=5|','1'])
+    sproc = run_command([PYTHON_PATH, SNAPTRON_APP, rquery])
     itr=StreamingResponseIterator(None,sproc,None)
     chunk=itr.next();
     while(chunk):

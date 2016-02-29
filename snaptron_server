@@ -15,10 +15,8 @@ from optparse import OptionParser
 
 import cherrypy
 
-#from slicer.slicer import analyses_endpoint
-#from slicer.checksum import checksums_endpoint
-
 from snaptronws import snaptron_endpoint
+from snaptronws_new import sample_endpoint
 
 description = "Backend web server runner for the SnapTron web service"
 
@@ -71,6 +69,10 @@ def log(level, msg):
 def snaptron_service(environ, start_response):
     environ['read_size'] = options.read_size
     return snaptron_endpoint(environ, start_response)
+
+def sample_service(environ, start_response):
+    environ['read_size'] = options.read_size
+    return sample_endpoint(environ, start_response)
 
 def lookup_user(username, err_str):
     try:
@@ -147,6 +149,7 @@ class SmartPIDLockFile(PIDLockFile):
 
 def run_server():
     cherrypy.tree.graft(snaptron_service, "/snaptron")
+    cherrypy.tree.graft(sample_service, "/samples")
 
     #cherrypy.config.update({'server.socket_host': "127.0.0.1", 'server.socket_port': 1555, 'server.thread_pool': 30})
     #cherrypy.config.update({'server.socket_host': "10.1.1.50", 'server.socket_port': 1555, 'server.thread_pool': 30})

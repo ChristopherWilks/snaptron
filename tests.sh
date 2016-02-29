@@ -2,18 +2,28 @@
 source python/bin/activate
 
 python test_snaptron.py
+
+#system tests (roundtrip)
 echo "26" > expected_wc
 python ./snaptron.py 'regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000' 2> /dev/null | wc -l > test_wc
 diff test_wc expected_wc
+
 echo "26" > expected_wc
 curl "http://stingray.cs.jhu.edu:8443/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000" 2> /dev/null | wc -l  > test_wc
 diff test_wc expected_wc
+
 echo "26" > expected_wc
 curl "http://stingray.cs.jhu.edu:8443/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&fields=snaptron_id" 2> /dev/null | wc -l  > test_wc
 diff test_wc expected_wc
+
 echo "27" > expected_wc
 curl --data 'fields="[{"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":100}],"coverage_sum":[{"op":">:","val":1000}]}]"' http://stingray.cs.jhu.edu:8443/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
+
+echo "32" > expected_wc
+curl "http://stingray.cs.jhu.edu:8443/samples?sfilter=description:cortex" 2>/dev/null | wc -l > test_wc
+diff test_wc expected_wc
+
 rm test_wc expected_wc
 
 echo "all tests run"

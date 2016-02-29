@@ -36,6 +36,7 @@ REFSEQ_ANNOTATION='refFlat.hg19.txt.sorted'
 TABIX_PATTERN = re.compile(r'^([chrMXY\d]+):(\d+)-(\d+)$')
 INTERVAL_PATTERN = re.compile(r'^(chr[12]?[0-9XYM]):(\d+)-(\d+)$')
 CHROM_PATTERN = re.compile(r'^chr[12]?[0-9XYM]$')
+SNAPTRON_ID_PATT = re.compile(r'snaptron_id')
 MAX_GENE_PROXIMITY = 10000
 
 #set much larger than the total # of introns we expect to have
@@ -50,7 +51,7 @@ RANGE_QUERY_DELIMITER=','
 RANGE_QUERY_OPS='([:><!]+)'
 RANGE_QUERY_FIELD_PATTERN=re.compile(RANGE_QUERY_OPS)
 SAMPLE_QUERY_DELIMITER='==='
-SAMPLE_QUERY_FIELD_DELIMITER='::'
+SAMPLE_QUERY_FIELD_DELIMITER=':' #::
 
 FLOAT_FIELDS=set(['coverage_avg','coverage_median'])
 
@@ -76,5 +77,10 @@ INTRON_TYPE_HEADER = "\t".join(INTRON_TYPE_HEADER_)
 
 SAMPLE_HEADER_FIELDS=SAMPLE_HEADER.split('\t')
 SAMPLE_HEADER_FIELDS_MAP={}
+SAMPLE_HEADER_FIELDS_TYPE_MAP={}
 for (i,field) in enumerate(SAMPLE_HEADER_FIELDS):
-   SAMPLE_HEADER_FIELDS_MAP[field]=i 
+   SAMPLE_HEADER_FIELDS_MAP[field]=i
+   fields = field.split('_')
+   t = fields[-1]
+   field_wo_type = '_'.join(fields[:-1])
+   SAMPLE_HEADER_FIELDS_TYPE_MAP[field_wo_type]=field

@@ -30,6 +30,7 @@ from org.apache.lucene.util import Version
 
 import snapconf
 import snaputil
+import snample
 
 DEBUG_MODE=True
 POST=False
@@ -38,13 +39,10 @@ REQ_FIELDS = []
 RESULT_COUNT = False
 RETURN_ONLY_CONTAINED = False
 
-#setup lucene reader for sample related searches
-lucene.initVM()
-analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
-reader = IndexReader.open(SimpleFSDirectory(File("lucene/")))
-searcher = IndexSearcher(reader)
 
 #setup lucene reader for range related searches
+lucene.initVM()
+analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
 rreader = IndexReader.open(SimpleFSDirectory(File("/data2/gigatron2/lucene_ranges/")))
 rsearcher = IndexSearcher(rreader)
 
@@ -140,19 +138,6 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
     return (ids_found,samples_set)
 
 
-def lucene_sample_query_parse(sampleq):
-    queries_ = sampleq.split(snapconf.SAMPLE_QUERY_DELIMITER)
-    fields = []
-    queries = []
-    booleans = []
-    for query_tuple in queries_:
-        #(field,query) = query_tuple.split(snapconf.SAMPLE_QUERY_FIELD_DELIMITER)
-        fields.append(field)
-        query = query.replace('AND',' AND ')
-        #sys.stderr.write("query + fields: %s %s\n" % (query,field))
-        queries.append(query)
-        booleans.append(BooleanClause.Occur.MUST)
-    return (fields,queries,booleans)
 
 
 def lucene_range_query_parse(query_string):
@@ -194,27 +179,6 @@ def lucene_range_query_parse(query_string):
         #sys.stderr.write("query + fields: %s %s\n" % (query,field))
     return query
 
-#based on the example code at
-#http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
-def search_samples_lucene(sample_map,sampleq,sample_set,stream_sample_metadata=False):
-    (fields,queries,booleans) = lucene_sample_query_parse(sampleq)
-    query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, analyzer)
-    #query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, ['human AND adult AND brain'], ['description_t'], [BooleanClause.Occur.MUST], analyzer)
-    hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
-    if DEBUG_MODE: 
-        sys.stderr.write("Found %d document(s) that matched query '%s':\n" % (hits.totalHits, sampleq))
-    if stream_sample_metadata:
-        sys.stdout.write("DataSource:Type\t%s\n" % (snapconf.SAMPLE_HEADER))
-    for hit in hits.scoreDocs:
-        doc = searcher.doc(hit.doc)
-        sid = doc.get("intropolis_sample_id_i")
-        #track the sample ids if asked to
-        if sample_set != None:
-            sample_set.add(sid)
-        #stream back the full sample metadata record from the in-memory dictionary
-        if stream_sample_metadata:
-            sys.stdout.write("%s:S\t%s\n" % (snapconf.DATA_SOURCE,sample_map[sid]))
-
 
 #based on the example code at
 #http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
@@ -241,37 +205,8 @@ def search_ranges_lucene(rangeq,snaptron_ids,stream_back=False,filtering=False):
     return (sids,set())
            
  
-def stream_samples(sample_set,sample_map):
-    sys.stdout.write("DataSource:Type\t%s\n" % (snapconf.SAMPLE_HEADER))
-    for sample_id in sample_set:
-        sys.stdout.write("%s:S\t%s\n" % (snapconf.DATA_SOURCE,sample_map[sample_id]))
 
 
-#use to load samples metadata to be returned
-#ONLY when the user requests by overlap coords OR
-#coords and/or non-sample metadata thresholds (e.g. coverage)
-#otherwise we'll return the whole thing from SOLR instead
-def load_sample_metadata(file_):
-    start = time.time()
-    fmd=snaputil.load_cpickle_file("%s.pkl" % (file_))
-    if fmd:
-        end = time.time()
-        taken = end-start
-        #sys.stderr.write("time taken to load samples from pickle: %d\n" % taken)
-        return fmd
-    start = time.time()
-    fmd={}
-    #dont need the hash-on-column headers just yet
-    with open(file_,"r") as f:
-       for line in f:
-           line = line.rstrip()
-           fields=line.split("\t")
-           fmd[fields[0]]=line
-    end = time.time()
-    taken = end-start
-    #sys.stderr.write("time taken to load samples from normal: %d\n" % taken)
-    snaputil.store_cpickle_file("%s.pkl" % (file_),fmd)
-    return fmd
 
 #do multiple searches by a set of ids
 def search_introns_by_ids(snaptron_ids,rquery,filtering=False):
@@ -303,47 +238,6 @@ def search_introns_by_ids(snaptron_ids,rquery,filtering=False):
         print_header = False
     return (found_snaptron_ids,set())
 
-#this does the reverse: given a set of sample ids,
-#return all the introns associated with each sample
-def intron_ids_from_samples(sample_set,snaptron_ids):
-    start = time.time()
-    sample2introns=snaputil.load_cpickle_file("./sample2introns.pkl")
-    #print("setting up sample2intron map")
-    if not sample2introns:
-        sample2introns={}
-        #f=open("/data2/gigatron2/all_SRA_introns_ids_stats.tsv.new","r")
-        f=gzip.open("%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.TABIX_INTERVAL_DB),"r")
-        print("opened gzip file for introns")
-        num_lines = 0
-        for line in f:
-            if "gigatron_id" in line or "snaptron_id" in line:
-                continue
-            fields=line.rstrip().split('\t')
-            sample_ids=fields[snapconf.SAMPLE_IDS_COL].split(',')
-            #print("loading line %s" % line) 
-            #just map the intron id
-            for sample_id in sample_ids:
-                if sample_id not in sample2introns:
-                    sample2introns[sample_id]=set()
-                sample2introns[sample_id].add(int(fields[snapconf.INTRON_ID_COL+1]))
-            num_lines+=1
-            if num_lines % 10000 == 0:
-                print("loaded %d introns" % (num_lines))
-        f.close()
-    #print("about to write pkl file")
-    snaputil.store_cpickle_file("./sample2introns.pkl",sample2introns)
-    #print("pkl file written")
-    end = time.time()
-    taken=end-start
-    if DEBUG_MODE:
-        sys.stderr.write("loaded %d samples2introns in %d\n" % (len(sample2introns),taken))
-    introns_seen=set()
-    for sample_id in sample_set:
-        introns_seen.update(sample2introns[sample_id])
-    if DEBUG_MODE:
-        sys.stderr.write("s2I\t%s\n" % (str(len(introns_seen))))
-    snaptron_ids.update(introns_seen)
-    #return introns_seen
     
 def range_query_parser(rangeq,snaptron_ids):
     '''this method is only used if we need to *filter* by one or more ranges during an interval or sample search'''
@@ -467,6 +361,43 @@ def parse_json_query(input_):
     return ([intervalq],{'rfilter':fmap['rfilter']},mdq,idq)
 
 
+
+
+
+def query_ids(idq,snaptron_ids):
+    sample_ids = set()
+    (id_type,first_id) = idq[0].split(':')
+    idq[0] = first_id
+    if id_type == 'snaptron':
+        snaptron_ids.update(set(idq))
+    else:
+        sample_ids.update(set(idq))
+    if len(sample_ids) > 0:
+        snample.intron_ids_from_samples(sample_ids,snaptron_ids)
+
+
+
+
+def query_regions(intervalq,rangeq,snaptron_ids,filtering=False):
+    rquery = range_query_parser(rangeq,snaptron_ids)
+    #intervals/genes are OR'd, but all ranges are ANDed together with each interval/gene search
+    print_header = True
+    snaptron_ids_returned = set()
+    sample_ids_returned = set()
+    for interval in intervalq:
+        ids = None
+        sids = None
+        if snapconf.INTERVAL_PATTERN.search(interval):
+           (ids,sids) = run_tabix(interval,rquery,snapconf.TABIX_INTERVAL_DB,intron_filters=snaptron_ids,debug=DEBUG_MODE,print_header=print_header,save_introns=filtering)
+        else:
+           (ids,sids) = search_by_gene_name(interval,rquery,intron_filters=snaptron_ids,print_header=print_header)
+        print_header = False
+        if filtering:
+            snaptron_ids_returned.update(ids)
+            sample_ids_returned.update(sids)
+    return (snaptron_ids_returned,sample_ids_returned)
+
+
 def process_params(input_):
     global RESULT_COUNT
     global RETURN_ONLY_CONTAINED
@@ -497,55 +428,6 @@ def process_params(input_):
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'])
 
 
-
-def query_ids(idq,snaptron_ids):
-    sample_ids = set()
-    (id_type,first_id) = idq[0].split(':')
-    idq[0] = first_id
-    if id_type == 'snaptron':
-        snaptron_ids.update(set(idq))
-    else:
-        sample_ids.update(set(idq))
-    if len(sample_ids) > 0:
-        intron_ids_from_samples(sample_ids,snaptron_ids)
-
-
-def query_samples(sampleq,sample_map,snaptron_ids):
-    sample_ids = set()
-    search_samples_lucene(sample_map,sampleq,sample_ids,stream_sample_metadata=False)
-    if DEBUG_MODE:
-        sys.stderr.write("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
-    snaptron_ids_from_samples = set()
-    intron_ids_from_samples(sample_ids,snaptron_ids_from_samples)
-    new_snaptron_ids = snaptron_ids_from_samples
-    if len(snaptron_ids) > 0 and len(snaptron_ids_from_samples) > 0:
-        #snaptron_ids = snaptron_ids.intersection(snaptron_ids_from_samples)
-        new_snaptron_ids = snaptron_ids.intersection(snaptron_ids_from_samples)
-    #elif len(snaptron_ids_from_samples) > 0:
-    #    snaptron_ids = snaptron_ids_from_samples
-    return new_snaptron_ids
-
-
-def query_regions(intervalq,rangeq,snaptron_ids,filtering=False):
-    rquery = range_query_parser(rangeq,snaptron_ids)
-    #intervals/genes are OR'd, but all ranges are ANDed together with each interval/gene search
-    print_header = True
-    snaptron_ids_returned = set()
-    sample_ids_returned = set()
-    for interval in intervalq:
-        ids = None
-        sids = None
-        if snapconf.INTERVAL_PATTERN.search(interval):
-           (ids,sids) = run_tabix(interval,rquery,snapconf.TABIX_INTERVAL_DB,intron_filters=snaptron_ids,debug=DEBUG_MODE,print_header=print_header,save_introns=filtering)
-        else:
-           (ids,sids) = search_by_gene_name(interval,rquery,intron_filters=snaptron_ids,print_header=print_header)
-        print_header = False
-        if filtering:
-            snaptron_ids_returned.update(ids)
-            sample_ids_returned.update(sids)
-    return (snaptron_ids_returned,sample_ids_returned)
-
-
 #cases:
 #1) just interval (one function call)
 #2) interval + range query(s) (one tabix function call + field filter(s))
@@ -571,7 +453,7 @@ def main():
     #    (intervalq,rangeq,sampleq,idq) = input_.split('|')
         (intervalq,idq,rangeq,sampleq) = process_params(input_)
 
-    sample_map = load_sample_metadata(snapconf.SAMPLE_MD_FILE)
+    sample_map = snample.load_sample_metadata(snapconf.SAMPLE_MD_FILE)
     if DEBUG_MODE_:
         sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
 
@@ -586,7 +468,7 @@ def main():
     #if we have any sample related queries, do them to get snaptron_id filter set
     #NOTE we are NOT currently support sample-id querying
     if len(sampleq) >= 1:
-        snaptron_ids = query_samples(sampleq,sample_map,snaptron_ids)
+        snaptron_ids = snample.query_samples(sampleq,sample_map,snaptron_ids)
 
     #end result here is that we have a list of snaptron_ids to filter by
     #or if no snaptron_ids were found we're done, in keeping with the strict AND policy (currently)
