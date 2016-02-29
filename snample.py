@@ -12,6 +12,7 @@ import time
 
 import gzip
 
+
 import lucene
 from java.io import File
 from org.apache.lucene.analysis.standard import StandardAnalyzer
@@ -31,6 +32,10 @@ from org.apache.lucene.util import Version
 import snapconf
 import snaputil
 import snaptron
+
+import sqlite3
+sconn = sqlite3.connect(snapconf.SAMPLE_SQLITE_DB)
+sc = sconn.cursor()
 
 DEBUG_MODE=False
 
@@ -107,48 +112,33 @@ def load_sample_metadata(file_):
     snaputil.store_cpickle_file("%s.pkl" % (file_),fmd)
     return fmd
 
+def sample_ids2intron_ids(sample_ids):
+    select = 'SELECT snaptron_ids FROM by_sample_id WHERE sample_id in'
+    #wheres = ','.join(sample_ids)
+    wheres = ['?' for x in sample_ids]
+    select = "%s (%s);" % (select,','.join(wheres))
+    found_snaptron_ids = set()
+    ids = [int(id_) for id_ in sample_ids]
+    for snaptron_ids in sc.execute(select,ids):
+       found_snaptron_ids.update(set(snaptron_ids[0].split(','))) 
+    return found_snaptron_ids
+
+
 #this does the reverse: given a set of sample ids,
 #return all the introns associated with each sample
 #UPDATE: BROKEN needs to be re-written using TABIX sample2intron ids
-def intron_ids_from_samples(sample_set,snaptron_ids):
+#UPDATE2: tabix vesion too slow (and slightly broken), need to try sqlite3
+def intron_ids_from_samples(sample_ids,snaptron_ids,rquery,filtering=False):
     start = time.time()
-    sample2introns=snaputil.load_cpickle_file("./sample2introns.pkl")
-    #print("setting up sample2intron map")
-    if not sample2introns:
-        sample2introns={}
-        #f=open("/data2/gigatron2/all_SRA_introns_ids_stats.tsv.new","r")
-        f=gzip.open("%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.TABIX_INTERVAL_DB),"r")
-        print("opened gzip file for introns")
-        num_lines = 0
-        for line in f:
-            if "gigatron_id" in line or "snaptron_id" in line:
-                continue
-            fields=line.rstrip().split('\t')
-            sample_ids=fields[snapconf.SAMPLE_IDS_COL].split(',')
-            #print("loading line %s" % line) 
-            #just map the intron id
-            for sample_id in sample_ids:
-                if sample_id not in sample2introns:
-                    sample2introns[sample_id]=set()
-                sample2introns[sample_id].add(int(fields[snapconf.INTRON_ID_COL+1]))
-            num_lines+=1
-            if num_lines % 10000 == 0:
-                print("loaded %d introns" % (num_lines))
-        f.close()
-    #print("about to write pkl file")
-    snaputil.store_cpickle_file("./sample2introns.pkl",sample2introns)
-    #print("pkl file written")
+    #(found_snaptron_ids,sample_ids) = snaptron_new.search_introns_by_ids(sample_ids,rquery,tabix_db=snapconf.TABIX_DBS['sample_id'],filtering=filtering)
+    found_snaptron_ids = sample_ids2intron_ids(sample_ids)
     end = time.time()
     taken=end-start
     if DEBUG_MODE:
-        sys.stderr.write("loaded %d samples2introns in %d\n" % (len(sample2introns),taken))
-    introns_seen=set()
-    for sample_id in sample_set:
-        introns_seen.update(sample2introns[sample_id])
-    if DEBUG_MODE:
-        sys.stderr.write("s2I\t%s\n" % (str(len(introns_seen))))
-    snaptron_ids.update(introns_seen)
-    #return introns_seen
+        sys.stderr.write("s2I\t%s in time %s secs\n" % (str(len(found_snaptron_ids)),str(taken)))
+    snaptron_ids.update(found_snaptron_ids)
+
+
 
 def query_samples(sampleq,sample_map,snaptron_ids,stream_sample_metadata=False):
     sample_ids = set()
@@ -158,7 +148,7 @@ def query_samples(sampleq,sample_map,snaptron_ids,stream_sample_metadata=False):
         sys.stderr.write("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
     if not stream_sample_metadata:
         snaptron_ids_from_samples = set()
-        intron_ids_from_samples(sample_ids,snaptron_ids_from_samples)
+        intron_ids_from_samples(sample_ids,snaptron_ids_from_samples,None)
         new_snaptron_ids = snaptron_ids_from_samples
         if len(snaptron_ids) > 0 and len(snaptron_ids_from_samples) > 0:
             new_snaptron_ids = snaptron_ids.intersection(snaptron_ids_from_samples)
@@ -181,6 +171,9 @@ def main():
     snaptron_ids = set()
     #we're just streaming back sample metadata
     query_samples(sampleq,sample_map,snaptron_ids,stream_sample_metadata=True)
+    #sids = query_samples(sampleq,sample_map,snaptron_ids,stream_sample_metadata=False)
+    #for sid in sids:
+    #    sys.stdout.write("%s\n" % sid)
      
 
 if __name__ == '__main__':

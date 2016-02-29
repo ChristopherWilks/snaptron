@@ -45,3 +45,5 @@ cat all_illumina_sra_for_human_ids.tsv | perl -ne 'chomp; @f=split(/\t/,$_); $re
 curl http://stingray.cs.jhu.edu:8443/snaptron/?rquery='chr6:1-10000000|samples_count=5||'
 
 curl --data 'fields="[{"intervals":["chr6:1-10000000"],"samples_count":[{"op":"=","val":5}]}]"' http://stingray.cs.jhu.edu:8443/snaptron
+
+python snample.py "sfilter=description:cortex" 1

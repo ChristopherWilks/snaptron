@@ -22,14 +22,15 @@ TABIX="tabix"
 TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
 TABIX_DB_PATH='/data2/gigatron2'
 #we overloaded this map to be used for all searchable fields, not just those with TABIX dbs
-TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':'by_id.gz','samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','mds':''}
+TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':'by_id.gz','samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','mds':'','sample_id':'by_sample_id.gz'}
 RANGE_FIELDS = ['length','samples_count','coverage_sum','coverage_avg','coverage_median']
 SAMPLE_MD_FILE='/data2/gigatron2/all_illumina_sra_for_human_ids.tsv'
 SAMPLE_IDS_COL=12
 SAMPLE_ID_COL=0
 INTRON_ID_COL=0
-START_COL=2
-END_COL=3
+ID_START_COL=3
+INTERVAL_START_COL=2
+INTERVAL_END_COL=3
 
 #search by gene constants
 REFSEQ_ANNOTATION='refFlat.hg19.txt.sorted'
@@ -45,6 +46,8 @@ LUCENE_MAX_RANGE_HITS=100000000
 LUCENE_MAX_SAMPLE_HITS=1000000
 
 LUCENE_TYPES={'snaptron_id':[IntField,int,NIR],'length':[IntField,int,NIR],'strand':[StringField,str,TERM],'annotated?':[IntField,int,NIR],'left_motif':[StringField,str,TERM],'right_motif':[StringField,str,TERM],'left_annotated?':[TextField,str,TERM],'right_annotated?':[TextField,str,TERM],'length':[IntField,int,NIR],'samples_count':[IntField,int,NIR],'coverage_sum':[IntField,int,NIR],'coverage_avg':[FloatField,float,NFR],'coverage_median':[FloatField,float,NFR],'source_dataset_id':[IntField,int,NIR],'coverage_avg2':[FloatField,float,NFR],'coverage_median2':[FloatField,float,NFR]}
+
+SAMPLE_SQLITE_DB='/data/gigatron/by_sample_ids'
 
 RANGE_QUERY_DELIMITER=','
 #RANGE_QUERY_OPS='([=><!]+)'

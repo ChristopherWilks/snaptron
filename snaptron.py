@@ -75,7 +75,7 @@ def stream_intron(fout,line,fields):
     fout.write("%s:I\t%s" % (snapconf.DATA_SOURCE,newline))
 
 
-def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,save_introns=False,save_samples=False,stream_back=True,print_header=True,contains=None,start_col=2,debug=True):
+def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,save_introns=False,save_samples=False,stream_back=True,print_header=True,contains=None,start_col=snapconf.INTERVAL_START_COL,debug=True):
     if contains is None:
         contains = RETURN_ONLY_CONTAINED
     m = snapconf.TABIX_PATTERN.search(qargs)
@@ -108,7 +108,7 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
     for line in tabixp.stdout:
         fields=line.rstrip().split("\t")
         #first attempt to filter by violation of containment (if in effect)
-        if contains and (fields[snapconf.START_COL] < start or fields[snapconf.END_COL] > end):
+        if contains and (fields[snapconf.INTERVAL_START_COL] < start or fields[snapconf.INTERVAL_END_COL] > end):
             continue
         #now filter, this order is important (filter first, than save ids/print)
         if filter_by_introns and fields[snapconf.INTRON_ID_COL] not in intron_filters:
@@ -204,18 +204,17 @@ def search_ranges_lucene(rangeq,snaptron_ids,stream_back=False,filtering=False):
             sids.add(sid)
     return (sids,set())
            
- 
-
-
-
 #do multiple searches by a set of ids
-def search_introns_by_ids(snaptron_ids,rquery,filtering=False):
+def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],filtering=False):
+    '''
+    search by EITHER snaptron_id(s) OR sample_id(s)
+    '''
     sid_queries = []
     start_sid = 1    
     end_sid = 1
-    #coalesce the snaptron_ids into ranges
-    #to avoid making too many queries (n+1) to Tabix
-    for sid in sorted(snaptron_ids):
+    #coalesce the ids into ranges
+    #to avoid making too many queries (n+1 problem) to Tabix
+    for sid in sorted(ids):
         #offset ids by one since the actual tabix search starts at 1
         #but the ids themselves start at 0
         sid = int(sid) + 1
@@ -232,13 +231,13 @@ def search_introns_by_ids(snaptron_ids,rquery,filtering=False):
     for query in sid_queries:
         if DEBUG_MODE:
             sys.stderr.write("query %s\n" % (query))
-        (ids,sample_ids) = run_tabix(query,rquery,snapconf.TABIX_DBS['snaptron_id'],intron_filters=snaptron_ids,save_introns=filtering,print_header=print_header,start_col=3,debug=DEBUG_MODE)
+        (retrieved_ids,sample_ids) = run_tabix(query,rquery,tabix_db,intron_filters=ids,save_introns=filtering,print_header=print_header,start_col=snapconf.ID_START_COL,debug=DEBUG_MODE)
         if filtering:
-            found_snaptron_ids.update(ids)
+            found_snaptron_ids.update(retrieved_ids)
         print_header = False
     return (found_snaptron_ids,set())
-
-    
+   
+ 
 def range_query_parser(rangeq,snaptron_ids):
     '''this method is only used if we need to *filter* by one or more ranges during an interval or sample search'''
     rquery=None
