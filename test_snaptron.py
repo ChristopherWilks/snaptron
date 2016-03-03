@@ -77,12 +77,12 @@ class TestTabixCalls(unittest.TestCase):
 #actual tests 
     def test_basic_json_parsing(self):
         '''tests to see if our json parsing for the original hacky query language works'''
-        query = "'[{\"intervals\":[\"chr6:1-10000000\"],\"samples_count\":[{\"op\":\"=\",\"val\":5}],\"snaptron_id\":[1,4]}]'"
+        query = "'[{\"intervals\":[\"chr6:1-10000000\"],\"samples_count\":[{\"op\":\":\",\"val\":5}],\"snaptron_id\":[1,4]}]'"
         (iq,rq,sq,idq) = pjq(query)
         self.assertEqual(iq[0],"chr6:1-10000000")
-        self.assertEqual(rq['rfilter'][0],"samples_count=5")
+        self.assertEqual(rq['rfilter'][0],"samples_count:5")
         self.assertEqual(sq,[])
-        self.assertEqual(idq,['snaptron:1'])
+        self.assertEqual(idq,['snaptron:1',4])
        
     def test_range_query_parsing(self):
         '''tests the parsing of the string of ranges-as-filters constraints'''

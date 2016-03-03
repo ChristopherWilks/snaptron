@@ -102,7 +102,7 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
         if not RESULT_COUNT: #and len(REQ_FIELDS) == 0:
             sys.stdout.write("DataSource:Type\t")
         sys.stdout.write("%s\n" % (custom_header))
-    if stream_back and POST:
+    if stream_back and print_header and POST:
         sys.stdout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
     tabixp = subprocess.Popen("%s %s %s | cut -f %d-" % (snapconf.TABIX,tabix_db,qargs,start_col),stdout=subprocess.PIPE,shell=True)
     for line in tabixp.stdout:
@@ -341,23 +341,30 @@ def parse_json_query(input_):
                     field = 'intervals'
                 if field not in fmap:
                     fmap[field]=[]
-                fmap[field].append(clause.get(field)[0])
+                #allow more than one snaptron id, but convert to a ',' separated list
+                if field == 'snaptron_id':
+                    fmap[field].extend(clause[field])
+                else:
+                    fmap[field].append(clause.get(field)[0])
             else:
                 rmap = clause.get(field)[0]
                 fmap['rfilter'].append("%s%s%s" % (field,rmap['op'],rmap['val']))
             
-    #for now we just return one interval/gene 
-    intervalq = fmap['intervals'][0]
+    #for now we just return one interval/gene
+    intervalqs=[]
+    if 'intervals' in fmap:
+        intervalqs = [fmap['intervals'][0]]
     #rangeq = ','.join(fmap['rangesq'])
     mdq = []
     if 'mds' in fmap:
         mdq = fmap['mds'][0]
     idq = []
     if 'snaptron_id' in fmap:
-        idq.append("snaptron:%s" % (fmap['snaptron_id'][0]))
-
+        #idq.append("snaptron:%s" % (",".join(fmap['snaptron_id'])))
+        idq=fmap['snaptron_id']
+        idq[0]="snaptron:%s" % idq[0]
     #return ([intervalq],[rangeq],mdq,idq)
-    return ([intervalq],{'rfilter':fmap['rfilter']},mdq,idq)
+    return (intervalqs,{'rfilter':fmap['rfilter']},mdq,idq)
 
 
 
