@@ -46,4 +46,65 @@ curl http://stingray.cs.jhu.edu:8443/snaptron/?rquery='chr6:1-10000000|samples_c
 
 curl --data 'fields="[{"intervals":["chr6:1-10000000"],"samples_count":[{"op":"=","val":5}]}]"' http://stingray.cs.jhu.edu:8443/snaptron
 
+python snaptron.py '"[{"intervals":["chr6:1-10000000"],"samples_count":[{"op":"=","val":5}]}]"'
+
 python snample.py "sfilter=description:cortex" 1
+
+zcat all_SRA_introns.tsv.gz | head | perl -ne 'BEGIN { $counter=0;} chomp; ($c,$s,$e,$st,$s1,$s2,$f1,$f2)=split(/\t/,$_); @f1=split(/,/,$f1); @f2=split(/,/,$f2); $score1=scalar @f1; $score2=scalar @f2; $st=($st eq "-"?18:2); $size=($e-$s)+1; $cigar=length("$f1:$f2"); print "i$counter\t$st\t$c\t$s\t$score2\t$cigar"."M\t*\t0\t$size\t$f1:$f2\t$f1:$f2\n"; $counter++;' >> t1
+
+
+
+
+zcat all_SRA_introns.tsv.gz | perl -ne 'BEGIN { $counter=0;} chomp; ($c,$s,$e,$st,$s1,$s2,$f1,$f2)=split(/\t/,$_); @f1=split(/,/,$f1); @f2=split(/,/,$f2); $score1=scalar @f1; $score2=scalar @f2; $st=($st eq "-"?18:2); $size=($e-$s)+1; $cigar=length("$f1:$f2"); print "i$counter\t$st\t$c\t$s\t$score2\t$cigar"."M\t*\t0\t$size\t$f1:$f2\t$f1:$f2\n"; $counter++;' >> t1
+
+#sums and counts last 2 columns
+cat all_SRA_introns.tsv.100000 | perl -ne 'chomp; $s=$_; @f=split(/\t/,$_); @f1=split(/,/,$f[6]); @f2=split(/,/,$f[7]); $f1=scalar @f1; $f2=scalar @f2; pop(@f); pop(@f); $s=join("\t",@f); $s1=0; $s2=0; map { $s1+=$_; } @f1; map { $s2+=$_; } @f2; print "$s\t$f1\t$f2\t$s1\t$s2\n";'
+
+cat all_SRA_introns_ids.tsv | perl -ne 'chomp; $s=$_; @f=split(/\t/,$s); @f1=split(/,/,$f[7]); @f2=split(/,/,$f[8]); $f1=scalar @f1; $f2=scalar @f2; $s2=0; map { $s2+=$_; } @f2; $avg=$s2/$f2; $median=-1; $m_=$f2/2; $m_=int($m_); @f2a=sort {$a<=>$b} @f2; if(($f2 % 2)==0) { $m2_=$f2/2; $m2_-=1; $median=($f2a[$m_]+$f2a[$m2_])/2; } else { $median=$f2a[$m_]; }  printf("$s\t$f1\t$f2\t$s2\t%.3f\t%.3f\n",$avg,$median);'
+
+
+time python ./joiner.py 'chr6:1-10000000|samples_count_i:5 AND chromosome_s:chr6' > t1
+time python ./joiner.py 'chr6:1-10000000|samples_count_i:5' > t1
+time python ./joiner.py 'chr6:1-10000000|samples_count_i:[5 TO 200000] AND chromosome_s:chr6' > t1
+
+curl 'http://10.161.159.186:1555/snaptron?rquery=chr6$1-10000000*samples_countEQ5ANDcoverage_sumGT5*' | wc -l
+time curl 'http://10.161.159.186:1555/snaptron?rquery=chr6$1-10000000*samples_countEQ5*' | wc -l
+time curl 'http://10.161.159.186:1555/snaptron?rquery=chr6$1-10000000**' | wc -l
+
+time python ./snaptron.py 'chr11:82970135-82997450|samples_count>=100,coverage_sum>=1000|' > /data2/gigatron2/ccdc90b.range2.sc100_cs1000
+python ./snaptron_new.py 'regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000' | wc -l
+curl --data 'fields="[{"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":100}],"coverage_sum":[{"op":">:","val":1000}]}]"' http://stingray.cs.jhu.edu:8443/snaptron | wc -l
+
+source /data/gigatron/snaptron/python/bin/activate
+./snaptron_server --no-daemon
+
+curl "http://128.220.35.129:8443/snaptron?" --data-urlencode "chr6:1-10000000|samples_count=5|"
+curl -vv -G "http://128.220.35.129:8443/snaptron/?rquery=chr6:1-10000000|samples_countEQ5|"
+curl -vv -G "http://stingray.cs.jhu.edu:8443/snaptron/?rquery=chr6:1-10000000|samples_countEQ5|"
+
+curl http://stingray.cs.jhu.edu:8443/snaptron/?rquery='chr6:1-10000000|samples_count=5||'
+
+
+#REL finding project
+
+cat all_SRA_introns_ids_stats_length_annotated.tsv.gtf | head -50 | perl -ne 'chomp; $s=$_; @f=split(/\t/,$s); $iid=$f[0]; @s1=split(/,/,$f[12]); @s2=split(/,/,$f[13]); $i=0; foreach $sample (@s1) { $samples{$sample}->[0]++; $samples{$sample}->[1]+=$s2[$i]; $i++; print STDERR "$sample\t$iid\n"; }  END { foreach $sample (sort {$a <=> $b} keys %samples) { ($count,$cov) = @{$samples{$sample}}; print "$sample\t$count\t$cov\n";}}'
+
+
+python find_gene-rp_overlaps.py knownGene_28-Jun-2015.clusterid.tsv ucsc_repeatmasker_2015_12_22.bed.sorted.gtf.no_chr_prefix all_SRA_introns_ids_stats_length_annotated.tsv.gtf all_SRA_introns_ids_stats_length_annotated.tsv.gtf.by_sample_count_coverate.tsv > annotated_repeated_introns.strands.tsv.new 2> errors &
+
+cat all_illumina_sra_for_human_ids.tsv | perl -ne 'chomp; @f=split(/\t/,$_); $read=join("\t",($f[11],$f[12],$f[28])); $library=join("\t",($f[22],$f[23],$f[24],$f[25],$f[26],$f[27])); $instrument=$f[31]; $s=join("\t",($f[0],$library,$instrument,$read)); print "$s\n";' > sarvens/relevant_sample_md_fields.tsv
+
+curl http://stingray.cs.jhu.edu:8443/snaptron/?rquery='chr6:1-10000000|samples_count=5||'
+
+curl --data 'fields="[{"intervals":["chr6:1-10000000"],"samples_count":[{"op":"=","val":5}]}]"' http://stingray.cs.jhu.edu:8443/snaptron
+
+python snaptron.py '"[{"intervals":["chr6:1-10000000"],"samples_count":[{"op":"=","val":5}]}]"'
+
+python snample.py "sfilter=description:cortex" 1
+
+#redo creation of individially sorted indices including length
+cat all_SRA_introns_ids_stats.tsv.new2_w_header_w_sourcedb | perl -ne 'chomp; $s=$_; next if($s=~/gigatron_id/); print "1\t$s\n";' | sort -s -k6,6n | tee by_length | sort -s -k15,15n | tee by_sample_count | sort -s -k16,16n | tee by_coverage_sum | sort -s -k17,17n | tee  by_coverage_avg | sort -s -k18,18n > by_coverage_m
+
+cut -f1,2,3,5  all_illumina_sra_for_human_ids.tsv | perl -ne 'chomp; ($id,$srr,$srs,$srp)=split(/\t/,$_); $ids{$id}=[$srr,$srs,$srp]; push(@{$srps{$srp}},$id); push(@{$srss{$srs}},$id); END { $idx=0; foreach $srp (sort {$a cmp $b} keys %srps) { @i=@{$srps{$srp}}; $ic = scalar @i; $srps{$srp}=[$ic,$idx++]; } $idx=0; foreach $srs (sort {$a cmp $b} keys %srss) { @j=@{$srss{$srs}}; $jc = scalar @j; $srss{$srs}=[$jc,$idx++]; } foreach $id (sort {$a <=> $b} keys %ids) { next if($id=~/intropolis_sample_id_i/); ($srr,$srs,$srp)=@{$ids{$id}}; ($srp_sz,$srp_id)=@{$srps{$srp}}; ($srs_sz,$srs_id)=@{$srss{$srs}}; print "$id\t$srs_sz\t$srp_sz\t$srp\t$srp_id\t$srs\t$srs_id\n";}}' > all_illumina_sra_for_human_ids.tsv.id_mapping
+
+zcat /data2/gigatron2/all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz | perl add_stats.pl ../all_illumina_sra_for_human_ids.tsv.id_mapping2 | bgzip > /data2/gigatron2/all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2_extended.gz
