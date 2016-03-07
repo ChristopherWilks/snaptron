@@ -50,7 +50,6 @@ LUCENE_TYPES={'snaptron_id':[IntField,int,NIR],'length':[IntField,int,NIR],'stra
 SAMPLE_SQLITE_DB='/data/gigatron/by_sample_ids'
 
 RANGE_QUERY_DELIMITER=','
-#RANGE_QUERY_OPS='([=><!]+)'
 RANGE_QUERY_OPS='([:><!]+)'
 RANGE_QUERY_FIELD_PATTERN=re.compile(RANGE_QUERY_OPS)
 SAMPLE_QUERY_DELIMITER='==='
