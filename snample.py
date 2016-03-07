@@ -81,6 +81,7 @@ def search_samples_lucene(sample_map,sampleq,sample_set,stream_sample_metadata=F
         if stream_sample_metadata:
             sys.stdout.write("%s:S\t%s\n" % (snapconf.DATA_SOURCE,sample_map[sid]))
 
+#when not querying against Lucene
 def stream_samples(sample_set,sample_map):
     sys.stdout.write("DataSource:Type\t%s\n" % (snapconf.SAMPLE_HEADER))
     for sample_id in sample_set:
@@ -154,6 +155,15 @@ def query_samples(sampleq,sample_map,snaptron_ids,stream_sample_metadata=False):
             new_snaptron_ids = snaptron_ids.intersection(snaptron_ids_from_samples)
     return new_snaptron_ids
 
+def query_by_sample_ids(idq,sample_map):
+    if len(idq) == 0:
+        return
+    subfields = idq[0].split(':')
+    if len(subfields) > 1:
+        (id_type,first_id) = subfields
+        idq[0] = first_id
+    stream_samples(set(idq),sample_map) 
+
 
 def main():
     global DEBUG_MODE
@@ -168,12 +178,13 @@ def main():
     sample_map = load_sample_metadata(snapconf.SAMPLE_MD_FILE)
     if DEBUG_MODE:
         sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
-    snaptron_ids = set()
-    #we're just streaming back sample metadata
-    query_samples(sampleq,sample_map,snaptron_ids,stream_sample_metadata=True)
-    #sids = query_samples(sampleq,sample_map,snaptron_ids,stream_sample_metadata=False)
-    #for sid in sids:
-    #    sys.stdout.write("%s\n" % sid)
+    #main decision cases
+    if len(idq) > 0:
+        query_by_sample_ids(idq,sample_map)
+    elif len(sampleq) > 0:
+        snaptron_ids = set()
+        #we're just streaming back sample metadata
+        query_samples(sampleq,sample_map,snaptron_ids,stream_sample_metadata=True)
      
 
 if __name__ == '__main__':

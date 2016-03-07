@@ -28,6 +28,10 @@ echo "4" > expected_wc
 curl 'http://stingray.cs.jhu.edu:8443/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&sfilter=description:cortex' 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
+echo "4" > expected_wc
+curl "http://stingray.cs.jhu.edu:8443/samples?ids=0,4,10" 2>/dev/null | wc -l > test_wc
+diff test_wc expected_wc
+
 echo "5" > expected_wc
 curl --data 'fields="[{"snaptron_id":["33401865","33401867","33401868"]}]"' http://stingray.cs.jhu.edu:8443/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
