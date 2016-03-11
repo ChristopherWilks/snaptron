@@ -48,6 +48,7 @@ LUCENE_MAX_SAMPLE_HITS=1000000
 LUCENE_TYPES={'snaptron_id':[IntField,int,NIR],'length':[IntField,int,NIR],'strand':[StringField,str,TERM],'annotated?':[IntField,int,NIR],'left_motif':[StringField,str,TERM],'right_motif':[StringField,str,TERM],'left_annotated?':[TextField,str,TERM],'right_annotated?':[TextField,str,TERM],'length':[IntField,int,NIR],'samples_count':[IntField,int,NIR],'coverage_sum':[IntField,int,NIR],'coverage_avg':[FloatField,float,NFR],'coverage_median':[FloatField,float,NFR],'source_dataset_id':[IntField,int,NIR],'coverage_avg2':[FloatField,float,NFR],'coverage_median2':[FloatField,float,NFR]}
 
 SAMPLE_SQLITE_DB='/data/gigatron/by_sample_ids'
+SNAPTRON_SQLITE_DB='/data/gigatron/snaptron2'
 
 RANGE_QUERY_DELIMITER=','
 RANGE_QUERY_OPS='([:><!]+)'
