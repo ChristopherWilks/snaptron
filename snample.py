@@ -115,12 +115,13 @@ def load_sample_metadata(file_):
 
 def sample_ids2intron_ids(sample_ids):
     select = 'SELECT snaptron_ids FROM by_sample_id WHERE sample_id in'
-    #wheres = ','.join(sample_ids)
-    wheres = ['?' for x in sample_ids]
-    select = "%s (%s);" % (select,','.join(wheres))
+    #wheres = ['?' for x in sample_ids]
+    #select = "%s (%s);" % (select,','.join(wheres))
     found_snaptron_ids = set()
-    ids = [int(id_) for id_ in sample_ids]
-    for snaptron_ids in sc.execute(select,ids):
+    #ids = [int(id_) for id_ in sample_ids]
+    #for snaptron_ids in sc.execute(select,ids):
+    results = snaputil.retrieve_from_db_by_ids(sc,select,sample_ids)
+    for snaptron_ids in results:
        found_snaptron_ids.update(set(snaptron_ids[0].split(','))) 
     return found_snaptron_ids
 
