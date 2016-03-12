@@ -56,12 +56,12 @@ def junction_inclusion_ratio(params):
     coverages_a = {}
     sids_b = set()
     coverages_b = {}
-    introns2samples_a = get_samples_for_snaptron_ids(ids_a)
-    introns2samples_b = get_samples_for_snaptron_ids(ids_b)
 
     samples_a = {}
+    introns2samples_a = get_samples_for_snaptron_ids(ids_a)
     create_junction_grouping_by_sample(introns2samples_a,samples_a)
     samples_b = {}
+    introns2samples_b = get_samples_for_snaptron_ids(ids_b)
     create_junction_grouping_by_sample(introns2samples_b,samples_b)
 
     #2) find ratio of sample sets (either counts or coverages)

@@ -36,6 +36,10 @@ echo "5" > expected_wc
 curl --data 'fields="[{"snaptron_id":["33401865","33401867","33401868"]}]"' http://stingray.cs.jhu.edu:8443/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
+echo "3" > expected_wc
+curl "http://stingray.cs.jhu.edu:8443/analysis?ids_a=4&ids_b=5,6&compute=jir&ratio=cov&order=T:5" 2>/dev/null | wc -l > test_wc
+diff test_wc expected_wc
+
 rm test_wc expected_wc
 
 echo "all tests run"
