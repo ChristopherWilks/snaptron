@@ -8,7 +8,7 @@ zcat all_SRA_introns.tsv.gz | perl -ne 'BEGIN { $counter=0;} chomp; ($c,$s,$e,$s
 #sums and counts last 2 columns
 cat all_SRA_introns.tsv.100000 | perl -ne 'chomp; $s=$_; @f=split(/\t/,$_); @f1=split(/,/,$f[6]); @f2=split(/,/,$f[7]); $f1=scalar @f1; $f2=scalar @f2; pop(@f); pop(@f); $s=join("\t",@f); $s1=0; $s2=0; map { $s1+=$_; } @f1; map { $s2+=$_; } @f2; print "$s\t$f1\t$f2\t$s1\t$s2\n";'
 
-cat all_SRA_introns_ids.tsv | perl -ne 'chomp; $s=$_; @f=split(/\t/,$s); @f1=split(/,/,$f[7]); @f2=split(/,/,$f[8]); $f1=scalar @f1; $f2=scalar @f2; $s2=0; map { $s2+=$_; } @f2; $avg=$s2/$f2; $median=-1; $m_=$f2/2; $m_=int($m_); @f2a=sort {$a<=>$b} @f2; if(($f2 % 2)==0) { $m2_=$f2/2; $m2_-=1; $median=($f2a[$m_]+$f2a[$m2_])/2; } else { $median=$f2a[$m_]; }  printf("$s\t$f1\t$f2\t$s2\t%.3f\t%.3f\n",$avg,$median);'
+cat all_SRA_introns_ids.tsv | perl -ne 'BEGIN {$data_source_id=0;} chomp; $s=$_; @f=split(/\t/,$s); @f1=split(/,/,$f[7]); @f2=split(/,/,$f[8]); $f1=scalar @f1; $f2=scalar @f2; $s2=0; map { $s2+=$_; } @f2; $avg=$s2/$f2; $median=-1; $m_=$f2/2; $m_=int($m_); @f2a=sort {$a<=>$b} @f2; if(($f2 % 2)==0) { $m2_=$f2/2; $m2_-=1; $median=($f2a[$m_]+$f2a[$m2_])/2; } else { $median=$f2a[$m_]; }  printf("$s\t$f1\t$f2\t$s2\t%.3f\t%.3f\n",$avg,$median,$data_source_id);'
 
 
 time python ./joiner.py 'chr6:1-10000000|samples_count_i:5 AND chromosome_s:chr6' > t1
@@ -108,3 +108,14 @@ cat all_SRA_introns_ids_stats.tsv.new2_w_header_w_sourcedb | perl -ne 'chomp; $s
 cut -f1,2,3,5  all_illumina_sra_for_human_ids.tsv | perl -ne 'chomp; ($id,$srr,$srs,$srp)=split(/\t/,$_); $ids{$id}=[$srr,$srs,$srp]; push(@{$srps{$srp}},$id); push(@{$srss{$srs}},$id); END { $idx=0; foreach $srp (sort {$a cmp $b} keys %srps) { @i=@{$srps{$srp}}; $ic = scalar @i; $srps{$srp}=[$ic,$idx++]; } $idx=0; foreach $srs (sort {$a cmp $b} keys %srss) { @j=@{$srss{$srs}}; $jc = scalar @j; $srss{$srs}=[$jc,$idx++]; } foreach $id (sort {$a <=> $b} keys %ids) { next if($id=~/intropolis_sample_id_i/); ($srr,$srs,$srp)=@{$ids{$id}}; ($srp_sz,$srp_id)=@{$srps{$srp}}; ($srs_sz,$srs_id)=@{$srss{$srs}}; print "$id\t$srs_sz\t$srp_sz\t$srp\t$srp_id\t$srs\t$srs_id\n";}}' > all_illumina_sra_for_human_ids.tsv.id_mapping
 
 zcat /data2/gigatron2/all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz | perl add_stats.pl ../all_illumina_sra_for_human_ids.tsv.id_mapping2 | bgzip > /data2/gigatron2/all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2_extended.gz
+
+python snanalysis.py "ids_a=4&ids_b=5,6&compute=jir&ratio=cov&order=T:5"
+
+
+#updated generation of snaptron-ready intron files (including annotation) on *HG38*
+#sraV2 (50k)
+gzip -cd /data2/gigatron2/intropolis.v2.hg38.tsv.gz | pypy /data/gigatron/snaptron/process_introns.py --annotation gencode.v24.annotation.gtf Homo_sapiens.GRCh38.84.gtf refGene_20160314.gtf | perl -ne 'BEGIN {$data_source_id=0;} chomp; $s=$_; @f=split(/\t/,$s); @f1=split(/,/,$f[11]); @f2=split(/,/,$f[12]); $f1=scalar @f1; $f2=scalar @f2; $s2=0; map { $s2+=$_; } @f2; $avg=$s2/$f2; $median=-1; $m_=$f2/2; $m_=int($m_); @f2a=sort {$a<=>$b} @f2; if(($f2 % 2)==0) { $m2_=$f2/2; $m2_-=1; $median=($f2a[$m_]+$f2a[$m2_])/2; } else { $median=$f2a[$m_]; }  printf("$s\t$f1\t$s2\t%.3f\t%.3f\t$data_source_id\n",$avg,$median);' | bgzip > /data/gigatron/intropolis.v2.hg38.tsv.snaptron.bgzip
+
+
+#gtex version (w/o median2)
+gzip -cd /data2/gigatron2/gtex/consolidated_gtex_junctions.tsv.gz | pypy /data/gigatron/snaptron/process_introns.py --annotation gencode.v24.annotation.gtf Homo_sapiens.GRCh38.84.gtf refGene_20160314.gtf | perl -ne 'BEGIN {$data_source_id=1;} chomp; $s=$_; @f=split(/\t/,$s); @f1=split(/,/,$f[11]); @f2=split(/,/,$f[12]); @f3=split(/,/,$f[13]); $f1=scalar @f1; $f2=scalar @f2; $f3=scalar @f3; $s2=0; map { $s2+=$_; } @f2; $avg=$s2/$f2; $median=-1; $m_=$f2/2; $m_=int($m_); @f2a=sort {$a<=>$b} @f2; if(($f2 % 2)==0) { $m2_=$f2/2; $m2_-=1; $median=($f2a[$m_]+$f2a[$m2_])/2; } else { $median=$f2a[$m_]; } $s3=0; map { $s3+=$_; } @f3; $avg2=$s3/$f3; $median2=-1; $m_=$f3/2; $m_=int($m_); @f3a=sort {$a<=>$b} @f3; if(($f3 % 2)==0) { $m2_=$f3/2; $m2_-=1; $median2=($f3a[$m_]+$f3a[$m2_])/2; } else { $median2=$f3a[$m_]; } printf("$s\t$f1\t$s2\t%.3f\t%.3f\t$s3\t%.3f\t$data_source_id\n",$avg,$median,$avg2);' | bgzip > /data2/gigatron2/gtex/consolidated_gtex_junctions.tsv.snaptron.bgzip

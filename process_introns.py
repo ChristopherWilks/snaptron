@@ -133,12 +133,15 @@ if __name__ == '__main__':
                                                                 )
             )
     #sys.stderr.write("Header:\n")
-    sys.stderr.write('\t'.join(["gigatron_id","chromosome","start","end","length","strand","annotated?","left_motif","right_motif","left_annotated?","right_annotated?","samples","read_coverage_by_sample","samples_count","coverage_sum","coverage_avg","coverage_median","\n"]))
+    sys.stderr.write('\t'.join(["snaptron_id","chromosome","start","end","length","strand","annotated?","left_motif","right_motif","left_annotated?","right_annotated?","samples","read_coverage_by_sample","samples_count","coverage_sum","coverage_avg","coverage_median","\n"]))
+
+    #takes in Abhi's Rail output format (or post-processed rail format)
+    snaptron_id = 0
     for line in sys.stdin:
         tokens = line.strip().split('\t')
-        if tokens[0] == 'gigatron_id_i':
-		continue
-        junction = tuple(tokens[1:4])
+        #if tokens[0] == 'gigatron_id_i':
+        #   continue
+        junction = tuple(tokens[:3])
         #check to see if we want this junction
         annotated = junction in annotated_junctions
         annot_type = None
@@ -146,16 +149,17 @@ if __name__ == '__main__':
             annot_type = annotated_junctions[junction]
         start = int(junction[1])
         length = int(junction[2]) + 1 - start
-        strand = tokens[4]
-	tokens_length = len(tokens)
-        left_motif, right_motif = tokens[5], tokens[6]
-	middle_stuff = tokens[7:]
+        strand = tokens[3]
+        tokens_length = len(tokens)
+        left_motif, right_motif = tokens[4], tokens[5]
+        middle_stuff = tokens[6:]
         if (junction[0], junction[1]) in five_p:
             five_atype = five_p[(junction[0], junction[1])]
         if (junction[0], junction[2]) in three_p:
             three_atype = three_p[(junction[0], junction[2])]
-        print '\t'.join([tokens[0], '\t'.join(junction), str(length), strand,
+        print '\t'.join([str(snaptron_id), '\t'.join(junction), str(length), strand,
             '1' if annotated else '0', left_motif, right_motif,
             "%s:1" % (",".join(five_atype)) if (junction[0], junction[1]) in five_p else '0',
             "%s:1" % (",".join(three_atype)) if (junction[0], junction[2]) in three_p else '0',
-	    '\t'.join(middle_stuff)])
+            '\t'.join(middle_stuff)])
+        snaptron_id+=1
