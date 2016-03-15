@@ -69,7 +69,69 @@ from operator import itemgetter
 from bisect import bisect_right
 from collections import defaultdict
 import string
+import gzip
 
+def load_preformatted_annotated_junctions(f):
+    annotated_junctions = {}
+    five_p = {}
+    three_p = {}
+    with gzip.open(f,"r") as fin:
+        for line in fin:
+            (chr_,start,end,strand,sources) = line.rstrip().split("\t")
+            hkey = (chr_,start,end)
+            sources_set = set(sources.split(","))
+            if hkey not in annotated_junctions:
+                annotated_junctions[hkey]=set()
+            annotated_junctions[hkey].update(sources_set)
+            hkey = (chr_,start)
+            if hkey not in five_p:
+                five_p[hkey]=set()
+            five_p[hkey].update(sources_set)
+            hkey = (chr_,end)
+            if hkey not in three_p:
+                three_p[hkey]=set()
+            three_p[hkey].update(sources_set)
+    return (annotated_junctions, five_p, three_p)
+             
+def load_annotations(args, refs, types):
+    annotated_junctions = {}
+    five_p = {}
+    three_p = {}
+    for index,annotation in enumerate(args.annotations):
+        extract_process = subprocess.Popen([sys.executable,
+                                                args.extract_splice_sites_path,
+                                                annotation],
+                                                stdout=subprocess.PIPE)
+        for line in extract_process.stdout:
+            tokens = line.strip().split('\t')
+            tokens[1] = str(int(tokens[1]) + 2)
+            tokens[2] = str(int(tokens[2]))
+            #sys.stderr.write("index %d line %s\n" % (index,line))
+            tokens.append(types[index])
+            if not tokens[0].startswith('chr'):
+                tokens[0] = 'chr' + tokens[0]
+            if tokens[0] in refs:
+                hkey = tuple(tokens[:3])
+                if hkey not in annotated_junctions:
+                    annotated_junctions[hkey]=set()
+                annotated_junctions[hkey].add(tokens[4])
+                hkey = (tokens[0], tokens[1])
+                if hkey not in five_p:
+                    five_p[hkey]=set()
+                five_p[hkey].add(tokens[4])
+                hkey = (tokens[0], tokens[2])
+                if hkey not in three_p:
+                    three_p[hkey]=set()
+                three_p[hkey].add(tokens[4])
+        extract_process.stdout.close()
+        exit_code = extract_process.wait()
+        if exit_code != 0:
+            raise RuntimeError(
+                'extract_splice_sites.py had nonzero exit code {}.'.format(
+                                                                    exit_code
+                                                                )
+            )
+    return (annotated_junctions, five_p, thread_p)
 
 if __name__ == '__main__':
     import argparse
@@ -91,75 +153,41 @@ if __name__ == '__main__':
         )
     args = parser.parse_args()
 
+    refs = ['chr' + str(i) for i in xrange(1, 23)] + ['chrM', 'chrX', 'chrY']
+    types=['ES','UC','RG']
+    
     annotated_junctions = {}
     five_p = {}
     three_p = {}
-    refs = ['chr' + str(i) for i in xrange(1, 23)] + ['chrM', 'chrX', 'chrY']
-    types=['ES','UC','RG']
-    for index,annotation in enumerate(args.annotations):
-        extract_process = subprocess.Popen([sys.executable,
-                                                args.extract_splice_sites_path,
-                                                annotation],
-                                                stdout=subprocess.PIPE)
-        for line in extract_process.stdout:
-            tokens = line.strip().split('\t')
-            tokens[1] = str(int(tokens[1]) + 2)
-            tokens[2] = str(int(tokens[2]))
-            #sys.stderr.write("index %d line %s\n" % (index,line))
-            tokens.append(types[index])
-            if not tokens[0].startswith('chr'):
-                tokens[0] = 'chr' + tokens[0]
-            if tokens[0] in refs:
-                hkey = tuple(tokens[:3])
-                if hkey not in annotated_junctions:
-                    annotated_junctions[hkey]=[]
-                annotated_junctions[hkey].append(tokens[4])
-                hkey = (tokens[0], tokens[1])
-                if hkey not in five_p:
-                    five_p[hkey]=[]
-                five_p[hkey].append(tokens[4])
-                #five_p.add((tokens[0], tokens[1]))
-                hkey = (tokens[0], tokens[2])
-                if hkey not in three_p:
-                    three_p[hkey]=[]
-                three_p[hkey].append(tokens[4])
-                #three_p.add((tokens[0], tokens[2]))
-        extract_process.stdout.close()
-        exit_code = extract_process.wait()
-        if exit_code != 0:
-            raise RuntimeError(
-                'extract_splice_sites.py had nonzero exit code {}.'.format(
-                                                                    exit_code
-                                                                )
-            )
-    #sys.stderr.write("Header:\n")
+
+    if len(args.annotations) == 1:
+        (annotated_junctions, five_p, three_p) = load_preformatted_annotated_junctions(args.annotations[0]) 
+    else:
+        (annotated_junctions, five_p, three_p) = load_annotations(args, refs, types) 
     sys.stderr.write('\t'.join(["snaptron_id","chromosome","start","end","length","strand","annotated?","left_motif","right_motif","left_annotated?","right_annotated?","samples","read_coverage_by_sample","samples_count","coverage_sum","coverage_avg","coverage_median","\n"]))
 
     #takes in Abhi's Rail output format (or post-processed rail format)
     snaptron_id = 0
     for line in sys.stdin:
         tokens = line.strip().split('\t')
-        #if tokens[0] == 'gigatron_id_i':
-        #   continue
         junction = tuple(tokens[:3])
         #check to see if we want this junction
-        annotated = junction in annotated_junctions
-        annot_type = None
-        if annotated:
-            annot_type = annotated_junctions[junction]
+        annotated = set()
+        if junction in annotated_junctions:
+            annotated = annotated_junctions[junction]
         start = int(junction[1])
         length = int(junction[2]) + 1 - start
         strand = tokens[3]
         tokens_length = len(tokens)
         left_motif, right_motif = tokens[4], tokens[5]
-        middle_stuff = tokens[6:]
+        additional_fields = tokens[6:]
         if (junction[0], junction[1]) in five_p:
             five_atype = five_p[(junction[0], junction[1])]
         if (junction[0], junction[2]) in three_p:
             three_atype = three_p[(junction[0], junction[2])]
         print '\t'.join([str(snaptron_id), '\t'.join(junction), str(length), strand,
-            '1' if annotated else '0', left_motif, right_motif,
-            "%s:1" % (",".join(five_atype)) if (junction[0], junction[1]) in five_p else '0',
-            "%s:1" % (",".join(three_atype)) if (junction[0], junction[2]) in three_p else '0',
-            '\t'.join(middle_stuff)])
+            ",".join(sorted(annotated)) if len(annotated) > 0 else '0', left_motif, right_motif,
+            "%s" % (",".join(sorted(five_atype))) if (junction[0], junction[1]) in five_p else '0',
+            "%s" % (",".join(sorted(three_atype))) if (junction[0], junction[2]) in three_p else '0',
+            '\t'.join(additional_fields)])
         snaptron_id+=1

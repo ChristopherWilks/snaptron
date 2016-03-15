@@ -13,6 +13,7 @@ required by tables.py. The format of annotated_junctions.tsv.gz is
 2. Start position (1-based, inclusive)
 3. End position (1-based, inclusive)
 4. Strand (+ or -)
+5. anno source (abbreviation)
 
 Must have
 
@@ -47,6 +48,8 @@ import glob
 import os
 import gzip
 import sys
+
+file2source = {"hg19/gencode.v19.annotation.gtf.gz":"gC19","hg19/refGene.txt.gz":"rG19","hg19/acembly.txt.gz":"aC19","hg19/ccdsGene.txt.gz":"cG19","hg19/vegaGene.txt.gz":"vG19","hg19/knownGene.txt.gz":"kG19","hg19/mgcGenes.txt.gz":"mG19","hg19/lincRNAsTranscripts.txt.gz":"lR19","hg19/sibGene.txt.gz":"sG19","hg38/refGene.txt.gz":"rG38","hg38/ccdsGene.txt.gz":"cG38","hg38/gencode.v24.annotation.gtf.gz":"gC38","hg38/knownGene.txt.gz":"kG38","hg38/mgcGenes.txt.gz":"mG38","hg38/lincRNAsTranscripts.txt.gz":"lR38","hg38/sibGene.txt.gz":"sG38"}
 
 if __name__ == '__main__':
     # Print file's docstring if -h is invoked
@@ -92,6 +95,7 @@ if __name__ == '__main__':
             ):
         label = (('hg19/' if 'hg19' in junction_file else 'hg38/')
                         + os.path.basename(junction_file))
+        datasource_code = file2source[label]
         unique_junctions = set()
         if 'hg38' in junction_file:
             annotated_junctions = annotated_junctions_hg38
@@ -120,6 +124,7 @@ if __name__ == '__main__':
                                 tokens[0], tokens[1], tokens[2], junction_file
                             )
                     continue
+                tokens.append(datasource_code)
                 junction_to_add = tuple(tokens)
                 annotated_junctions.add(junction_to_add)
                 unique_junctions.add(junction_to_add)
@@ -143,7 +148,7 @@ if __name__ == '__main__':
                                     tokens[9+offset].split(','))[:-1]]
                 junctions_to_add = [
                         (tokens[1+offset], exons[i-1][1] + 1, exons[i][0],
-                            tokens[2+offset])
+                            tokens[2+offset], datasource_code)
                         for i in xrange(1, len(exons))
                     ]
                 final_junctions_to_add = []
@@ -171,8 +176,9 @@ if __name__ == '__main__':
     with open(temp_hg19, 'w') as hg19_stream:
         for i, junction in enumerate(annotated_junctions_hg19):
             # Handle incorrect junctions
-            print >>hg19_stream, '{}\t{}\t{}\tdummy_{}\t1\t{}'.format(
-                    junction[0], junction[1], junction[2], i, junction[3]
+            #print >>hg19_stream, '{}\t{}\t{}\tdummy_{}\t1\t{}'.format(
+            print >>hg19_stream, '{}\t{}\t{}\t{}\t1\t{}'.format(
+                    junction[0], junction[1], junction[2], junction[4], junction[3]
                 )
     liftover_process = subprocess.check_call(' '.join([
                                             args.liftover,
@@ -197,11 +203,11 @@ if __name__ == '__main__':
                                                                 )[:6]
             if chrom in refs:
                 annotated_junctions_hg38.add(
-                    (chrom, int(start), int(end), strand)
+                    (chrom, int(start), int(end), strand, name)
                 )
             else:
-                print >>sys.stderr, '({}, {}, {}) not recorded.'.format(
-                                            chrom, start, end
+                print >>sys.stderr, '({}, {}, {}, {}) not recorded.'.format(
+                                            chrom, start, end, name
                                         )
     after_liftover = len([junction for junction
                             in annotated_junctions_hg38
@@ -212,6 +218,15 @@ if __name__ == '__main__':
                                 before_liftover,
                                 after_liftover - before_liftover
                             )
+    junc2datasource = {}
     for junction in annotated_junctions_hg38:
         if junction[0] in refs:
-            print '\t'.join(map(str, junction))
+            if junction[:4] not in junc2datasource:
+                junc2datasource[junction[:4]]=set()
+            junc2datasource[junction[:4]].add(junction[4])
+    seen = set()
+    for junction in annotated_junctions_hg38:
+        if junction[0] in refs and junction[:4] not in seen:
+            sources = ",".join(sorted(junc2datasource[junction[:4]]))
+            print "%s\t%s" % ('\t'.join(map(str, junction[:4])),sources)
+            seen.add(junction[:4])
