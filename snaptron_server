@@ -16,7 +16,7 @@ from optparse import OptionParser
 import cherrypy
 
 from snaptronws import snaptron_endpoint
-from snaptronws_new import sample_endpoint
+from snaptronws import samples_endpoint
 
 description = "Backend web server runner for the SnapTron web service"
 
@@ -72,7 +72,7 @@ def snaptron_service(environ, start_response):
 
 def sample_service(environ, start_response):
     environ['read_size'] = options.read_size
-    return sample_endpoint(environ, start_response)
+    return samples_endpoint(environ, start_response)
 
 def lookup_user(username, err_str):
     try:

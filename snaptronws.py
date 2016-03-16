@@ -27,7 +27,7 @@ DEBUG_MODE=True
 #CMD_BUFFER_SIZE=4194304
 PYTHON_PATH='/data/gigatron/snaptron/python/bin/python'
 SNAPTRON_APP = '/data/gigatron/snaptron/snaptron.py'
-SAMPLE_APP = '/data/gigatron/snaptron/snample.py'
+SAMPLES_APP = '/data/gigatron/snaptron/snample.py'
 CMD_BUFFER_SIZE = -1
 #in seconds, so just under an hour to cache the authorization result for a specific token/acm_url
 TIME_TO_MEMOIZE_AUTH_RESULT=3500
@@ -298,7 +298,7 @@ def process_post(environ, start_response):
 
 #cant have anything else in the data path or its probably a security issue
 READ_SIZE_PATTERN = re.compile(r'^\d+$')
-def snaptron_endpoint(environ, start_response):
+def generic_endpoint(environ, start_response, endpoint_app):
     http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}
     query_string = environ.get('QUERY_STRING')
    
@@ -317,7 +317,7 @@ def snaptron_endpoint(environ, start_response):
 
     add_checksum = False
 
-    logger.debug("SNAPTRON REQUEST ENVIRONMENT:")
+    logger.debug("REQUEST ENVIRONMENT:")
     for (key, val) in environ.iteritems():
         logger.debug("key=%s val=%s" % (key, val))
         #see if we're in test/debug mode for the chunked error
@@ -336,7 +336,7 @@ def snaptron_endpoint(environ, start_response):
     read_size = int(read_size)
 
     #rquery = translate_range_query(rquery[0])
-    args=[PYTHON_PATH, SNAPTRON_APP, query_string]
+    args=[PYTHON_PATH, endpoint_app, query_string]
     #create subprocess run object 
     sproc = run_command(args)
 
@@ -351,16 +351,28 @@ def snaptron_endpoint(environ, start_response):
         si = DebugStreamIterator(si)
     return si
 
-def sample_endpoint(environ, start_response):
+def snaptron_endpoint(environ, start_response):
+        return generic_endpoint(environ, start_response, SNAPTRON_APP)
+
+def samples_endpoint(environ, start_response):
+        return generic_endpoint(environ, start_response, SAMPLES_APP)
+
+def old_sample_endpoint(environ, start_response):
     http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}
     query_string = environ.get('QUERY_STRING')
    
     query = {}
-    #first log message (outside of errors) so put in a newline
-    logger.info("\nQUERY_STRING %s" % query_string)
-    query_string = query_string.replace("'","")
-    query_string = query_string.replace('"','')
-    query = urlparse.parse_qs(query_string)
+    if len(query_string) == 0:
+        try:
+            query_string=process_post(environ, start_response)
+        except ValueError, ve:
+            return bad_request(start_response, ve)
+    else:
+        #first log message (outside of errors) so put in a newline
+        logger.info("\nQUERY_STRING %s" % query_string)
+        query_string = query_string.replace("'","")
+        query_string = query_string.replace('"','')
+        query = urlparse.parse_qs(query_string)
 
     logger.debug("SAMPLES REQUEST ENVIRONMENT:")
     for (key, val) in environ.iteritems():
@@ -380,7 +392,7 @@ def sample_endpoint(environ, start_response):
     logger.info("READ_SIZE=%s" % read_size)
     read_size = int(read_size)
 
-    args=[PYTHON_PATH, SAMPLE_APP, query_string]
+    args=[PYTHON_PATH, SAMPLES_APP, query_string]
     #create subprocess run object 
     sproc = run_command(args)
 

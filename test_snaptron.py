@@ -82,7 +82,7 @@ class TestTabixCalls(unittest.TestCase):
         self.assertEqual(iq[0],"chr6:1-10000000")
         self.assertEqual(rq['rfilter'][0],"samples_count:5")
         self.assertEqual(sq,[])
-        self.assertEqual(idq,['snaptron:1',4])
+        self.assertEqual(idq,[1,4])
        
     def test_range_query_parsing(self):
         '''tests the parsing of the string of ranges-as-filters constraints'''
@@ -175,7 +175,7 @@ class TestQueryCalls(unittest.TestCase):
         i = 0
         r = 0
         d = 1
-        queries = self.process_query('regions=%s&rfilter=%s&ids=snaptron:%s' % (IQs[i],RQs_flat[r],",".join(IDs[d])))
+        queries = self.process_query('regions=%s&rfilter=%s&ids=%s' % (IQs[i],RQs_flat[r],",".join(IDs[d])))
         iq = queries['iq'][q]
         rq = queries['rq']
         snaptron_ids = set()

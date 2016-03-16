@@ -159,10 +159,10 @@ def query_samples(sampleq,sample_map,snaptron_ids,stream_sample_metadata=False):
 def query_by_sample_ids(idq,sample_map):
     if len(idq) == 0:
         return
-    subfields = idq[0].split(':')
-    if len(subfields) > 1:
-        (id_type,first_id) = subfields
-        idq[0] = first_id
+    #subfields = idq[0].split(':')
+    #if len(subfields) > 1:
+    #    (id_type,first_id) = subfields
+    #    idq[0] = first_id
     stream_samples(set(idq),sample_map) 
 
 def main():
@@ -171,7 +171,7 @@ def main():
     if len(sys.argv) > 2:
        DEBUG_MODE=True
     (intervalq,rangeq,sampleq,idq) = (None,None,None,None)
-    sys.stderr.write("%s\n" % input_)
+    sys.stderr.write("INPUT_ %s\n" % input_)
     if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
         (intervalq,rangeq,sampleq,idq) = snaptron.parse_json_query(input_)
         POST=True

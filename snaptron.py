@@ -364,7 +364,7 @@ def parse_json_query(input_):
     if 'ids' in fmap:
         #idq.append("snaptron:%s" % (",".join(fmap['snaptron_id'])))
         idq=fmap['ids']
-        idq[0]="snaptron:%s" % idq[0]
+        #idq[0]="snaptron:%s" % idq[0]
     #return ([intervalq],[rangeq],mdq,idq)
     return (intervalqs,{'rfilter':fmap['rfilter']},sampleq,idq)
 
@@ -373,15 +373,15 @@ def parse_json_query(input_):
 
 
 def query_ids(idq,snaptron_ids):
-    sample_ids = set()
-    (id_type,first_id) = idq[0].split(':')
-    idq[0] = first_id
-    if id_type == 'snaptron':
-        snaptron_ids.update(set(idq))
-    else:
-        sample_ids.update(set(idq))
-    if len(sample_ids) > 0:
-        snample.intron_ids_from_samples(sample_ids,snaptron_ids)
+    #(id_type,first_id) = idq[0].split(':')
+    #idq[0] = first_id
+    #sample_ids = set()
+    #if id_type == 'snaptron':
+    snaptron_ids.update(set(idq))
+    #else:
+    #    sample_ids.update(set(idq))
+    #if len(sample_ids) > 0:
+    #    snample.intron_ids_from_samples(sample_ids,snaptron_ids)
 
 
 

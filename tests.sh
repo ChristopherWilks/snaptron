@@ -1,7 +1,7 @@
 #!/bin/bash
 source python/bin/activate
 
-if [ $1 -ne 1] ; then
+if [ !$1 ] ; then
     python test_snaptron.py
 fi
 
@@ -39,7 +39,7 @@ curl --data 'fields="[{"ids":["33401865","33401867","33401868"]}]"' http://sting
 diff test_wc expected_wc
 
 echo "4" > expected_wc
-curl --data 'fields="[{"ids":["0","5","11"]}]"' http://stingray.cs.jhu.edu:8443/sample 2>/dev/null | wc -l > test_wc
+curl --data 'fields="[{"ids":["0","5","11"]}]"' http://stingray.cs.jhu.edu:8443/samples 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "3" > expected_wc
