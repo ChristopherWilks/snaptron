@@ -33,6 +33,10 @@ ID_START_COL=3
 INTERVAL_START_COL=2
 INTERVAL_END_COL=3
 
+#Lucene dbs
+LUCENE_RANGE_DB='/data2/gigatron2/lucene_ranges_v1/'
+LUCENE_SAMPLE_DB='./lucene_v1/'
+
 #search by gene constants
 REFSEQ_ANNOTATION='refFlat.hg19.txt.sorted'
 TABIX_PATTERN = re.compile(r'^([chrMXY\d]+):(\d+)-(\d+)$')

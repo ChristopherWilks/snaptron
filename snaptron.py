@@ -43,7 +43,7 @@ RETURN_ONLY_CONTAINED = False
 #setup lucene reader for range related searches
 lucene.initVM()
 analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
-rreader = IndexReader.open(SimpleFSDirectory(File("/data2/gigatron2/lucene_ranges_v1/")))
+rreader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_RANGE_DB)))
 rsearcher = IndexSearcher(rreader)
 
 def filter_by_ranges(fields,rquerys):

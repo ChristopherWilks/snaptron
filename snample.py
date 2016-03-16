@@ -42,7 +42,7 @@ DEBUG_MODE=False
 #setup lucene reader for sample related searches
 lucene.initVM()
 analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
-reader = IndexReader.open(SimpleFSDirectory(File("lucene_v1/")))
+reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_SAMPLE_DB)))
 searcher = IndexSearcher(reader)
 
 def lucene_sample_query_parse(sampleq):

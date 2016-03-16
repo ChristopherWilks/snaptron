@@ -1,7 +1,9 @@
 #!/bin/bash
 source python/bin/activate
 
-python test_snaptron.py
+if [ $1 -ne 1] ; then
+    python test_snaptron.py
+fi
 
 #system tests (roundtrip)
 echo "26" > expected_wc
@@ -33,7 +35,7 @@ curl "http://stingray.cs.jhu.edu:8443/samples?ids=0,4,10" 2>/dev/null | wc -l > 
 diff test_wc expected_wc
 
 echo "5" > expected_wc
-curl --data 'fields="[{"snaptron_id":["33401865","33401867","33401868"]}]"' http://stingray.cs.jhu.edu:8443/snaptron 2>/dev/null | wc -l > test_wc
+curl --data 'fields="[{"ids":["33401865","33401867","33401868"]}]"' http://stingray.cs.jhu.edu:8443/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "3" > expected_wc
