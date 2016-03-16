@@ -43,7 +43,7 @@ RETURN_ONLY_CONTAINED = False
 #setup lucene reader for range related searches
 lucene.initVM()
 analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
-rreader = IndexReader.open(SimpleFSDirectory(File("/data2/gigatron2/lucene_ranges/")))
+rreader = IndexReader.open(SimpleFSDirectory(File("/data2/gigatron2/lucene_ranges_v1/")))
 rsearcher = IndexSearcher(rreader)
 
 def filter_by_ranges(fields,rquerys):
@@ -75,7 +75,7 @@ def stream_intron(fout,line,fields):
     fout.write("%s:I\t%s" % (snapconf.DATA_SOURCE,newline))
 
 
-def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,save_introns=False,save_samples=False,stream_back=True,print_header=True,contains=None,start_col=snapconf.INTERVAL_START_COL,debug=True):
+def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,save_introns=False,save_samples=False,stream_back=True,print_header=True,contains=None,start_col=2,debug=True):
     if contains is None:
         contains = RETURN_ONLY_CONTAINED
     m = snapconf.TABIX_PATTERN.search(qargs)

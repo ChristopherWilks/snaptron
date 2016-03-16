@@ -111,11 +111,4 @@ zcat /data2/gigatron2/all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz | perl a
 
 python snanalysis.py "ids_a=4&ids_b=5,6&compute=jir&ratio=cov&order=T:5"
 
-
-#updated generation of snaptron-ready intron files (including annotation) on *HG38*
-#sraV2 (50k)
-gzip -cd /data2/gigatron2/intropolis.v2.hg38.tsv.gz | pypy /data/gigatron/snaptron/process_introns.py --annotation gencode.v24.annotation.gtf Homo_sapiens.GRCh38.84.gtf refGene_20160314.gtf | perl -ne 'BEGIN {$data_source_id=0;} chomp; $s=$_; @f=split(/\t/,$s); @f1=split(/,/,$f[11]); @f2=split(/,/,$f[12]); $f1=scalar @f1; $f2=scalar @f2; $s2=0; map { $s2+=$_; } @f2; $avg=$s2/$f2; $median=-1; $m_=$f2/2; $m_=int($m_); @f2a=sort {$a<=>$b} @f2; if(($f2 % 2)==0) { $m2_=$f2/2; $m2_-=1; $median=($f2a[$m_]+$f2a[$m2_])/2; } else { $median=$f2a[$m_]; }  printf("$s\t$f1\t$s2\t%.3f\t%.3f\t$data_source_id\n",$avg,$median);' | bgzip > /data/gigatron/intropolis.v2.hg38.tsv.snaptron.bgzip
-
-
-#gtex version (w/o median2)
-gzip -cd /data2/gigatron2/gtex/consolidated_gtex_junctions.tsv.gz | pypy /data/gigatron/snaptron/process_introns.py --annotation gencode.v24.annotation.gtf Homo_sapiens.GRCh38.84.gtf refGene_20160314.gtf | perl -ne 'BEGIN {$data_source_id=1;} chomp; $s=$_; @f=split(/\t/,$s); @f1=split(/,/,$f[11]); @f2=split(/,/,$f[12]); @f3=split(/,/,$f[13]); $f1=scalar @f1; $f2=scalar @f2; $f3=scalar @f3; $s2=0; map { $s2+=$_; } @f2; $avg=$s2/$f2; $median=-1; $m_=$f2/2; $m_=int($m_); @f2a=sort {$a<=>$b} @f2; if(($f2 % 2)==0) { $m2_=$f2/2; $m2_-=1; $median=($f2a[$m_]+$f2a[$m2_])/2; } else { $median=$f2a[$m_]; } $s3=0; map { $s3+=$_; } @f3; $avg2=$s3/$f3; $median2=-1; $m_=$f3/2; $m_=int($m_); @f3a=sort {$a<=>$b} @f3; if(($f3 % 2)==0) { $m2_=$f3/2; $m2_-=1; $median2=($f3a[$m_]+$f3a[$m2_])/2; } else { $median2=$f3a[$m_]; } printf("$s\t$f1\t$s2\t%.3f\t%.3f\t$s3\t%.3f\t$data_source_id\n",$avg,$median,$avg2);' | bgzip > /data2/gigatron2/gtex/consolidated_gtex_junctions.tsv.snaptron.bgzip
+zcat /data/gigatron/intropolis.v2.hg38.tsv.snaptron.bgzip | cut -f1,12 | perl -ne 'chomp; ($tid,$sid)=split(/\t/,$_); @sids=split(/,/,$sid); foreach $s (@sids) { print "$s\t$tid\n";}' | sort -k1,1 -n | perl -ne 'chomp; $s=$_; ($sid,$tid)=split(/\t/,$s); if(defined($pid) && $pid != $sid) { print "$pid\t"; foreach $s (sort keys %h) {print "$s,";} print "\n"; %h=();} $pid=$sid; $h{$tid}=1; END { if(defined($pid)) { print "$pid\t"; foreach $s (sort keys %h) {print "$s,";} print "\n";}}' | bzip2 > intropolis.v2.hg38.tsv.snaptron.sample2intron_ids.bz2
