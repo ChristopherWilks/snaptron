@@ -23,7 +23,7 @@ TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
 #TABIX_INTERVAL_DB='intropolis.v2.hg38.tsv.snaptron.bgzip'
 TABIX_DB_PATH='/data2/gigatron2'
 #we overloaded this map to be used for all searchable fields, not just those with TABIX dbs
-TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':'by_id.gz','samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','mds':'','sample_id':'by_sample_id.gz'}
+TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':'by_id.gz','samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keywords':'','sample_id':'by_sample_id.gz'}
 RANGE_FIELDS = ['length','samples_count','coverage_sum','coverage_avg','coverage_median']
 SAMPLE_MD_FILE='/data2/gigatron2/all_illumina_sra_for_human_ids.tsv'
 SAMPLE_IDS_COL=12

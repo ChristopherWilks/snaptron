@@ -357,16 +357,16 @@ def parse_json_query(input_):
     if 'intervals' in fmap:
         intervalqs = [fmap['intervals'][0]]
     #rangeq = ','.join(fmap['rangesq'])
-    mdq = []
-    if 'mds' in fmap:
-        mdq = fmap['mds'][0]
+    sampleq = []
+    if 'metadata_keywords' in fmap:
+        sampleq = fmap['metadata_keywords'][0]
     idq = []
     if 'ids' in fmap:
         #idq.append("snaptron:%s" % (",".join(fmap['snaptron_id'])))
         idq=fmap['ids']
         idq[0]="snaptron:%s" % idq[0]
     #return ([intervalq],[rangeq],mdq,idq)
-    return (intervalqs,{'rfilter':fmap['rfilter']},mdq,idq)
+    return (intervalqs,{'rfilter':fmap['rfilter']},sampleq,idq)
 
 
 

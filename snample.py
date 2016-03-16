@@ -84,8 +84,8 @@ def search_samples_lucene(sample_map,sampleq,sample_set,stream_sample_metadata=F
 #when not querying against Lucene
 def stream_samples(sample_set,sample_map):
     sys.stdout.write("DataSource:Type\t%s\n" % (snapconf.SAMPLE_HEADER))
-    for sample_id in sample_set:
-        sys.stdout.write("%s:S\t%s\n" % (snapconf.DATA_SOURCE,sample_map[sample_id]))
+    for sample_id in sorted([int(x) for x in sample_set]):
+        sys.stdout.write("%s:S\t%s\n" % (snapconf.DATA_SOURCE,sample_map[str(sample_id)]))
 
 #use to load samples metadata to be returned
 #ONLY when the user requests by overlap coords OR
@@ -165,13 +165,19 @@ def query_by_sample_ids(idq,sample_map):
         idq[0] = first_id
     stream_samples(set(idq),sample_map) 
 
-
 def main():
     global DEBUG_MODE
     input_ = sys.argv[1]
     if len(sys.argv) > 2:
        DEBUG_MODE=True
-    (intervalq,idq,rangeq,sampleq) = snaptron.process_params(input_)
+    (intervalq,rangeq,sampleq,idq) = (None,None,None,None)
+    sys.stderr.write("%s\n" % input_)
+    if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
+        (intervalq,rangeq,sampleq,idq) = snaptron.parse_json_query(input_)
+        POST=True
+    else:
+        #update support simple '&' CGI format
+        (intervalq,idq,rangeq,sampleq) = snaptron.process_params(input_)
     #only care about sampleq
     if len(intervalq) > 0 or len(rangeq['rfilter']) > 0 or snapconf.SNAPTRON_ID_PATT.search(input_):
         sys.stderr.write("bad input asking for intervals and/or ranges, only take sample queries and/or sample ids, exiting\n")
