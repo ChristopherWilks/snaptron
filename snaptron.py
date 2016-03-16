@@ -329,6 +329,8 @@ def parse_json_query(input_):
     for field in snapconf.TABIX_DBS.keys():
         if field == 'chromosome':
             field = 'intervals'
+        if field == 'snaptron_id':
+            field = 'ids'
         if field in clause:
             if field not in fields:
                 fields[field]=[]
@@ -342,7 +344,7 @@ def parse_json_query(input_):
                 if field not in fmap:
                     fmap[field]=[]
                 #allow more than one snaptron id, but convert to a ',' separated list
-                if field == 'snaptron_id':
+                if field == 'ids':
                     fmap[field].extend(clause[field])
                 else:
                     fmap[field].append(clause.get(field)[0])
@@ -359,9 +361,9 @@ def parse_json_query(input_):
     if 'mds' in fmap:
         mdq = fmap['mds'][0]
     idq = []
-    if 'snaptron_id' in fmap:
+    if 'ids' in fmap:
         #idq.append("snaptron:%s" % (",".join(fmap['snaptron_id'])))
-        idq=fmap['snaptron_id']
+        idq=fmap['ids']
         idq[0]="snaptron:%s" % idq[0]
     #return ([intervalq],[rangeq],mdq,idq)
     return (intervalqs,{'rfilter':fmap['rfilter']},mdq,idq)
