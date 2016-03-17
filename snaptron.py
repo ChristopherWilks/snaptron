@@ -12,6 +12,8 @@ import json
 
 import gzip
 
+import sqlite3
+
 import lucene
 from java.io import File
 from org.apache.lucene.analysis.standard import StandardAnalyzer
@@ -31,6 +33,9 @@ from org.apache.lucene.util import Version
 import snapconf
 import snaputil
 import snample
+
+sconn = sqlite3.connect(snapconf.SNAPTRON_SQLITE_DB)
+snc = sconn.cursor()
 
 DEBUG_MODE=True
 POST=False
@@ -204,8 +209,29 @@ def search_ranges_lucene(rangeq,snaptron_ids,stream_back=False,filtering=False):
             sids.add(sid)
     return (sids,set())
            
+def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],filtering=False,stream_back=True,print_header=True):
+    select = 'SELECT * from intron WHERE snaptron_id in'
+    found_snaptron_ids = set()
+    results = snaputil.retrieve_from_db_by_ids(snc,select,ids)
+    custom_header = snapconf.INTRON_HEADER
+    if len(REQ_FIELDS) > 0:
+        custom_header = "\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)])
+    if stream_back and print_header:
+        if not RESULT_COUNT: #and len(REQ_FIELDS) == 0:
+            sys.stdout.write("DataSource:Type\t")
+        sys.stdout.write("%s\n" % (custom_header))
+    if stream_back and print_header and POST:
+        sys.stdout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
+    for intron in results:
+        sys.stdout.write("intron %s\n" % str(intron[0]))
+        found_snaptron_ids.update(set([str(intron[0])])) 
+        if stream_back:
+            stream_intron(sys.stdout,"%s\n" % "\t".join([str(x) for x in intron]),[])
+    return (found_snaptron_ids,set())
+
+
 #do multiple searches by a set of ids
-def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],filtering=False):
+def search_introns_by_ids_old(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],filtering=False):
     '''
     search by EITHER snaptron_id(s) OR sample_id(s)
     '''
