@@ -214,7 +214,7 @@ def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],
     end_sid = 1
     #coalesce the ids into ranges
     #to avoid making too many queries (n+1 problem) to Tabix
-    for sid in sorted(ids):
+    for sid in sorted(int(x) for x in ids):
         #offset ids by one since the actual tabix search starts at 1
         #but the ids themselves start at 0
         sid = int(sid) + 1
