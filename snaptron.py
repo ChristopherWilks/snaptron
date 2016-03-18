@@ -223,7 +223,7 @@ def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],
     if stream_back and print_header and POST:
         sys.stdout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
     for intron in results:
-        sys.stdout.write("intron %s\n" % str(intron[0]))
+        #sys.stdout.write("intron %s\n" % str(intron[0]))
         found_snaptron_ids.update(set([str(intron[0])])) 
         if stream_back:
             stream_intron(sys.stdout,"%s\n" % "\t".join([str(x) for x in intron]),[])
