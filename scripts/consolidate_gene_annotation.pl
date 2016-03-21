@@ -11,6 +11,12 @@ use warnings;
 #expects sorted-by-start-coordinate-within-refs as input
 #e.g. sort -t'\t' -s -k1,1 -k4,4n -k5,5n refGene.gtf > refGene.gtf.sorted
 
+#grouping for a transcript is done on the transcript_id
+#but since exons/cds features can span multiple transcripts *when sorted on coordinate*
+#use a hash per transcript_id and then only print out the final set of full transcripts
+#when the current chromsome (ref) is finished, this balances memory use vs. picking up
+#straggling features
+
 my %fname2source=('refGene.gtf'=>'REFGENE','Homo_sapiens.GRCh37.75.gtf'=>'ENSEMBLE','gencode.v19.annotation.gtf'=>'GENCODE');
 
 my $inputF = shift;
@@ -28,60 +34,72 @@ main();
 
 sub main
 {
-  #my $fh = \*STDIN;
   my $fh;
-  #open($fh,"<$inputF") if($inputF);
   open($fh,"<",$inputF);
 
-  my $cur_transcript_id;
   my $pline="";
   my $pline2="";
   my $tend = -1;
   my $cds_start = -1;
   my $cds_end = -1;
   my $exons = "";
+  my %refH;
+  my $cur_ref;
   while(my $line = <$fh>)
   {
     chomp($line);
     next if($line =~/^#/);
     my ($ref,$source,$type,$start,$end,$score,$strand,$frame,$attr) = split(/\t/,$line);
-    next if($type !~ /(exon)|(CDS)/);
-    my $transcript_id = parse_transcript_id($attr);
-    if($cur_transcript_id && $transcript_id ne $cur_transcript_id)
+    next if($type !~ /(exon)|(CDS)/i);
+    if(defined($cur_ref) && $ref ne $cur_ref)
     {
-      $exons =~s/,$//;
-      my $cds_span = ($cds_start != -1?"$cds_start-$cds_end":"NA");
-      print "$pline\t$tend\t$pline2\ttranscript_id \"$cur_transcript_id\";cds_span \"$cds_span\";exons \"$exons\";\n";
-      $tend = -1;
-      $cds_start = -1;
-      $cds_end = -1;
-      $exons = "";
-      $cur_transcript_id=undef;
+      print_transcript_lines(\%refH);
+      %refH=();
     }
-    if(!$cur_transcript_id)
+    $cur_ref = $ref;
+    my $transcript_id = parse_transcript_id($attr);
+    if(!defined($refH{$transcript_id}))
     {
-      $pline = "$ref\t$SOURCE\ttranscript\t$start";
-      $pline2 = ".\t$strand\t.";
-    } 
+      $refH{$transcript_id} = ["","","",-1,-1,-1];
+      $refH{$transcript_id}->[0] = "$ref\t$SOURCE\ttranscript\t$start";
+      $refH{$transcript_id}->[1] = ".\t$strand\t.";
+    }
     if($type =~ /exon/i)
     {
-      $exons.="$start-$end,";
-      $tend = $end;
+      $refH{$transcript_id}->[2].="$start-$end,";
+      $refH{$transcript_id}->[3] = $end;
     }
     if($type =~ /CDS/i)
     {
-      $cds_start = $start if($cds_start == -1);
-      $cds_end = $end;
+      $refH{$transcript_id}->[4] = $start if($refH{$transcript_id}->[4] == -1);
+      $refH{$transcript_id}->[5] = $end;
     } 
-    $cur_transcript_id = $transcript_id;
   }
-  if($cur_transcript_id)
+  if(defined($cur_ref))
   {
-    $exons =~s/,$//;
-    my $cds_span = ($cds_start != -1?"$cds_start-$cds_end":"NA");
-    print "$pline\t$tend\t$pline2\ttranscript_id \"$cur_transcript_id\";cds_span \"$cds_span\";exons \"$exons\";\n";
+      print_transcript_lines(\%refH);
+      %refH=();
   }
 }  
+
+sub print_transcript_lines
+{
+      my $refH_ = shift;
+  
+      my %refH = %$refH_;
+      foreach my $tid (keys %refH)
+      {
+        my $pline = $refH{$tid}->[0];
+        my $pline2 = $refH{$tid}->[1];
+        my $exons = $refH{$tid}->[2]; 
+        $exons =~s/,$//;
+        my $tend = $refH{$tid}->[3]; 
+        my $cds_start = $refH{$tid}->[4]; 
+        my $cds_end = $refH{$tid}->[5]; 
+        my $cds_span = ($cds_start != -1?"$cds_start-$cds_end":"NA");
+        print "$pline\t$tend\t$pline2\ttranscript_id \"$tid\";cds_span \"$cds_span\";exons \"$exons\";\n";
+      }
+}
 
 sub parse_transcript_id
 {
