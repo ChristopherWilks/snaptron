@@ -28,6 +28,7 @@ DEBUG_MODE=True
 PYTHON_PATH='/data/gigatron/snaptron/python/bin/python'
 SNAPTRON_APP = '/data/gigatron/snaptron/snaptron.py'
 SAMPLES_APP = '/data/gigatron/snaptron/snample.py'
+ANNOTATIONS_APP = '/data/gigatron/snaptron/snannotation.py'
 CMD_BUFFER_SIZE = -1
 #in seconds, so just under an hour to cache the authorization result for a specific token/acm_url
 TIME_TO_MEMOIZE_AUTH_RESULT=3500
@@ -356,6 +357,9 @@ def snaptron_endpoint(environ, start_response):
 
 def samples_endpoint(environ, start_response):
         return generic_endpoint(environ, start_response, SAMPLES_APP)
+
+def annotations_endpoint(environ, start_response):
+        return generic_endpoint(environ, start_response, ANNOTATIONS_APP)
 
 def old_sample_endpoint(environ, start_response):
     http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}

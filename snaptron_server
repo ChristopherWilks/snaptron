@@ -17,6 +17,7 @@ import cherrypy
 
 from snaptronws import snaptron_endpoint
 from snaptronws import samples_endpoint
+from snaptronws import annotations_endpoint
 
 description = "Backend web server runner for the SnapTron web service"
 
@@ -73,6 +74,10 @@ def snaptron_service(environ, start_response):
 def sample_service(environ, start_response):
     environ['read_size'] = options.read_size
     return samples_endpoint(environ, start_response)
+
+def annotation_service(environ, start_response):
+    environ['read_size'] = options.read_size
+    return annotations_endpoint(environ, start_response)
 
 def lookup_user(username, err_str):
     try:
@@ -150,6 +155,7 @@ class SmartPIDLockFile(PIDLockFile):
 def run_server():
     cherrypy.tree.graft(snaptron_service, "/snaptron")
     cherrypy.tree.graft(sample_service, "/samples")
+    cherrypy.tree.graft(annotation_service, "/annotations")
 
     #cherrypy.config.update({'server.socket_host': "127.0.0.1", 'server.socket_port': 1555, 'server.thread_pool': 30})
     #cherrypy.config.update({'server.socket_host': "10.1.1.50", 'server.socket_port': 1555, 'server.thread_pool': 30})
