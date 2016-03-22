@@ -92,7 +92,7 @@ def query_gene_regions(intervalq,contains=False):
             for (chrom,coord_tuples) in gene2coords(interval):
                 for coord_tuple in coord_tuples:
                     (st,en) = coord_tuple
-                    (iids_,sids_) = snaptron.run_tabix("%s:%d-%d" % (chrom,st,en),None,snapconf.TABIX_GENE_INTERVAL_DB,debug=DEBUG_MODE,print_header=print_header,contains=contains)
+                    (iids_,sids_) = snaptron.run_tabix("%s:%d-%d" % (chrom,st,en),None,snapconf.TABIX_GENE_INTERVAL_DB,debug=DEBUG_MODE,print_header=print_header,save_introns=False,start_col=1,contains=contains,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G")
                     print_header = False
   
 def main():
