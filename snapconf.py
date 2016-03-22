@@ -18,6 +18,8 @@ NFR = NumericRangeQuery.newFloatRange
 operators_old={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
 operators={'>:':operator.ge,'<:':operator.le,'>':operator.gt,'<':operator.lt,':':operator.eq,'!:':operator.ne}
 TABIX="tabix"
+REFSEQ_ANNOTATION='refFlat.hg19.txt.sorted'
+TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.gtf.sorted.gz'
 #TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.gz'
 TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
 #TABIX_INTERVAL_DB='intropolis.v2.hg38.tsv.snaptron.bgzip'
@@ -38,7 +40,6 @@ LUCENE_RANGE_DB='/data2/gigatron2/lucene_ranges_v1/'
 LUCENE_SAMPLE_DB='./lucene_v1/'
 
 #search by gene constants
-REFSEQ_ANNOTATION='refFlat.hg19.txt.sorted'
 TABIX_PATTERN = re.compile(r'^([chrMXY\d]+):(\d+)-(\d+)$')
 INTERVAL_PATTERN = re.compile(r'^(chr[12]?[0-9XYM]):(\d+)-(\d+)$')
 CHROM_PATTERN = re.compile(r'^chr[12]?[0-9XYM]$')
@@ -68,6 +69,9 @@ DATA_SOURCE='SRA'
 MAX_DISTANCE_BETWEEN_IDS=1000
 #INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
 #SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
+
+#GENE_ANNOTATION_HEADER (GTF)
+GENE_ANNOTATION_HEADER = "DataSource:Type\treference\tannotation_source\tfeature_type\tstart\tend\tunused\tstrand\tunused\tattributes\n";
 
 #setup headers for both the original intron list and the sample metadata list
 INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated?	left_motif	right_motif	left_annotated?	right_annotated?	samples	read_coverage_by_sample	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'

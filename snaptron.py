@@ -33,6 +33,7 @@ from org.apache.lucene.util import Version
 import snapconf
 import snaputil
 import snample
+import snannotation
 
 sconn = sqlite3.connect(snapconf.SNAPTRON_SQLITE_DB)
 snc = sconn.cursor()
@@ -70,17 +71,17 @@ def filter_by_ranges(fields,rquerys):
     return skip
 
 
-def stream_intron(fout,line,fields):
+def stream_intron(fout,line,fields,prefix="%s:I" % snapconf.DATA_SOURCE):
     if len(fields) == 0:
         fields = line.split('\t')
     newline = line
     if len(REQ_FIELDS) > 0:
        newline = "\t".join([fields[x] for x in REQ_FIELDS]) + "\n"
     #fout.write("%s" % (newline))
-    fout.write("%s:I\t%s" % (snapconf.DATA_SOURCE,newline))
+    fout.write("%s\t%s" % (prefix,newline))
 
 
-def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,save_introns=False,save_samples=False,stream_back=True,print_header=True,contains=None,start_col=2,debug=True):
+def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,save_introns=False,save_samples=False,stream_back=True,print_header=True,contains=None,start_col=2,header="Datasource:Type\t%s" % snapconf.INTRON_HEADER,prefix="%s:I" % snapconf.DATA_SOURCE,debug=True):
     if contains is None:
         contains = RETURN_ONLY_CONTAINED
     m = snapconf.TABIX_PATTERN.search(qargs)
@@ -98,15 +99,15 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
     tabix_db = "%s/%s" % (snapconf.TABIX_DB_PATH,tabix_db)
     filter_by_introns = (intron_filters != None and len(intron_filters) > 0)
     filter_by_samples = (sample_filters != None and len(sample_filters) > 0)
-    custom_header = snapconf.INTRON_HEADER
+    custom_header = header
     if len(REQ_FIELDS) > 0:
         custom_header = "\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)])
     if debug:
         sys.stderr.write("running %s %s %s\n" % (snapconf.TABIX,tabix_db,qargs))
     if stream_back and print_header:
-        if not RESULT_COUNT: #and len(REQ_FIELDS) == 0:
-            sys.stdout.write("DataSource:Type\t")
-        sys.stdout.write("%s\n" % (custom_header))
+        if not RESULT_COUNT:
+            sys.stdout.write("%s\n" % (custom_header))
+            #sys.stdout.write("%s\t" % prefix)
     if stream_back and print_header and POST:
         sys.stdout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
     tabixp = subprocess.Popen("%s %s %s | cut -f %d-" % (snapconf.TABIX,tabix_db,qargs,start_col),stdout=subprocess.PIPE,shell=True)
@@ -134,7 +135,7 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
         #filter return stream based on range queries (if any)
         if stream_back:
             #sys.stdout.write("%s:I\t%s" % (snapconf.DATA_SOURCE,line))
-            stream_intron(sys.stdout,line,fields)
+            stream_intron(sys.stdout,line,fields,prefix=prefix)
         if save_introns:
             ids_found.add(fields[snapconf.INTRON_ID_COL])
     exitc=tabixp.wait() 
@@ -295,39 +296,9 @@ def range_query_parser(rangeq,snaptron_ids):
     return rquery
 
 def search_by_gene_name(geneq,rquery,intron_filters=None,save_introns=False,print_header=True):
-    gene_map = {}
-    with open("%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.REFSEQ_ANNOTATION),"r") as f:
-        for line in f:
-            fields = line.rstrip().split('\t')
-            (gene_name,chrom,st,en) = (fields[0].upper(),fields[2],int(fields[4]),int(fields[5]))
-            if not snapconf.CHROM_PATTERN.search(chrom):
-                continue
-            if gene_name in gene_map:
-                add_tuple = True
-                if chrom in gene_map[gene_name]:
-                    for (idx,gene_tuple) in enumerate(gene_map[gene_name][chrom]):
-                        (st2,en2) = gene_tuple
-                        if abs(en2-en) <= snapconf.MAX_GENE_PROXIMITY:
-                            add_tuple = False
-                            if st < st2:
-                                gene_map[gene_name][chrom][idx][0] = st
-                            if en > en2:
-                                gene_map[gene_name][chrom][idx][1] = en
-                #add onto current set of coordinates
-                if add_tuple:
-                    if chrom not in gene_map[gene_name]:
-                        gene_map[gene_name][chrom]=[]
-                    gene_map[gene_name][chrom].append([st,en]) 
-            else:
-                gene_map[gene_name]={}
-                gene_map[gene_name][chrom]=[[st,en]]
-    geneq = geneq.upper()
-    if geneq not in gene_map:
-        sys.stderr.write("ERROR no gene found by name %s\n" % (geneq))
-        sys.exit(-1)
     iids = set()
     sids = set()
-    for (chrom,coord_tuples) in sorted(gene_map[geneq].iteritems()):
+    for (chrom,coord_tuples) in snannotation.gene2coords(geneq):
         for coord_tuple in coord_tuples:
             (st,en) = coord_tuple
             (iids_,sids_) = run_tabix("%s:%d-%d" % (chrom,st,en),rquery,snapconf.TABIX_INTERVAL_DB,intron_filters=intron_filters,print_header=print_header,save_introns=save_introns)
