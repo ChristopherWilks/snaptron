@@ -26,9 +26,8 @@ echo "32" > expected_wc
 curl "http://stingray.cs.jhu.edu:8443/samples?sfilter=description:cortex" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
-echo "4" > expected_wc
-curl 'http://stingray.cs.jhu.edu:8443/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&sfilter=description:cortex' 2>/dev/null | wc -l > test_wc
-diff test_wc expected_wc
+curl 'http://stingray.cs.jhu.edu:8443/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&sfilter=description:cortex' 2>/dev/null | cut -f 2 | egrep -v -e 'id' | sort -u > test_15_ids
+diff test_s2i_ids_15.snaptron_ids test_15_ids 
 
 echo "4" > expected_wc
 curl "http://stingray.cs.jhu.edu:8443/samples?ids=0,4,10" 2>/dev/null | wc -l > test_wc
