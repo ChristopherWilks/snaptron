@@ -16,6 +16,7 @@ import gzip
 import lucene
 from java.io import File
 from org.apache.lucene.analysis.standard import StandardAnalyzer
+from org.apache.lucene.analysis.core import WhitespaceAnalyzer
 from org.apache.lucene.document import Document, Field
 from org.apache.lucene.search import IndexSearcher
 from org.apache.lucene.search import BooleanQuery
@@ -42,6 +43,7 @@ DEBUG_MODE=False
 #setup lucene reader for sample related searches
 lucene.initVM()
 analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
+analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
 reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_SAMPLE_DB)))
 searcher = IndexSearcher(reader)
 
@@ -64,7 +66,8 @@ def lucene_sample_query_parse(sampleq):
 #http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
 def search_samples_lucene(sample_map,sampleq,sample_set,stream_sample_metadata=False):
     (fields,queries,booleans) = lucene_sample_query_parse(sampleq)
-    query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, analyzer)
+    #query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, analyzer)
+    query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, analyzer_ws)
     #query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, ['human AND adult AND brain'], ['description_t'], [BooleanClause.Occur.MUST], analyzer)
     hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
     if DEBUG_MODE: 
