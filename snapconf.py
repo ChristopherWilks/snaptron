@@ -8,16 +8,34 @@ from org.apache.lucene.index import Term
 from org.apache.lucene.search import NumericRangeQuery
 from org.apache.lucene.document import Document, Field, IntField, FloatField, StringField, TextField, StoredField
 
+#####fields that need to be changed for a different instance
+DATA_SOURCE='SRA'
+IP='128.220.35.129'
+PORT=8443
+ROOT_DIR='./'
+PYTHON_PATH="python"
+TABIX="tabix"
+#tabix related
+TABIX_DB_PATH='./data'
+TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.gtf.sorted.gz'
+TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
+TABIX_IDS_DB='by_id.gz'
+ID_START_COL=3
+#sqlite3 dbs
+SAMPLE_SQLITE_DB="%s/by_sample_ids.sqlite3" % (TABIX_DB_PATH)
+SNAPTRON_SQLITE_DB="%s/snaptron2.sqlite3" % (TABIX_DB_PATH)
+#Lucene dbs
+LUCENE_RANGE_DB="%s/lucene_ranges_v1/" % (TABIX_DB_PATH)
+LUCENE_SAMPLE_DB="%s/lucene_v1/" % (TABIX_DB_PATH)
+#gene annotation related flat files
+REFSEQ_ANNOTATION='refFlat.hg19.txt.sorted'
+SAMPLE_MD_FILE="%s/all_illumina_sra_for_human_ids.tsv" % (TABIX_DB_PATH)
+#####END of fields that need to be changed for a different instance
 
 
 #basic paths to everything (one day replace with inferred directory)
 #used only by snaptron_server
-IP='128.220.35.129'
-PORT=8443
 #mostly used by snaptronws.py
-ROOT_DIR='./'
-PYTHON_PATH="python"
-#PYTHON_PATH="/data/gigatron/snaptron/python/bin/python"
 SNAPTRON_APP = "%s/snaptron.py" % (ROOT_DIR)
 SAMPLES_APP = "%s/snample.py" % (ROOT_DIR)
 ANNOTATIONS_APP = "%s/snannotation.py" % (ROOT_DIR)
@@ -37,35 +55,19 @@ TERM = Term
 NIR = NumericRangeQuery.newIntRange
 NFR = NumericRangeQuery.newFloatRange
 
-#from collections import namedtuple
-#bunch of constants for use throughout snaptron
-
 operators_old={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
 operators={'>:':operator.ge,'<:':operator.le,'>':operator.gt,'<':operator.lt,':':operator.eq,'!:':operator.ne}
-TABIX="tabix"
-REFSEQ_ANNOTATION='refFlat.hg19.txt.sorted'
-TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.gtf.sorted.gz'
-#TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.gz'
-TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
-#TABIX_INTERVAL_DB='intropolis.v2.hg38.tsv.snaptron.bgzip'
-#TABIX_DB_PATH='/data2/gigatron2'
-TABIX_DB_PATH='./data'
 #we overloaded this map to be used for all searchable fields, not just those with TABIX dbs
-TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':'by_id.gz','samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keywords':'','sample_id':'by_sample_id.gz'}
+TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':TABIX_IDS_DB,'samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keywords':'','sample_id':'by_sample_id.gz'}
 RANGE_FIELDS = ['length','samples_count','coverage_sum','coverage_avg','coverage_median']
-SAMPLE_MD_FILE="%s/all_illumina_sra_for_human_ids.tsv" % (TABIX_DB_PATH)
 SAMPLE_IDS_COL=12
 SAMPLE_ID_COL=0
 INTRON_ID_COL=0
-ID_START_COL=3
 INTERVAL_START_COL=2
 INTERVAL_END_COL=3
 GENE_START_COL=3
 GENE_END_COL=4
 
-#Lucene dbs
-LUCENE_RANGE_DB="%s/lucene_ranges_v1/" % (TABIX_DB_PATH)
-LUCENE_SAMPLE_DB="%s/lucene_v1/" % (TABIX_DB_PATH)
 
 #search by gene constants
 TABIX_PATTERN = re.compile(r'^([chrMXY\d]+):(\d+)-(\d+)$')
@@ -81,8 +83,6 @@ LUCENE_MAX_SAMPLE_HITS=1000000
 
 LUCENE_TYPES={'snaptron_id':[IntField,int,NIR],'length':[IntField,int,NIR],'strand':[StringField,str,TERM],'annotated?':[IntField,int,NIR],'left_motif':[StringField,str,TERM],'right_motif':[StringField,str,TERM],'left_annotated?':[TextField,str,TERM],'right_annotated?':[TextField,str,TERM],'length':[IntField,int,NIR],'samples_count':[IntField,int,NIR],'coverage_sum':[IntField,int,NIR],'coverage_avg':[FloatField,float,NFR],'coverage_median':[FloatField,float,NFR],'source_dataset_id':[IntField,int,NIR],'coverage_avg2':[FloatField,float,NFR],'coverage_median2':[FloatField,float,NFR]}
 
-SAMPLE_SQLITE_DB="%s/by_sample_ids" % (TABIX_DB_PATH)
-SNAPTRON_SQLITE_DB="%s/snaptron2" % (TABIX_DB_PATH)
 
 RANGE_QUERY_DELIMITER=','
 RANGE_QUERY_OPS='([:><!]+)'
@@ -92,7 +92,6 @@ SAMPLE_QUERY_FIELD_DELIMITER=':' #::
 
 FLOAT_FIELDS=set(['coverage_avg','coverage_median'])
 
-DATA_SOURCE='SRA'
 #may have to adjust this parameter for performance (# of tabix calls varies inversely with this number)
 MAX_DISTANCE_BETWEEN_IDS=1000
 #INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
