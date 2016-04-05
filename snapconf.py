@@ -21,6 +21,7 @@ TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.gtf.sorted.gz'
 TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
 TABIX_IDS_DB='by_id.gz'
 ID_START_COL=3
+CUT_START_COL=2
 #sqlite3 dbs
 SAMPLE_SQLITE_DB="%s/by_sample_ids.sqlite3" % (TABIX_DB_PATH)
 SNAPTRON_SQLITE_DB="%s/snaptron2.sqlite3" % (TABIX_DB_PATH)
