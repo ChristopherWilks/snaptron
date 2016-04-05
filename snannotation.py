@@ -86,16 +86,18 @@ def gene2coords(geneq):
 
 def query_gene_regions(intervalq,contains=False):
     print_header = True
+    ra = snaptron.default_region_args._replace(tabix_db_file=snapconf.TABIX_GENE_INTERVAL_DB,range_filters=None,save_introns=False,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G",cut_start_col=1,region_start_col=snapconf.GENE_START_COL,region_end_col=snapconf.GENE_END_COL,contains=contains,debug=DEBUG_MODE)
     for interval in intervalq:
         if snapconf.INTERVAL_PATTERN.search(interval):
-           (ids,sids) = snaptron.run_tabix(interval,None,snapconf.TABIX_GENE_INTERVAL_DB,debug=DEBUG_MODE,print_header=print_header,save_introns=False,cut_start_col=1,interval_start_col=snapconf.GENE_START_COL,interval_end_col=snapcon.GENE_END_COL,contains=contains,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G")
+           (ids,sids) = snaptron.run_tabix(interval,region_args=ra)
         else:
             #if given a gene name, first convert to coordinates and then search tabix
             for (chrom,coord_tuples) in gene2coords(interval):
                 for coord_tuple in coord_tuples:
                     (st,en) = coord_tuple
-                    (ids_,sids_) = snaptron.run_tabix("%s:%d-%d" % (chrom,st,en),None,snapconf.TABIX_GENE_INTERVAL_DB,debug=DEBUG_MODE,print_header=print_header,save_introns=False,cut_start_col=1,interval_start_col=snapconf.GENE_START_COL,interval_end_col=snapconf.GENE_END_COL,contains=contains,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G")
-                    print_header = False
+                    (ids_,sids_) = snaptron.run_tabix("%s:%d-%d" % (chrom,st,en),region_args=ra)
+                    if ra.print_header:
+                        ra=ra._replace(print_header=False)
   
 def main():
     global DEBUG_MODE

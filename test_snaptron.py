@@ -61,8 +61,9 @@ class TestTabixCalls(unittest.TestCase):
    
     def itc(self,interval_query,range_query=None,filter_set=None,sample_set=None,filtering=False):
         '''wrap the normal run_tabix/search_by_gene_name call to hardcode defaults for interval/gene name querying'''
-        if snapconf.INTERVAL_PATTERN.search(interval_query): 
-            return tc(interval_query,range_query,tdbs['chromosome'],intron_filters=filter_set,sample_filters=sample_set,save_introns=filtering)
+        if snapconf.INTERVAL_PATTERN.search(interval_query):
+            ra = snaptron.default_region_args._replace(range_filters=range_query,tabix_db_file=tdbs['chromosome'],intron_filter=filter_set,sample_filter=sample_set,save_introns=filtering) 
+            return tc(interval_query,region_args=ra)
         return sbg(interval_query,range_query,intron_filters=filter_set,save_introns=filtering) 
     
     def idc(self,ids,filtering=False):
