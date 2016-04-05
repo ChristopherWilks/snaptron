@@ -8,6 +8,31 @@ from org.apache.lucene.index import Term
 from org.apache.lucene.search import NumericRangeQuery
 from org.apache.lucene.document import Document, Field, IntField, FloatField, StringField, TextField, StoredField
 
+
+
+#basic paths to everything (one day replace with inferred directory)
+#used only by snaptron_server
+IP='128.220.35.129'
+PORT=8443
+#mostly used by snaptronws.py
+ROOT_DIR='./'
+PYTHON_PATH="python"
+#PYTHON_PATH="/data/gigatron/snaptron/python/bin/python"
+SNAPTRON_APP = "%s/snaptron.py" % (ROOT_DIR)
+SAMPLES_APP = "%s/snample.py" % (ROOT_DIR)
+ANNOTATIONS_APP = "%s/snannotation.py" % (ROOT_DIR)
+#size for the OS buffer on the input pipe reading from samtools output
+CMD_BUFFER_SIZE = -1
+#a low max for what we want to pass to samtools for start/end coordinates, otherwise samtools will return everything
+MAX_COORDINATE_DIGITS = 11
+#size of samtools read,can impact performance in a major way
+READ_SIZE = 16777216
+#for test read much smaller chunks
+#READ_SIZE=32
+RANGE_PATTERN = re.compile(r'^[0-9a-zA-Z_\-]+:\d+-\d+$')
+#cant have anything else in the data path or its probably a security issue
+READ_SIZE_PATTERN = re.compile(r'^\d+$')
+
 TERM = Term
 NIR = NumericRangeQuery.newIntRange
 NFR = NumericRangeQuery.newFloatRange
@@ -23,11 +48,12 @@ TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.gtf.sorted.gz'
 #TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.gz'
 TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
 #TABIX_INTERVAL_DB='intropolis.v2.hg38.tsv.snaptron.bgzip'
-TABIX_DB_PATH='/data2/gigatron2'
+#TABIX_DB_PATH='/data2/gigatron2'
+TABIX_DB_PATH='./data'
 #we overloaded this map to be used for all searchable fields, not just those with TABIX dbs
 TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':'by_id.gz','samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keywords':'','sample_id':'by_sample_id.gz'}
 RANGE_FIELDS = ['length','samples_count','coverage_sum','coverage_avg','coverage_median']
-SAMPLE_MD_FILE='/data2/gigatron2/all_illumina_sra_for_human_ids.tsv'
+SAMPLE_MD_FILE="%s/all_illumina_sra_for_human_ids.tsv" % (TABIX_DB_PATH)
 SAMPLE_IDS_COL=12
 SAMPLE_ID_COL=0
 INTRON_ID_COL=0
@@ -38,8 +64,8 @@ GENE_START_COL=3
 GENE_END_COL=4
 
 #Lucene dbs
-LUCENE_RANGE_DB='/data2/gigatron2/lucene_ranges_v1/'
-LUCENE_SAMPLE_DB='./lucene_v1/'
+LUCENE_RANGE_DB="%s/lucene_ranges_v1/" % (TABIX_DB_PATH)
+LUCENE_SAMPLE_DB="%s/lucene_v1/" % (TABIX_DB_PATH)
 
 #search by gene constants
 TABIX_PATTERN = re.compile(r'^([chrMXY\d]+):(\d+)-(\d+)$')
@@ -55,8 +81,8 @@ LUCENE_MAX_SAMPLE_HITS=1000000
 
 LUCENE_TYPES={'snaptron_id':[IntField,int,NIR],'length':[IntField,int,NIR],'strand':[StringField,str,TERM],'annotated?':[IntField,int,NIR],'left_motif':[StringField,str,TERM],'right_motif':[StringField,str,TERM],'left_annotated?':[TextField,str,TERM],'right_annotated?':[TextField,str,TERM],'length':[IntField,int,NIR],'samples_count':[IntField,int,NIR],'coverage_sum':[IntField,int,NIR],'coverage_avg':[FloatField,float,NFR],'coverage_median':[FloatField,float,NFR],'source_dataset_id':[IntField,int,NIR],'coverage_avg2':[FloatField,float,NFR],'coverage_median2':[FloatField,float,NFR]}
 
-SAMPLE_SQLITE_DB='/data/gigatron/by_sample_ids'
-SNAPTRON_SQLITE_DB='/data/gigatron/snaptron2'
+SAMPLE_SQLITE_DB="%s/by_sample_ids" % (TABIX_DB_PATH)
+SNAPTRON_SQLITE_DB="%s/snaptron2" % (TABIX_DB_PATH)
 
 RANGE_QUERY_DELIMITER=','
 RANGE_QUERY_OPS='([:><!]+)'

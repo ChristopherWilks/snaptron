@@ -21,24 +21,10 @@ from os import O_NONBLOCK, read
 import errno
 import time
 
+#assume we're in the same dir as snapconf.py
+import snapconf
+
 DEBUG_MODE=True
-#size for the OS buffer on the input pipe reading from samtools output
-#CMD_BUFFER_SIZE=16777216
-#CMD_BUFFER_SIZE=4194304
-PYTHON_PATH='/data/gigatron/snaptron/python/bin/python'
-SNAPTRON_APP = '/data/gigatron/snaptron/snaptron.py'
-SAMPLES_APP = '/data/gigatron/snaptron/snample.py'
-ANNOTATIONS_APP = '/data/gigatron/snaptron/snannotation.py'
-CMD_BUFFER_SIZE = -1
-#in seconds, so just under an hour to cache the authorization result for a specific token/acm_url
-TIME_TO_MEMOIZE_AUTH_RESULT=3500
-#size of samtools read,can impact performance in a major way
-#READ_SIZE=1048576
-#a low max for what we want to pass to samtools for start/end coordinates, otherwise samtools will return everything
-MAX_COORDINATE_DIGITS = 11
-READ_SIZE = 16777216
-#for test read much smaller chunks
-#READ_SIZE=32
 
 logger = logging.getLogger("snaptronws")
 logger.setLevel(logging.INFO)
@@ -51,7 +37,7 @@ logger.addHandler(lHandler)
 #passes back a stream, either binary or text (its agnostic) in READ_SIZE chunks
 #Iterator for SamTools (ST)
 class StreamingResponseIterator:
-    def __init__(self, start_response, stream_subproc, request_id, read_size=READ_SIZE):
+    def __init__(self, start_response, stream_subproc, request_id, read_size=snapconf.READ_SIZE):
         self.start_response = start_response
         self.stream_subproc = stream_subproc
         self.request_id = request_id
@@ -80,7 +66,7 @@ class StreamingResponseIterator:
         #up one or more (but we don't block)
         while(True):
             try:
-                stderr = read(self.stream_subproc.stderr.fileno(), READ_SIZE)
+                stderr = read(self.stream_subproc.stderr.fileno(), snapconf.READ_SIZE)
                 #hit EOF
                 if not stderr:
                     break
@@ -103,11 +89,11 @@ class StreamingResponseIterator:
             logger.error("in _wait, found an error message")
             stderr = "".join(self.stderr)
             for line in stderr.split("\n"):
-                errors.append("%s:%s" % (SNAPTRON_APP, line.rstrip()))
-                logger.error("%s:%s" % (SNAPTRON_APP, line.rstrip()))
+                errors.append("%s:%s" % (snapconf.SNAPTRON_APP, line.rstrip()))
+                logger.error("%s:%s" % (snapconf.SNAPTRON_APP, line.rstrip()))
             #alert the server to the error by THROWING AN EXCEPTION (not re-calling start_response)
             if self.stream_subproc.returncode != 0 or (not DEBUG_MODE and len(self.stderr) > 0):
-                raise Exception("%s failed on %s" % (SNAPTRON_APP, ":::".join(errors)))
+                raise Exception("%s failed on %s" % (snapconf.SNAPTRON_APP, ":::".join(errors)))
             #raise Exception("%s failed on %s" % (SNAPTRON_APP, ":::".join(errors)))
 
     def _terminate(self):
@@ -122,7 +108,7 @@ class StreamingResponseIterator:
             raise StopIteration
         #read next "chunk" from stream output, stream and return, 
         #this will block if more data is coming and < READ_SIZE
-        chunk = self.stream_subproc.stdout.read(READ_SIZE)
+        chunk = self.stream_subproc.stdout.read(snapconf.READ_SIZE)
         if chunk == "":
             self.done = True
             self._wait()
@@ -186,7 +172,7 @@ def unauthorized(start_response):
     status = "401 Unauthorized"
     sys.stderr.write("%s\n" % (status))
     status_response = "%s\n%s\n" % (status,support_blurb)
-    response_headers = [('Content-type', 'text/plain'), ('WWW-Authenticate', 'Basic realm="CGHubSlicer"')]
+    response_headers = [('Content-type', 'text/plain'), ('WWW-Authenticate', 'Basic realm="Snaptron"')]
     start_response(status, response_headers)
     return status_response
 
@@ -220,7 +206,7 @@ def internal_server_error(start_response, msg):
 
 def run_command(cmd_and_args):
     logger.info("Running: %s" % (" ".join(cmd_and_args)))
-    sproc = subprocess.Popen(cmd_and_args, bufsize=CMD_BUFFER_SIZE, 
+    sproc = subprocess.Popen(cmd_and_args, bufsize=snapconf.CMD_BUFFER_SIZE, 
                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
     #we need to make sure that reading from the STDERR pipe 
     #is NOT going to block since we don't know if we'll get errors, or not
@@ -230,10 +216,9 @@ def run_command(cmd_and_args):
     return sproc
 
 
-RANGE_PATTERN = re.compile(r'^[0-9a-zA-Z_\-]+:\d+-\d+$')
 def query(query, add_checksum=True):
 
-    args = [PYTHON_PATH, SNAPTRON_APP]
+    args = [snapconf.PYTHON_PATH, snapconf.SNAPTRON_APP]
     #get the one or more range tuples (expect chr:start-end) 
     ranges = query.get('range', [])
 
@@ -247,15 +232,15 @@ def query(query, add_checksum=True):
         if done:
             raise urllib2.HTTPError(None, 400, "submitted more than expected number of ranges", None, None)
         #must be the expected format
-        if RANGE_PATTERN.search(range) is None:
+        if snapconf.RANGE_PATTERN.search(range) is None:
             raise urllib2.HTTPError(None, 400, "submitted one or more ranges in an unsupported format", None, None)
         (chr, start_end) = range.split(":")
         (start, end) = start_end.split("-")
         #must not be above MAX_COORDINATE_DIGITS otherwise samtools will start returning everything
-        if len(start) > MAX_COORDINATE_DIGITS or len(end) > MAX_COORDINATE_DIGITS:
+        if len(start) > snapconf.MAX_COORDINATE_DIGITS or len(end) > snapconf.MAX_COORDINATE_DIGITS:
             raise urllib2.HTTPError(None, 400,
                                     "The start or the end coordinate (or both) of this range %s is exceeds %s" % (
-                                    range, str(MAX_COORDINATE_DIGITS)), None, None)
+                                    range, str(snapconf.MAX_COORDINATE_DIGITS)), None, None)
         #also must not have swapped start and end, otherwise samtools will return everything
         if int(start) > int(end):
             raise urllib2.HTTPError(None, 400, "The start coordinate > the end coordinate in this range %s" % range,
@@ -297,8 +282,6 @@ def process_post(environ, start_response):
     return jstring
 
 
-#cant have anything else in the data path or its probably a security issue
-READ_SIZE_PATTERN = re.compile(r'^\d+$')
 def generic_endpoint(environ, start_response, endpoint_app):
     http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}
     query_string = environ.get('QUERY_STRING')
@@ -327,17 +310,17 @@ def generic_endpoint(environ, start_response, endpoint_app):
     except KeyError:
         force_stream_error = "0"
 
-    read_size = READ_SIZE
+    read_size = snapconf.READ_SIZE
     #see if the read_size is being overriden (as in a test server is calling this)
     if 'read_size' in environ:
         read_size = str(environ['read_size'])
-        if READ_SIZE_PATTERN.search(read_size) is None:
+        if snapconf.READ_SIZE_PATTERN.search(read_size) is None:
             return bad_request(start_response, "bad read_size in environment")
     logger.info("READ_SIZE=%s" % read_size)
     read_size = int(read_size)
 
     #rquery = translate_range_query(rquery[0])
-    args=[PYTHON_PATH, endpoint_app, query_string]
+    args=[snapconf.PYTHON_PATH, endpoint_app, query_string]
     #create subprocess run object 
     sproc = run_command(args)
 
@@ -353,13 +336,13 @@ def generic_endpoint(environ, start_response, endpoint_app):
     return si
 
 def snaptron_endpoint(environ, start_response):
-        return generic_endpoint(environ, start_response, SNAPTRON_APP)
+        return generic_endpoint(environ, start_response, snapconf.SNAPTRON_APP)
 
 def samples_endpoint(environ, start_response):
-        return generic_endpoint(environ, start_response, SAMPLES_APP)
+        return generic_endpoint(environ, start_response, snapconf.SAMPLES_APP)
 
 def annotations_endpoint(environ, start_response):
-        return generic_endpoint(environ, start_response, ANNOTATIONS_APP)
+        return generic_endpoint(environ, start_response, snapconf.ANNOTATIONS_APP)
 
 def old_sample_endpoint(environ, start_response):
     http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}
@@ -387,16 +370,16 @@ def old_sample_endpoint(environ, start_response):
     except KeyError:
         force_stream_error = "0"
 
-    read_size = READ_SIZE
+    read_size = snapconf.READ_SIZE
     #see if the read_size is being overriden (as in a test server is calling this)
     if 'read_size' in environ:
         read_size = str(environ['read_size'])
-        if READ_SIZE_PATTERN.search(read_size) is None:
+        if snapconf.READ_SIZE_PATTERN.search(read_size) is None:
             return bad_request(start_response, "bad read_size in environment")
     logger.info("READ_SIZE=%s" % read_size)
     read_size = int(read_size)
 
-    args=[PYTHON_PATH, SAMPLES_APP, query_string]
+    args=[snapconf.PYTHON_PATH, snapconf.SAMPLES_APP, query_string]
     #create subprocess run object 
     sproc = run_command(args)
 
@@ -419,7 +402,7 @@ if __name__ == '__main__':
     rquery = translate_range_query(rquery)
     logger.info("AFTER rquery=%s" % (rquery))
     #sproc = run_command([PYTHON_PATH, SNAPTRON_APP, 'chr6:1-10000000|samples_count=5|','1'])
-    sproc = run_command([PYTHON_PATH, SNAPTRON_APP, rquery])
+    sproc = run_command([snapconf.PYTHON_PATH, snapconf.SNAPTRON_APP, rquery])
     itr=StreamingResponseIterator(None,sproc,None)
     chunk=itr.next();
     while(chunk):

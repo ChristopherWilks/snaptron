@@ -19,6 +19,8 @@ from snaptronws import snaptron_endpoint
 from snaptronws import samples_endpoint
 from snaptronws import annotations_endpoint
 
+import snapconf
+
 description = "Backend web server runner for the SnapTron web service"
 
 raw_exec_path = os.path.abspath(sys.argv[0])
@@ -160,7 +162,7 @@ def run_server():
     #cherrypy.config.update({'server.socket_host': "127.0.0.1", 'server.socket_port': 1555, 'server.thread_pool': 30})
     #cherrypy.config.update({'server.socket_host': "10.1.1.50", 'server.socket_port': 1555, 'server.thread_pool': 30})
     #TODO: put real static IP here
-    cherrypy.config.update({'server.socket_host': "128.220.35.129", 'server.socket_port': 8443, 'server.thread_pool': 30})
+    cherrypy.config.update({'server.socket_host': snapconf.IP, 'server.socket_port': snapconf.PORT, 'server.thread_pool': 30})
 
     cherrypy.engine.start()
     cherrypy.engine.block()
