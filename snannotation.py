@@ -45,6 +45,8 @@ def load_gene_coords(filepath):
         for line in f:
             fields = line.rstrip().split('\t')
             (gene_name,chrom,st,en) = (fields[0].upper(),fields[2],int(fields[4]),int(fields[5]))
+            #UCSC OFFSET
+            st += 1
             if not snapconf.CHROM_PATTERN.search(chrom):
                 continue
             if gene_name in gene_map:
@@ -86,13 +88,13 @@ def query_gene_regions(intervalq,contains=False):
     print_header = True
     for interval in intervalq:
         if snapconf.INTERVAL_PATTERN.search(interval):
-           (ids,sids) = snaptron.run_tabix(interval,None,snapconf.TABIX_GENE_INTERVAL_DB,debug=DEBUG_MODE,print_header=print_header,save_introns=False,start_col=1,contains=contains,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G")
+           (ids,sids) = snaptron.run_tabix(interval,None,snapconf.TABIX_GENE_INTERVAL_DB,debug=DEBUG_MODE,print_header=print_header,save_introns=False,cut_start_col=1,interval_start_col=snapconf.GENE_START_COL,interval_end_col=snapcon.GENE_END_COL,contains=contains,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G")
         else:
             #if given a gene name, first convert to coordinates and then search tabix
             for (chrom,coord_tuples) in gene2coords(interval):
                 for coord_tuple in coord_tuples:
                     (st,en) = coord_tuple
-                    (iids_,sids_) = snaptron.run_tabix("%s:%d-%d" % (chrom,st,en),None,snapconf.TABIX_GENE_INTERVAL_DB,debug=DEBUG_MODE,print_header=print_header,save_introns=False,start_col=1,contains=contains,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G")
+                    (ids_,sids_) = snaptron.run_tabix("%s:%d-%d" % (chrom,st,en),None,snapconf.TABIX_GENE_INTERVAL_DB,debug=DEBUG_MODE,print_header=print_header,save_introns=False,cut_start_col=1,interval_start_col=snapconf.GENE_START_COL,interval_end_col=snapconf.GENE_END_COL,contains=contains,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G")
                     print_header = False
   
 def main():
@@ -101,7 +103,7 @@ def main():
     if len(sys.argv) > 2:
        DEBUG_MODE=True
     params = process_params(input_)
-    query_gene_regions(params['regions'],params['contains']==1) 
+    query_gene_regions(params['regions'],contains=(int(params['contains'])==1))
 
 if __name__ == '__main__':
     main()

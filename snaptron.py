@@ -77,17 +77,16 @@ def stream_intron(fout,line,fields,prefix="%s:I" % snapconf.DATA_SOURCE):
     newline = line
     if len(REQ_FIELDS) > 0:
        newline = "\t".join([fields[x] for x in REQ_FIELDS]) + "\n"
-    #fout.write("%s" % (newline))
-    fout.write("%s\t%s" % (prefix,newline))
+    if not prefix:
+        fout.write("%s" % (newline))
+    else:
+        fout.write("%s\t%s" % (prefix,newline))
 
 
-def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,save_introns=False,save_samples=False,stream_back=True,print_header=True,contains=None,start_col=2,header="Datasource:Type\t%s" % snapconf.INTRON_HEADER,prefix="%s:I" % snapconf.DATA_SOURCE,debug=True):
+def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,save_introns=False,save_samples=False,stream_back=True,print_header=True,contains=None,cut_start_col=2,interval_start_col=snapconf.INTERVAL_START_COL,interval_end_col=snapconf.INTERVAL_END_COL,header="Datasource:Type\t%s" % snapconf.INTRON_HEADER,prefix="%s:I" % snapconf.DATA_SOURCE,debug=True):
     if contains is None:
         contains = RETURN_ONLY_CONTAINED
     m = snapconf.TABIX_PATTERN.search(qargs)
-    #if not m:
-    #    sys.stderr.write("bad interval,exiting %s\n" % (qargs))
-    #    sys.exit(-1)
     start = m.group(2)
     end = m.group(3)
     ids_found=set()
@@ -100,25 +99,25 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
     filter_by_introns = (intron_filters != None and len(intron_filters) > 0)
     filter_by_samples = (sample_filters != None and len(sample_filters) > 0)
     custom_header = header
+    #if the user asks for specific fields they only get those fields, no data source
     if len(REQ_FIELDS) > 0:
-        custom_header = "\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)])
+        custom_header = "%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
+        prefix=None
     if debug:
         sys.stderr.write("running %s %s %s\n" % (snapconf.TABIX,tabix_db,qargs))
     if stream_back and print_header:
         if not RESULT_COUNT:
             sys.stdout.write("%s\n" % (custom_header))
-            #sys.stdout.write("%s\t" % prefix)
     if stream_back and print_header and POST:
         sys.stdout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
-    tabixp = subprocess.Popen("%s %s %s | cut -f %d-" % (snapconf.TABIX,tabix_db,qargs,start_col),stdout=subprocess.PIPE,shell=True)
+    tabixp = subprocess.Popen("%s %s %s | cut -f %d-" % (snapconf.TABIX,tabix_db,qargs,cut_start_col),stdout=subprocess.PIPE,shell=True)
     for line in tabixp.stdout:
         fields=line.rstrip().split("\t")
         #first attempt to filter by violation of containment (if in effect)
-        if contains and (fields[snapconf.INTERVAL_START_COL] < start or fields[snapconf.INTERVAL_END_COL] > end):
+        if contains and (fields[interval_start_col] < start or fields[interval_end_col] > end):
             continue
         #now filter, this order is important (filter first, than save ids/print)
         if filter_by_introns and fields[snapconf.INTRON_ID_COL] not in intron_filters:
-            #sys.stderr.write("field %s not in filter_set\n" % (fields[snapconf.INTRON_ID_COL]))
             continue
         if rquerys and filter_by_ranges(fields,rquerys):
             continue
@@ -128,13 +127,11 @@ def run_tabix(qargs,rquerys,tabix_db,intron_filters=None,sample_filters=None,sav
             if filter_by_samples:
                 have_samples = sample_filters.intersection(samples)
                 if len(have_samples) == 0:
-                    #sys.stderr.write("field %s not in filter_set\n" % (fields[snapconf.INTRON_ID_COL]))
                     continue
             if save_samples:
                 sample_set.update(samples)
         #filter return stream based on range queries (if any)
         if stream_back:
-            #sys.stdout.write("%s:I\t%s" % (snapconf.DATA_SOURCE,line))
             stream_intron(sys.stdout,line,fields,prefix=prefix)
         if save_introns:
             ids_found.add(fields[snapconf.INTRON_ID_COL])
@@ -201,7 +198,6 @@ def search_ranges_lucene(rangeq,snaptron_ids,stream_back=False,filtering=False):
         sid = doc.get("snaptron_id")
         #stream back the full record from the record in Lucene
         if stream_back and (snaptron_ids == None or len(snaptron_ids) == 0 or sid in snaptron_ids):
-            #sys.stdout.write("%s:I\t%s\n" % (snapconf.DATA_SOURCE,doc.get('all')))
             stream_intron(sys.stdout,doc.get('all'),[])
         #track the snaptron ids if asked to
         if snaptron_ids != None:
@@ -216,7 +212,8 @@ def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],
     results = snaputil.retrieve_from_db_by_ids(snc,select,ids)
     custom_header = snapconf.INTRON_HEADER
     if len(REQ_FIELDS) > 0:
-        custom_header = "\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)])
+        #custom_header = "Datasource:Type\t%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
+        custom_header = "%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
     if stream_back and print_header:
         if not RESULT_COUNT: #and len(REQ_FIELDS) == 0:
             sys.stdout.write("DataSource:Type\t")
@@ -224,7 +221,6 @@ def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],
     if stream_back and print_header and POST:
         sys.stdout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
     for intron in results:
-        #sys.stdout.write("intron %s\n" % str(intron[0]))
         found_snaptron_ids.update(set([str(intron[0])])) 
         if stream_back:
             stream_intron(sys.stdout,"%s\n" % "\t".join([str(x) for x in intron]),[])
@@ -258,7 +254,7 @@ def search_introns_by_ids_old(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_i
     for query in sid_queries:
         if DEBUG_MODE:
             sys.stderr.write("query %s\n" % (query))
-        (retrieved_ids,sample_ids) = run_tabix(query,rquery,tabix_db,intron_filters=ids,save_introns=filtering,print_header=print_header,start_col=snapconf.ID_START_COL,debug=DEBUG_MODE)
+        (retrieved_ids,sample_ids) = run_tabix(query,rquery,tabix_db,intron_filters=ids,save_introns=filtering,print_header=print_header,cut_start_col=snapconf.ID_START_COL,debug=DEBUG_MODE)
         if filtering:
             found_snaptron_ids.update(retrieved_ids)
         print_header = False

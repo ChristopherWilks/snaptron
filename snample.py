@@ -48,7 +48,6 @@ reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_SAMPLE_DB)))
 searcher = IndexSearcher(reader)
 
 def lucene_sample_query_parse(sampleq):
-    #queries_ = sampleq.split(snapconf.SAMPLE_QUERY_DELIMITER)
     fields = []
     queries = []
     booleans = []
@@ -100,7 +99,6 @@ def load_sample_metadata(file_):
     if fmd:
         end = time.time()
         taken = end-start
-        #sys.stderr.write("time taken to load samples from pickle: %d\n" % taken)
         return fmd
     start = time.time()
     fmd={}
@@ -118,11 +116,7 @@ def load_sample_metadata(file_):
 
 def sample_ids2intron_ids(sample_ids):
     select = 'SELECT snaptron_ids FROM by_sample_id WHERE sample_id in'
-    #wheres = ['?' for x in sample_ids]
-    #select = "%s (%s);" % (select,','.join(wheres))
     found_snaptron_ids = set()
-    #ids = [int(id_) for id_ in sample_ids]
-    #for snaptron_ids in sc.execute(select,ids):
     results = snaputil.retrieve_from_db_by_ids(sc,select,sample_ids)
     for snaptron_ids in results:
        found_snaptron_ids.update(set(snaptron_ids[0].split(','))) 
@@ -162,10 +156,6 @@ def query_samples(sampleq,sample_map,snaptron_ids,stream_sample_metadata=False):
 def query_by_sample_ids(idq,sample_map):
     if len(idq) == 0:
         return
-    #subfields = idq[0].split(':')
-    #if len(subfields) > 1:
-    #    (id_type,first_id) = subfields
-    #    idq[0] = first_id
     stream_samples(set(idq),sample_map) 
 
 def main():

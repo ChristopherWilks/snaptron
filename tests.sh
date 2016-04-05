@@ -45,8 +45,12 @@ echo "4" > expected_wc
 curl --data 'fields="[{"ids":["0","5","11"]}]"' http://stingray.cs.jhu.edu:8443/samples 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
-echo "3" > expected_wc
-curl "http://stingray.cs.jhu.edu:8443/analysis?ids_a=4&ids_b=5,6&compute=jir&ratio=cov&order=T:5" 2>/dev/null | wc -l > test_wc
+#echo "3" > expected_wc
+#curl "http://stingray.cs.jhu.edu:8443/analysis?ids_a=4&ids_b=5,6&compute=jir&ratio=cov&order=T:5" 2>/dev/null | wc -l > test_wc
+#diff test_wc expected_wc
+
+echo "35" > expected_wc
+curl "http://stingray.cs.jhu.edu:8443/annotations?regions=CD99" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 rm test_wc expected_wc
