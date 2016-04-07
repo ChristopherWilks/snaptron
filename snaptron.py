@@ -142,8 +142,24 @@ def run_tabix(qargs,region_args=default_region_args):
         raise RuntimeError("%s %s %s returned non-0 exit code\n" % (snapconf.TABIX,ra.tabix_db_file,qargs))
     return (ids_found,samples_set)
 
-
-
+def sqlite3_range_query_parse(rquery,where,arguments):
+    query_string = rquery['rfilter'][0]
+    queries_ = query_string.split(snapconf.RANGE_QUERY_DELIMITER)
+    for query_tuple in queries_:
+        m=snapconf.RANGE_QUERY_FIELD_PATTERN.search(query_tuple)
+        (col,op_,val)=re.split(snapconf.RANGE_QUERY_OPS,query_tuple)
+        if not m or not col or col not in snapconf.TABIX_DBS or col not in snapconf.LUCENE_TYPES:
+            continue
+        op=m.group(1)
+        op=op.replace(':','=')
+        if op not in snapconf.operators_old:
+            sys.stderr.write("bad operator %s in range query,exiting\n" % (str(op)))
+            sys.exit(-1)
+        where.append("%s %s ?" % (col,op))
+        #only need ptype ("python type") for this version of parser
+        (ltype,ptype,qtype) = snapconf.LUCENE_TYPES[col]
+        arguments.append(ptype(val))
+    return where
 
 def lucene_range_query_parse(query_string):
     '''parse the user's range query string into something pylucene can understand'''
@@ -184,6 +200,27 @@ def lucene_range_query_parse(query_string):
         #sys.stderr.write("query + fields: %s %s\n" % (query,field))
     return query
 
+#if snaptron_ids is passed in with one or more snaptron ids, than filtering by snaptron id is inferred
+#and save_introns is assumed to be False
+def search_ranges_sqlite3(rangeq,snaptron_ids,stream_back=True):
+    arguments = []
+    where = []
+    #UPDATE try filtering by set first then use it as a sqljoin
+    #if len(snaptron_ids) > 0:
+    #    where.add("snaptron_id in (%s)" % (','.join(["?" for x in snaptron_ids])))
+    #    arguments = [int(id_) for id_ in snaptron_ids]
+    sqlite3_range_query_parse(rangeq,where,arguments)
+    select = "SELECT * from intron WHERE %s" % (' AND '.join(where))
+    sys.stderr.write("%s\n" % select)
+    results = snc.execute(select,arguments)
+    sids = set()
+    for result in results:
+        snaptron_id = result[0]
+        if stream_back and (not snaptron_ids or len(snaptron_ids) == 0 or snaptron_id in snaptron_ids):
+            stream_intron(sys.stdout,"\t".join(str(x) for x in result),result)
+        else:
+            sids.add(str(snaptron_id))
+    return (sids,set())
 
 #based on the example code at
 #http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
@@ -501,7 +538,8 @@ def main():
     #finally if there's no interval OR id query to use with tabix, use a point range query (first_rquery) with additional filters from the following point range queries and/or ids in lucene
     elif len(rangeq) >= 1:
         #run_tabix(first_rquery,rquery,first_tdb,filter_set=snaptron_ids,sample_set=sample_set,debug=DEBUG_MODE_)
-        (found_snaptron_ids,found_sample_ids) = search_ranges_lucene(rangeq,snaptron_ids,stream_back=True,filtering=RESULT_COUNT)
+        #(found_snaptron_ids,found_sample_ids) = search_ranges_lucene(rangeq,snaptron_ids,stream_back=True,filtering=RESULT_COUNT)
+        (found_snaptron_ids,found_sample_ids) = search_ranges_sqlite3(rangeq,snaptron_ids,stream_back=not RESULT_COUNT)
     
     if RESULT_COUNT:
         sys.stdout.write("%d\n" % (len(found_snaptron_ids)))

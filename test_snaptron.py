@@ -13,7 +13,7 @@ IQs=['chr1:10160-10161','CD99','chr11:82970135-82997450','chr11:82985784-8298976
 #IRQs are a set of combination of indexes from IQs and RQs
 #RQs=[{'length':[snapconf.operators['='],54]},{'samples_count':[snapconf.operators['='],10]}]
 RQs=[{'length':[snapconf.operators[':'],54]},{'samples_count':[snapconf.operators[':'],10]}]
-RQs_flat=['length:54','samples_count:10','coverage_avg>2.0','samples_count>:100','coverage_sum>:1000']
+RQs_flat=['length:54','samples_count:10','coverage_avg>2.0','samples_count>:100','coverage_sum>:1000','samples_count:10000','coverage_avg>20']
 IDs=[set(['33401689','33401829']),set(['6','9'])]
 #holds the set of intropolis ids for each specific query for the original SRA set of inropolis junctions
 EXPECTED_IIDS={
@@ -23,7 +23,8 @@ EXPECTED_IIDS={
                str(IDs[0]):set(['33401689','33401829']),
                IQs[1]+str(RQs[1]):set(['41341710','41341711','41341836','41342617','41343142','41343152','41343193','42691062','42691119','42691141','42691142']),
                IQs[2]+str(RQs_flat[1])+str(RQs_flat[2]):set(['7474725','7474726','7475267']),
-               IQs[3]+str(RQs_flat[3])+str(RQs_flat[4]):set(['7475067'])
+               IQs[3]+str(RQs_flat[3])+str(RQs_flat[4]):set(['7475067']),
+               str(RQs_flat[5])+str(RQs_flat[6]):set(['1900915','17229066','14511883','18158500','19434757'])
               }
 
 def setUpModule():
@@ -35,7 +36,7 @@ def tearDownModule():
 #shortcuts for snaptron methods used in tests
 tc = snaptron.run_tabix
 rqp = snaptron.range_query_parser
-srl = snaptron.search_ranges_lucene
+srl = snaptron.search_ranges_sqlite3
 sbi = snaptron.search_introns_by_ids
 sbg = snaptron.search_by_gene_name
 
@@ -198,12 +199,14 @@ class TestQueryCalls(unittest.TestCase):
     def test_fp_ranges(self):
         q = 0
         i = 2
-        r = 1
-        queries = self.process_query('rfilter=%s&rfilter=%s' % (RQs_flat[r],RQs_flat[r+1]))
+        r = 5
+        queries = self.process_query('rfilter=%s,%s' % (RQs_flat[r],RQs_flat[r+1]))
+        #queries = self.process_query('rfilter=samples_count:10000,coverage_avg>20')
         rq = queries['rq']
         snaptron_ids = set()
-        (iids,sids) = srl(rq,snaptron_ids,filtering=True)
+        (iids,sids) = srl(rq,snaptron_ids,stream_back=False)
         self.assertEqual(iids, EXPECTED_IIDS[str(RQs_flat[r])+str(RQs_flat[r+1])])
+        #self.assertEqual(iids, set([1900915,17229066,14511883,18158500,19434757]))
     
     def test_interval_with_range_query_contains(self):
         q = 0
