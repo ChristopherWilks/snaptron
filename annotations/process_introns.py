@@ -77,7 +77,14 @@ def load_preformatted_annotated_junctions(f):
     three_p = {}
     with gzip.open(f,"r") as fin:
         for line in fin:
-            (chr_,start,end,strand,sources) = line.rstrip().split("\t")
+            #(chr_,start,end,strand,sources) = line.rstrip().split("\t")
+            (chr_,start,end,strand,sources) =(None,None,None,None,None)
+            fields_ = line.rstrip().split("\t")
+            if(len(fields_) >= 5): 
+                (chr_,start,end,strand,sources) = line.rstrip().split("\t")
+            else:
+                (chr_,start,end,strand) = line.rstrip().split("\t")
+                sources = "all"
             hkey = (chr_,start,end)
             sources_set = set(sources.split(","))
             if hkey not in annotated_junctions:
@@ -174,7 +181,8 @@ if __name__ == '__main__':
         #check to see if we want this junction
         annotated = set()
         if junction in annotated_junctions:
-            annotated = annotated_junctions[junction]
+            #annotated = annotated_junctions[junction]
+            annotated = set(["1"])
         start = int(junction[1])
         length = int(junction[2]) + 1 - start
         strand = tokens[3]
@@ -187,7 +195,7 @@ if __name__ == '__main__':
             three_atype = three_p[(junction[0], junction[2])]
         print '\t'.join([str(snaptron_id), '\t'.join(junction), str(length), strand,
             ",".join(sorted(annotated)) if len(annotated) > 0 else '0', left_motif, right_motif,
-            "%s" % (",".join(sorted(five_atype))) if (junction[0], junction[1]) in five_p else '0',
-            "%s" % (",".join(sorted(three_atype))) if (junction[0], junction[2]) in three_p else '0',
+            "%s:1" % (",".join(sorted(five_atype))) if (junction[0], junction[1]) in five_p else '0',
+            "%s:1" % (",".join(sorted(three_atype))) if (junction[0], junction[2]) in three_p else '0',
             '\t'.join(additional_fields)])
         snaptron_id+=1
