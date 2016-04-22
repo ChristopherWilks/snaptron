@@ -92,6 +92,14 @@ sub print_transcript_lines
         my $pline2 = $refH{$tid}->[1];
         my $exons = $refH{$tid}->[2]; 
         $exons =~s/,$//;
+        #now try to remove the start and end coordinates from the exons
+        #to allow for better merging between refgene and ensembl/gencode
+        my $exons2 = $exons;
+        if(scalar (split(/,/,$exons2)) > 1)
+        {
+          $exons2=~s/^[^\-]+\-//;
+          $exons2=~s/\-[^\-]+$//;
+        }
         my $tend = $refH{$tid}->[3]; 
         my $cds_start = $refH{$tid}->[4]; 
         my $cds_end = $refH{$tid}->[5]; 
@@ -99,21 +107,22 @@ sub print_transcript_lines
 
         my $cds_span = ($cds_start != -1?"$cds_start-$cds_end":"NA");
         #print "$pline\t$tend\t$pline2\ttranscript_id \"$tid\";cds_span \"$cds_span\";exons \"$exons\";\n";
-        if($final{$cds_span.":".$exons})
+        if($final{$cds_span.":".$exons2})
         {
-          push(@{$final{$cds_span.":".$exons}->[2]},$source);
-          push(@{$final{$cds_span.":".$exons}->[3]},$tid);
+          push(@{$final{$cds_span.":".$exons2}->[2]},$source);
+          push(@{$final{$cds_span.":".$exons2}->[3]},$tid);
         }
         else
         {
-          $final{$cds_span.":".$exons}=["$pline\t$tend\t$pline2","cds_span \"$cds_span\";exons \"$exons\";",[$source],[$tid]];
+          $final{$cds_span.":".$exons2}=["$pline\t$tend\t$pline2","cds_span \"$cds_span\";exons \"$exons\";",[$source],[$tid]];
         }
       }
 
       #now print out
-      foreach my $span (keys %final)
+      foreach my $vals (values %final)
       {
-        my ($line1,$line2,$source,$tids) = @{$final{$span}};
+        #my ($line1,$line2,$source,$tids) = @{$final{$span}};
+        my ($line1,$line2,$source,$tids) = @$vals;
         my $tids_=join(",",@$tids);
         my $sources = join(",",@$source);
         print "$ref\t$sources\t$line1\ttranscript_id \"$tids_\";$line2\n"; 

@@ -10,18 +10,22 @@ from org.apache.lucene.document import Document, Field, IntField, FloatField, St
 
 #####fields that need to be changed for a different instance
 DATA_SOURCE='SRA'
-IP='128.220.35.129'
-PORT=8443
+#IP='128.220.35.129'
+IP='127.0.0.1'
+#PORT=8443
+PORT=1555
 ROOT_DIR='./'
 PYTHON_PATH="python"
 TABIX="tabix"
 #tabix related
 TABIX_DB_PATH='./data'
-TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.gtf.sorted.gz'
-TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
+#TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.gtf.sorted.gz'
+TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.sorted.gtf.gz'
+#TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
+TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new3_w_sourcedb2.gz'
 TABIX_IDS_DB='by_id.gz'
 ID_START_COL=3
-CUT_START_COL=2
+CUT_START_COL=1
 #sqlite3 dbs
 SAMPLE_SQLITE_DB="%s/by_sample_ids.sqlite3" % (TABIX_DB_PATH)
 SNAPTRON_SQLITE_DB="%s/snaptron2.sqlite3" % (TABIX_DB_PATH)
