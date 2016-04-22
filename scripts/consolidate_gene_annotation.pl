@@ -17,18 +17,11 @@ use warnings;
 #when the current chromsome (ref) is finished, this balances memory use vs. picking up
 #straggling features
 
-my %fname2source=('refGene.gtf'=>'REFGENE','Homo_sapiens.GRCh37.75.gtf'=>'ENSEMBLE','gencode.v19.annotation.gtf'=>'GENCODE');
+my %fname2source=('refGene.gtf'=>'REFGENE','Homo_sapiens.GRCh37.75.gtf'=>'ENSEMBL','gencode.v19.annotation.gtf'=>'GENCODE');
+
+my %sources=('ENSEMBL'=>'ES','REFGENE'=>'RG','GENCODE'=>'GC');
 
 my $inputF = shift;
-my $SOURCE = shift;
-
-if(!$SOURCE)
-{
-  my @f_ = split(/\//,$inputF);
-  $SOURCE = pop(@f_);
-  $SOURCE = $fname2source{$SOURCE};
-  $SOURCE = 'UNKNOWN' if(!$SOURCE || length($SOURCE) == 0);
-}
 
 main();
 
@@ -50,19 +43,22 @@ sub main
     chomp($line);
     next if($line =~/^#/);
     my ($ref,$source,$type,$start,$end,$score,$strand,$frame,$attr) = split(/\t/,$line);
+    $source = $sources{$source};
+    #print STDERR "$line\n";
     next if($type !~ /(exon)|(CDS)/i);
     if(defined($cur_ref) && $ref ne $cur_ref)
     {
-      print_transcript_lines(\%refH);
+      print_transcript_lines($cur_ref,\%refH);
       %refH=();
     }
     $cur_ref = $ref;
     my $transcript_id = parse_transcript_id($attr);
     if(!defined($refH{$transcript_id}))
     {
-      $refH{$transcript_id} = ["","","",-1,-1,-1];
-      $refH{$transcript_id}->[0] = "$ref\t$SOURCE\ttranscript\t$start";
+      $refH{$transcript_id} = ["","","",-1,-1,-1,""];
+      $refH{$transcript_id}->[0] = "transcript\t$start";
       $refH{$transcript_id}->[1] = ".\t$strand\t.";
+      $refH{$transcript_id}->[6] = $source;
     }
     if($type =~ /exon/i)
     {
@@ -77,16 +73,19 @@ sub main
   }
   if(defined($cur_ref))
   {
-      print_transcript_lines(\%refH);
+      print_transcript_lines($cur_ref,\%refH);
       %refH=();
   }
 }  
 
 sub print_transcript_lines
 {
+      my $ref = shift;
       my $refH_ = shift;
   
       my %refH = %$refH_;
+      #first create collapsed mixed-source transcripsts where necessary
+      my %final;
       foreach my $tid (keys %refH)
       {
         my $pline = $refH{$tid}->[0];
@@ -96,8 +95,29 @@ sub print_transcript_lines
         my $tend = $refH{$tid}->[3]; 
         my $cds_start = $refH{$tid}->[4]; 
         my $cds_end = $refH{$tid}->[5]; 
+        my $source = $refH{$tid}->[6];
+
         my $cds_span = ($cds_start != -1?"$cds_start-$cds_end":"NA");
-        print "$pline\t$tend\t$pline2\ttranscript_id \"$tid\";cds_span \"$cds_span\";exons \"$exons\";\n";
+        #print "$pline\t$tend\t$pline2\ttranscript_id \"$tid\";cds_span \"$cds_span\";exons \"$exons\";\n";
+        if($final{$cds_span.":".$exons})
+        {
+          push(@{$final{$cds_span.":".$exons}->[2]},$source);
+          push(@{$final{$cds_span.":".$exons}->[3]},$tid);
+        }
+        else
+        {
+          $final{$cds_span.":".$exons}=["$pline\t$tend\t$pline2","cds_span \"$cds_span\";exons \"$exons\";",[$source],[$tid]];
+        }
+      }
+
+      #now print out
+      foreach my $span (keys %final)
+      {
+        my ($line1,$line2,$source,$tids) = @{$final{$span}};
+        my $tids_=join(",",@$tids);
+        my $sources = join(",",@$source);
+        print "$ref\t$sources\t$line1\ttranscript_id \"$tids_\";$line2\n"; 
+        
       }
 }
 
