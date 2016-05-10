@@ -1,6 +1,7 @@
 #!/bin/bash
-export HOST=stingray.cs.jhu.edu
-export PORT=8090
+export HOST=localhost
+export PORT=1557
+export PATH_=''
 
 source python/bin/activate
 
@@ -14,46 +15,46 @@ python ./snaptron.py 'regions=chr11:82970135-82997450&rfilter=samples_count>:100
 diff test_wc expected_wc
 
 echo "26" > expected_wc
-curl "http://$HOST:$PORT/srav1/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000" 2> /dev/null | wc -l  > test_wc
+curl "http://$HOST:$PORT/$PATH_/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000" 2> /dev/null | wc -l  > test_wc
 diff test_wc expected_wc
 
 echo "26" > expected_wc
-curl "http://$HOST:$PORT/srav1/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&fields=snaptron_id" 2> /dev/null | wc -l  > test_wc
+curl "http://$HOST:$PORT/$PATH_/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&fields=snaptron_id" 2> /dev/null | wc -l  > test_wc
 diff test_wc expected_wc
 
 echo "27" > expected_wc
-curl --data 'fields="[{"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":100}],"coverage_sum":[{"op":">:","val":1000}]}]"' http://$HOST:$PORT/srav1/snaptron 2>/dev/null | wc -l > test_wc
+curl --data 'fields="[{"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":100}],"coverage_sum":[{"op":">:","val":1000}]}]"' http://$HOST:$PORT/$PATH_/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "32" > expected_wc
-curl "http://$HOST:$PORT/srav1/samples?sfilter=description:cortex" 2>/dev/null | wc -l > test_wc
+curl "http://$HOST:$PORT/$PATH_/samples?sfilter=description:cortex" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "2" > expected_wc
-curl "http://$HOST:$PORT/srav1/samples?sfilter=run_accession:DRR001622" 2>/dev/null | wc -l > test_wc
+curl "http://$HOST:$PORT/$PATH_/samples?sfilter=run_accession:DRR001622" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
-curl "http://$HOST:$PORT/srav1/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&sfilter=description:cortex" 2>/dev/null | cut -f 2 | egrep -v -e 'id' | sort -u > test_15_ids
+curl "http://$HOST:$PORT/$PATH_/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&sfilter=description:cortex" 2>/dev/null | cut -f 2 | egrep -v -e 'id' | sort -u > test_15_ids
 diff test_s2i_ids_15.snaptron_ids test_15_ids 
 
 echo "4" > expected_wc
-curl "http://$HOST:$PORT/srav1/samples?ids=0,4,10" 2>/dev/null | wc -l > test_wc
+curl "http://$HOST:$PORT/$PATH_/samples?ids=0,4,10" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "5" > expected_wc
-curl --data 'fields="[{"ids":["33401865","33401867","33401868"]}]"' http://$HOST:$PORT/srav1/snaptron 2>/dev/null | wc -l > test_wc
+curl --data 'fields="[{"ids":["33401865","33401867","33401868"]}]"' http://$HOST:$PORT/$PATH_/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "4" > expected_wc
-curl --data 'fields="[{"ids":["0","5","11"]}]"' http://$HOST:$PORT/srav1/samples 2>/dev/null | wc -l > test_wc
+curl --data 'fields="[{"ids":["0","5","11"]}]"' http://$HOST:$PORT/$PATH_/samples 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 #echo "3" > expected_wc
-#curl "http://$HOST:$PORT/srav1/analysis?ids_a=4&ids_b=5,6&compute=jir&ratio=cov&order=T:5" 2>/dev/null | wc -l > test_wc
+#curl "http://$HOST:$PORT/$PATH_/analysis?ids_a=4&ids_b=5,6&compute=jir&ratio=cov&order=T:5" 2>/dev/null | wc -l > test_wc
 #diff test_wc expected_wc
 
 echo "35" > expected_wc
-curl "http://$HOST:$PORT/srav1/annotations?regions=CD99" 2>/dev/null | wc -l > test_wc
+curl "http://$HOST:$PORT/$PATH_/annotations?regions=CD99" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 rm test_wc expected_wc
