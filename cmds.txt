@@ -112,3 +112,21 @@ zcat /data2/gigatron2/all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz | perl a
 python snanalysis.py "ids_a=4&ids_b=5,6&compute=jir&ratio=cov&order=T:5"
 
 zcat /data/gigatron/intropolis.v2.hg38.tsv.snaptron.bgzip | cut -f1,12 | perl -ne 'chomp; ($tid,$sid)=split(/\t/,$_); @sids=split(/,/,$sid); foreach $s (@sids) { print "$s\t$tid\n";}' | sort -k1,1 -n | perl -ne 'chomp; $s=$_; ($sid,$tid)=split(/\t/,$s); if(defined($pid) && $pid != $sid) { print "$pid\t"; foreach $s (sort keys %h) {print "$s,";} print "\n"; %h=();} $pid=$sid; $h{$tid}=1; END { if(defined($pid)) { print "$pid\t"; foreach $s (sort keys %h) {print "$s,";} print "\n";}}' | bzip2 > intropolis.v2.hg38.tsv.snaptron.sample2intron_ids.bz2
+
+
+cat /data2/gigatron2/all_illumina_sra_for_human_ids.tsv | perl -ne 'BEGIN { open(IN,"</data2/gigatron2/intropolis.idmap.v2.hg38.tsv"); %h; $h{'run_accession_s'}='intropolis_sample_id_i'; while($line=<IN>) {chomp($line); @f=split(/\t/,$line); $h{$f[4]}=$f[0]; } close(IN);}  chomp; $s=$_; @f=split(/\t/,$s); $newid=$h{$f[1]}; shift @f; print "$newid\t".(join("\t",@f))."\n";' > /data2/gigatron2/first_half_illumina_sra_for_human_ids.v2.tsv
+
+
+echo "SELECT run_accession,sample_accession,experiment_accession,study_accession,submission_accession,sra_ID,run_ID,run_alias,run_date,updated_date,spots,bases,run_center,experiment_name,run_attribute,experiment_ID,experiment_alias,experiment_title,study_name,sample_name,design_description,library_name,library_strategy,library_source,library_selection,library_layout,library_construction_protocol,read_spec,platform,instrument_model,platform_parameters,experiment_url_link,experiment_attribute,sample_ID,sample_alias,taxon_id,common_name,description,sample_url_link,sample_attribute,study_ID,study_alias,study_title,study_type,study_abstract,center_project_name,study_description,study_url_link,study_attribute,related_studies,primary_study,submission_ID,submission_comment,submission_center,submission_lab,submission_date,sradb_updated,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL FROM SRA;" | sqlite3 -cmd '.separator "\t"' SRAmetadb.sqlite > all_sra_related_md
+
+cat all_illumina_sra_for_human_v2.tsv | perl -ne 'BEGIN { open(IN,"</data/gigatron/intropolis.idmap.v2.hg38.tsv"); %h; $h{'run_accession_s'}='intropolis_sample_id_i'; while($line=<IN>) {chomp($line); @f=split(/\t/,$line); $h{$f[4]}=$f[0]; } close(IN);}  chomp; $s=$_; @f=split(/\t/,$s); $newid=$h{$f[1]}; shift @f; print "$newid\t".(join("\t",@f))."\n";' > illumina_sra_for_human_ids.v2.tsv
+
+
+#get sample total junction counts
+bzcat all_SRA_introns_ids_stats_length_annotated.tsv.gtf.sample2intron.tsv.0based.sorted.online.bz2 | perl -ne 'chomp; ($sid,$tids)=split(/\t/,$_); @tids=split(/,/,$tids); $c=scalar @tids; print "$sid\t$c\n";' > all_SRA_introns_ids_stats_length_annotated.tsv.gtf.sample2intron.tsv.0based.sorted.online.bz2.counts_per_sample
+
+#infer types for lucene from raw metadata fields
+cat /data2/gigatron2/gtex/gtex_pheno_table.w_ids.tsv | perl -ne 'chomp; $n++; @f=split(/\t/,$_); foreach $idx (0 .. (scalar @f)-1) { $type="t"; $type="f" if($f[$idx]=~/^-?\d+?\.?\d+$/); $type="i" if($f[$idx]=~/^-?\d+$/); $counts{$idx}->{$type}++; } END { foreach $idx (sort { $a<=>$b} keys %counts) { print "$idx"; foreach $t (sort {$counts{$idx}->{$b}<=>$counts{$idx}->{$a}} keys %{$counts{$idx}}) { print "\t$t,".$counts{$idx}->{$t}; } print "\n";}}' > /data2/gigatron2/gtex/gtex_pheno_table.w_ids.tsv.inferred_type_counts
+
+#to find Sarven's ~3 genes with REL-exons
+cat sarven_splices.tsv | perl -ne 'chomp; ($f,$t)=split(/\s+/,$_); $f1=$f; $f1=~s/chr\w+://; print "R:$f "; $f1=~s/-/\t/; $s=`python ./snaptron.py "regions=$f" 2>/dev/null| grep "$f1" | cut -f 15,16`; $t1=$t; $t1=~s/chr\w+://; $t1=~s/-/\t/; print "$s"; $s=""; print "R:$t "; $s=`python ./snaptron.py "regions=$t" 2>/dev/null | grep "$t1" | cut -f 15,16`; print "$s";'

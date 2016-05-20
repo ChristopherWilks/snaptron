@@ -172,10 +172,13 @@ def main():
         for line in intronsIN:
         #for line in sys.stdin:
             fields = line.rstrip().split('\t') 
-            (refid,st,en,ilen,strand)=fields[1:6]
-            samples = fields[11].split(',')
+            #SRA (refid,st,en,ilen,strand)=fields[1:6]
+            (refid,st,en,ilen,strand)=fields[2:7]
+            #SRA samples = fields[11].split(',')
+            samples = fields[9].split(',')
             refid = refid.replace("chr","")
-            cov = fields[12].split(',')
+            #SRA cov = fields[12].split(',')
+            cov = fields[10].split(',')
 
             #chr/reference doesnt exist in the exon interval tree or in the repeat interval tree
             if refid not in gtrees or refid not in etrees or refid not in rtrees:
@@ -219,6 +222,8 @@ def main():
     with open("sample_counts.tsv","w") as f:
         for (sample,counts) in by_sample_counts.iteritems():
             (rel_counts,rel_sense_counts,gsense_counts,rsense_counts,rel_cov) = counts
+            if sample not in sample2stats:
+                continue
             (total_intron_counts,total_intron_cov) = sample2stats[sample]
             f.write("%s\t%s/%s\t%s/%s\t%s/%s\t%s/%s\t%s/%s\n" % (str(sample),str(rel_sense_counts),str(rel_counts),str(gsense_counts),str(rel_counts),str(rsense_counts),str(rel_counts),str(rel_counts),str(total_intron_counts),str(rel_cov),str(total_intron_cov)))
 
