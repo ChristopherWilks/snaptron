@@ -17,15 +17,16 @@ PORT=1555
 ROOT_DIR='./'
 PYTHON_PATH="python"
 TABIX="tabix"
+BIGWIG2WIG="bigWigToWig"
 #tabix related
 TABIX_DB_PATH='./data'
 #TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.gtf.sorted.gz'
 TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.sorted.gtf.gz'
-#TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
-TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new3_w_sourcedb2.gz'
+TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
+#TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new3_w_sourcedb2.gz'
 TABIX_IDS_DB='by_id.gz'
 ID_START_COL=3
-CUT_START_COL=1
+CUT_START_COL=2
 #sqlite3 dbs
 SAMPLE_SQLITE_DB="%s/by_sample_ids.sqlite3" % (TABIX_DB_PATH)
 SNAPTRON_SQLITE_DB="%s/snaptron2.sqlite3" % (TABIX_DB_PATH)
@@ -44,6 +45,7 @@ SAMPLE_MD_FILE="%s/all_illumina_sra_for_human_ids.tsv" % (TABIX_DB_PATH)
 SNAPTRON_APP = "%s/snaptron.py" % (ROOT_DIR)
 SAMPLES_APP = "%s/snample.py" % (ROOT_DIR)
 ANNOTATIONS_APP = "%s/snannotation.py" % (ROOT_DIR)
+DENSITY_APP = "%s/sdensity.py" % (ROOT_DIR)
 #size for the OS buffer on the input pipe reading from samtools output
 CMD_BUFFER_SIZE = -1
 #a low max for what we want to pass to samtools for start/end coordinates, otherwise samtools will return everything
