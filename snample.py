@@ -164,13 +164,14 @@ def main():
     if len(sys.argv) > 2:
        DEBUG_MODE=True
     (intervalq,rangeq,sampleq,idq) = (None,None,None,None)
+    ra = snaptron.default_region_args
     sys.stderr.write("INPUT_ %s\n" % input_)
     if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
-        (intervalq,rangeq,sampleq,idq) = snaptron.parse_json_query(input_)
+        (intervalq,rangeq,sampleq,idq,ra) = snaptron.parse_json_query(input_)
         POST=True
     else:
         #update support simple '&' CGI format
-        (intervalq,idq,rangeq,sampleq) = snaptron.process_params(input_)
+        (intervalq,idq,rangeq,sampleq,ra) = snaptron.process_params(input_)
     #only care about sampleq
     if len(intervalq) > 0 or len(rangeq['rfilter']) > 0 or snapconf.SNAPTRON_ID_PATT.search(input_):
         sys.stderr.write("bad input asking for intervals and/or ranges, only take sample queries and/or sample ids, exiting\n")

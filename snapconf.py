@@ -69,11 +69,13 @@ TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','sn
 RANGE_FIELDS = ['length','samples_count','coverage_sum','coverage_avg','coverage_median']
 SAMPLE_IDS_COL=12
 SAMPLE_ID_COL=0
+SAMPLES_COUNT_COL=13
 INTRON_ID_COL=0
 INTERVAL_START_COL=2
 INTERVAL_END_COL=3
 GENE_START_COL=3
 GENE_END_COL=4
+STRAND_COL=5
 
 
 #search by gene constants

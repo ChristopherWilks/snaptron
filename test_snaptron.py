@@ -82,7 +82,7 @@ class TestTabixCalls(unittest.TestCase):
     def test_basic_json_parsing(self):
         '''tests to see if our json parsing for the original hacky query language works'''
         query = "'[{\"intervals\":[\"chr6:1-10000000\"],\"samples_count\":[{\"op\":\":\",\"val\":5}],\"ids\":[1,4]}]'"
-        (iq,rq,sq,idq) = pjq(query)
+        (iq,rq,sq,idq,ra) = pjq(query)
         self.assertEqual(iq[0],"chr6:1-10000000")
         self.assertEqual(rq['rfilter'][0],"samples_count:5")
         self.assertEqual(sq,[])
@@ -152,8 +152,8 @@ class TestQueryCalls(unittest.TestCase):
         pass
 
     def process_query(self,input_):
-        (iq,idq,rq,sq) = pp(input_)
-        return {'iq':iq,'rq':rq,'sq':sq,'idq':idq}
+        (iq,idq,rq,sq,ra) = pp(input_)
+        return {'iq':iq,'rq':rq,'sq':sq,'idq':idq,'ra':ra}
 
     def test_interval_query(self):
         q = 0
@@ -217,8 +217,8 @@ class TestQueryCalls(unittest.TestCase):
         queries = self.process_query('regions=%s&rfilter=%s&rfilter=%s&contains=1' % (IQs[i],RQs_flat[r],RQs_flat[r+1]))
         iq = queries['iq'][q]
         rq = queries['rq']
-        (iids,sids) = qr([iq],rq,set(),filtering=True)
-        snaptron.RETURN_ONLY_CONTAINED = False
+        (iids,sids) = qr([iq],rq,set(),filtering=True,region_args=queries['ra'])
+        #snaptron.RETURN_ONLY_CONTAINED = False
         self.assertEqual(iids, EXPECTED_IIDS[IQs[i]+str(RQs_flat[r])+str(RQs_flat[r+1])])
    
 if __name__ == '__main__':
