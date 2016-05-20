@@ -1,6 +1,6 @@
 #!/bin/bash
-export HOST=localhost
 export PORT=1555
+export HOST=localhost
 export PATH_=''
 
 source python/bin/activate
