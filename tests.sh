@@ -14,6 +14,10 @@ echo "26" > expected_wc
 python ./snaptron.py 'regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000' 2> /dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
+echo "91" > expected_wc
+python ./sdensity.py "regions=chr2:1-100000&bigwig_db=all" 2> /dev/null | wc -l > test_wc
+diff test_wc expected_wc
+
 echo "26" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000" 2> /dev/null | wc -l  > test_wc
 diff test_wc expected_wc
@@ -55,6 +59,10 @@ diff test_wc expected_wc
 
 echo "23" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/annotations?regions=CD99" 2>/dev/null | wc -l > test_wc
+diff test_wc expected_wc
+
+echo "91" > expected_wc
+curl "http://$HOST:$PORT/$PATH_/density?regions=chr2:1-100000&bigwig_db=all" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 rm test_wc expected_wc
