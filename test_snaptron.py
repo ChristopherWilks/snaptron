@@ -6,6 +6,7 @@ import unittest
 import snapconf
 import snaputil
 import snaptron
+import snannotation
 
 #set of test interval queries
 IQs=['chr1:10160-10161','CD99','chr11:82970135-82997450','chr11:82985784-82989768']
@@ -33,6 +34,7 @@ def setUpModule():
 def tearDownModule():
     pass
 
+gc = snannotation.GeneCoords()
 #shortcuts for snaptron methods used in tests
 tc = snaptron.run_tabix
 rqp = snaptron.range_query_parser
@@ -65,7 +67,7 @@ class TestTabixCalls(unittest.TestCase):
         if snapconf.INTERVAL_PATTERN.search(interval_query):
             ra = snaptron.default_region_args._replace(range_filters=range_query,tabix_db_file=tdbs['chromosome'],intron_filter=filter_set,sample_filter=sample_set,save_introns=filtering) 
             return tc(interval_query,region_args=ra)
-        return sbg(interval_query,range_query,intron_filters=filter_set,save_introns=filtering) 
+        return sbg(gc,interval_query,range_query,intron_filters=filter_set,save_introns=filtering) 
     
     def idc(self,ids,filtering=False):
         '''wrap the normal run_tabix call to hardcode defaults for interval querying AND range filtering'''

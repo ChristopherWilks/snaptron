@@ -332,10 +332,10 @@ def range_query_parser(rangeq,snaptron_ids):
         rquery[col]=(snapconf.operators[op],val)
     return rquery
 
-def search_by_gene_name(geneq,rquery,intron_filters=None,save_introns=False,print_header=True):
+def search_by_gene_name(gc,geneq,rquery,intron_filters=None,save_introns=False,print_header=True):
     iids = set()
     sids = set()
-    for (chrom,coord_tuples) in snannotation.gene2coords(geneq):
+    for (chrom,coord_tuples) in gc.gene2coords(geneq):
         for coord_tuple in coord_tuples:
             (st,en) = coord_tuple
             #(iids_,sids_) = run_tabix("%s:%d-%d" % (chrom,st,en),rquery,snapconf.TABIX_INTERVAL_DB,intron_filters=intron_filters,print_header=print_header,save_introns=save_introns)
@@ -428,6 +428,7 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False):
     print_header = True
     snaptron_ids_returned = set()
     sample_ids_returned = set()
+    gc = snannotation.GeneCoords()
     for interval in intervalq:
         ids = None
         sids = None
@@ -436,7 +437,7 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False):
            ra = default_region_args._replace(range_filters=rquery,intron_filter=snaptron_ids,print_header=print_header,save_introns=filtering,debug=DEBUG_MODE)
            (ids,sids) = run_tabix(interval,region_args=ra)
         else:
-           (ids,sids) = search_by_gene_name(interval,rquery,intron_filters=snaptron_ids,print_header=print_header)
+           (ids,sids) = search_by_gene_name(gc,interval,rquery,intron_filters=snaptron_ids,print_header=print_header)
         print_header = False
         if filtering:
             snaptron_ids_returned.update(ids)
