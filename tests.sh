@@ -1,6 +1,6 @@
 #!/bin/bash
 export HOST=localhost
-export PORT=1557
+export PORT=1555
 export PATH_=''
 
 source python/bin/activate
@@ -53,7 +53,7 @@ diff test_wc expected_wc
 #curl "http://$HOST:$PORT/$PATH_/analysis?ids_a=4&ids_b=5,6&compute=jir&ratio=cov&order=T:5" 2>/dev/null | wc -l > test_wc
 #diff test_wc expected_wc
 
-echo "35" > expected_wc
+echo "23" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/annotations?regions=CD99" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
