@@ -73,7 +73,7 @@ def filter_by_ranges(fields,rquerys):
 
 def ucsc_format_header(fout,region_args=default_region_args,interval=None):
     header = ["browser position %s" % (interval)]
-    header.append("track name=\"Snaptron\" description=\"Snaptron Exported Splice Junctions\" color=0,128,0 useScore=1\n")
+    header.append("track name=\"Snaptron\" visibility=2 description=\"Snaptron Exported Splice Junctions\" color=100,50,0 useScore=1\n")
     fout.write("\n".join(header))
 
 def ucsc_format_line(fout,line,fields,region_args=default_region_args):
