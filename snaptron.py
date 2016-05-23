@@ -36,8 +36,8 @@ import snample
 import snannotation
 
 #return formats:
-TSV=0
-UCSC_BED=1
+TSV='0'
+UCSC_BED='1'
 
 RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains result_count return_format score_by post debug')
 
@@ -71,20 +71,20 @@ def filter_by_ranges(fields,rquerys):
             break
     return skip
 
-def ucsc_format_header(fout,region_args=default_region_args):
+def ucsc_format_header(fout,region_args=default_region_args,interval=None):
     header = ["browser position %s" % (interval)]
-    header.append("track name=\"Snaptron\" description=\"Snaptron Exported Splice Junctions\"")
-    header.append("color=0,128,0 useScore=1")
+    header.append("track name=\"Snaptron\" description=\"Snaptron Exported Splice Junctions\" color=0,128,0 useScore=1\n")
     fout.write("\n".join(header))
 
 def ucsc_format_line(fout,line,fields,region_args=default_region_args):
     ra = region_args
-    new_line = [fields[1:4],"junc",fields[snapconf.INTRON_HEADER_FIELD_MAP[ra.score_field]],fields[snapconf.STRAND_COL]]
+    new_line = fields[1:4]
+    new_line.extend(["junc",fields[snapconf.INTRON_HEADER_FIELDS_MAP[ra.score_by]],fields[snapconf.STRAND_COL]])
     #adjust for UCSC BED start-at-0 coordinates
-    new_line[snapconf.INTERVAL_START_COL-1] -= 1
-    fout.write("\t".join(new_line))
+    new_line[snapconf.INTERVAL_START_COL-1] = str(int(new_line[snapconf.INTERVAL_START_COL-1]) - 1)
+    fout.write("%s\n" % ("\t".join(new_line)))
 
-def stream_header(fout,region_args=default_region_args):
+def stream_header(fout,region_args=default_region_args,interval=None):
     ra = region_args
     custom_header = ra.header
     #if the user asks for specific fields they only get those fields, no data source
@@ -127,7 +127,7 @@ def run_tabix(qargs,region_args=default_region_args):
     if ra.debug:
         sys.stderr.write("running %s %s %s\n" % (snapconf.TABIX,ra.tabix_db_file,qargs))
     (header_method,streamer_method) = return_formats[ra.return_format]
-    header_method(sys.stdout,region_args=ra)
+    header_method(sys.stdout,region_args=ra,interval=qargs)
     tabixp = subprocess.Popen("%s %s %s | cut -f %d-" % (snapconf.TABIX,ra.tabix_db_file,qargs,ra.cut_start_col),stdout=subprocess.PIPE,shell=True)
     for line in tabixp.stdout:
         fields=line.rstrip().split("\t")
