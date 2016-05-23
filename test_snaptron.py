@@ -116,12 +116,20 @@ class TestTabixCalls(unittest.TestCase):
     def test_stream_output(self):
         '''make sure we're getting a correct header'''
         sout = StringIO()
-        ra = snaptron.default_region_args._replace()
+
+        snaptron.REQ_FIELDS=[]
+        snaptron.stream_header(sout,region_args=snaptron.default_region_args)
+        hfields = sout.getvalue().split("\n")[0].rstrip().split("\t")
+        self.assertEqual(len(hfields),len(snapconf.INTRON_HEADER_FIELDS)+1)
+
         req_field = 'snaptron_id'
         snaptron.REQ_FIELDS=[snapconf.INTRON_HEADER_FIELDS_MAP[req_field]]
-        snaptron.stream_header(sout,region_args=ra)
+
+        sout = StringIO()
+        snaptron.stream_header(sout,region_args=snaptron.default_region_args)
         header = sout.getvalue().split("\n")[0].rstrip()
         self.assertEqual(header,'DataSource:Type\t%s' % (req_field))
+
     
     def test_basic_interval_and_range(self):
         '''make sure we're getting back an expected set of intropolis ids'''
