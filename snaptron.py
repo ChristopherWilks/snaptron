@@ -6,6 +6,7 @@ import subprocess
 import re
 import shlex
 from collections import namedtuple
+import urllib
 import urllib2
 import time
 import json
@@ -38,10 +39,11 @@ import snannotation
 #return formats:
 TSV='0'
 UCSC_BED='1'
+UCSC_URL='2'
 
-RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains result_count return_format score_by post debug')
+RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains result_count return_format score_by post original_input_string debug')
 
-default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="Datasource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, debug=True)
+default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="Datasource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', debug=True)
 
 sconn = sqlite3.connect(snapconf.SNAPTRON_SQLITE_DB)
 snc = sconn.cursor()
@@ -76,13 +78,24 @@ def ucsc_format_header(fout,region_args=default_region_args,interval=None):
     header.append("track name=\"Snaptron\" visibility=2 description=\"Snaptron Exported Splice Junctions\" color=100,50,0 useScore=1\n")
     fout.write("\n".join(header))
 
-def ucsc_format_line(fout,line,fields,region_args=default_region_args):
+def ucsc_format_intron(fout,line,fields,region_args=default_region_args):
     ra = region_args
     new_line = fields[1:4]
     new_line.extend(["junc",fields[snapconf.INTRON_HEADER_FIELDS_MAP[ra.score_by]],fields[snapconf.STRAND_COL]])
     #adjust for UCSC BED start-at-0 coordinates
     new_line[snapconf.INTERVAL_START_COL-1] = str(int(new_line[snapconf.INTERVAL_START_COL-1]) - 1)
     fout.write("%s\n" % ("\t".join(new_line)))
+
+def ucsc_url(fout,region_args=default_region_args,interval=None):
+    encoded_input_string = urllib.quote(region_args.original_input_string)
+    #change return_format=2 to =1 to actually return the introns in UCSC BED format
+    eis = list(encoded_input_string)
+    eis[-1]='1'
+    encoded_input_string = "".join(eis)
+    ucsc_url = "".join(["http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s&hgct_customText=" % (snapconf.HG,interval),snapconf.SERVER_STRING,"/snaptron?",encoded_input_string])
+    fout.write("DataSource:Type\tURL\n")
+    fout.write("%s:U\t%s\n" % (snapconf.DATA_SOURCE,ucsc_url))
+
 
 def stream_header(fout,region_args=default_region_args,interval=None):
     ra = region_args
@@ -109,7 +122,7 @@ def stream_intron(fout,line,fields,region_args=default_region_args):
     else:
         fout.write("%s\t%s" % (ra.prefix,newline))
 
-return_formats={TSV:(stream_header,stream_intron),UCSC_BED:(ucsc_format_header,ucsc_format_line)}
+return_formats={TSV:(stream_header,stream_intron),UCSC_BED:(ucsc_format_header,ucsc_format_intron),UCSC_URL:(ucsc_url,None)}
 def run_tabix(qargs,region_args=default_region_args):
     ra = region_args
     m = snapconf.TABIX_PATTERN.search(qargs)
@@ -128,6 +141,9 @@ def run_tabix(qargs,region_args=default_region_args):
         sys.stderr.write("running %s %s %s\n" % (snapconf.TABIX,ra.tabix_db_file,qargs))
     (header_method,streamer_method) = return_formats[ra.return_format]
     header_method(sys.stdout,region_args=ra,interval=qargs)
+    #exit early as we only want the ucsc_url
+    if ra.return_format == UCSC_URL:
+        return (set(),set())
     tabixp = subprocess.Popen("%s %s %s | cut -f %d-" % (snapconf.TABIX,ra.tabix_db_file,qargs,ra.cut_start_col),stdout=subprocess.PIPE,shell=True)
     for line in tabixp.stdout:
         fields=line.rstrip().split("\t")
@@ -419,7 +435,7 @@ def parse_json_query(input_,region_args=default_region_args):
         idq=fmap['ids']
         #idq[0]="snaptron:%s" % idq[0]
     #return ([intervalq],[rangeq],mdq,idq)
-    ra=region_args._replace(post=True)
+    ra=region_args._replace(post=True,original_input_string=input_)
     return (intervalqs,{'rfilter':fmap['rfilter']},sampleq,idq,ra)
 
 
@@ -436,8 +452,6 @@ def query_ids(idq,snaptron_ids):
     #    sample_ids.update(set(idq))
     #if len(sample_ids) > 0:
     #    snample.intron_ids_from_samples(sample_ids,snaptron_ids)
-
-
 
 
 def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=default_region_args):
@@ -488,7 +502,7 @@ def process_params(input_,region_args=default_region_args):
                 params[key].append(val) 
             else:
                 params[key]=val
-    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),score_by=params['score_by'],return_format=params['return_format'])
+    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),score_by=params['score_by'],return_format=params['return_format'],original_input_string=input_)
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'],ra)
 
 
@@ -518,6 +532,7 @@ def main():
     sample_map = snample.load_sample_metadata(snapconf.SAMPLE_MD_FILE)
     if DEBUG_MODE_:
         sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
+
 
     #first we build filter-by-snaptron_id list based either (or all) on passed ids directly
     #and/or what's dervied from the sample query and/or what sample ids were passed in as well

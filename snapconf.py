@@ -12,6 +12,8 @@ from org.apache.lucene.document import Document, Field, IntField, FloatField, St
 DATA_SOURCE='SRA'
 #IP='128.220.35.129'
 IP='127.0.0.1'
+SERVER_STRING='http://stingray.cs.jhu.edu:8090/srav1/'
+HG='hg19'
 #PORT=8443
 PORT=1555
 ROOT_DIR='./'
