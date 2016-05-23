@@ -1,6 +1,7 @@
 #!/usr/bin/env python2.7
 import sys
 import os
+from StringIO import StringIO
 import unittest
 
 import snapconf
@@ -61,6 +62,9 @@ class TestTabixCalls(unittest.TestCase):
 
     def setUp(self):
         pass
+
+    def tearDown(self):
+        snaptron.REQ_FIELDS=[]
    
     def itc(self,interval_query,range_query=None,filter_set=None,sample_set=None,filtering=False):
         '''wrap the normal run_tabix/search_by_gene_name call to hardcode defaults for interval/gene name querying'''
@@ -108,6 +112,16 @@ class TestTabixCalls(unittest.TestCase):
         #get intropolis ids
         (iids,sids) = self.itc(IQs[i], filtering=True)
         self.assertEqual(iids, EXPECTED_IIDS[IQs[i]])
+    
+    def test_stream_output(self):
+        '''make sure we're getting a correct header'''
+        sout = StringIO()
+        ra = snaptron.default_region_args._replace()
+        req_field = 'snaptron_id'
+        snaptron.REQ_FIELDS=[snapconf.INTRON_HEADER_FIELDS_MAP[req_field]]
+        snaptron.stream_header(sout,region_args=ra)
+        header = sout.getvalue().split("\n")[0].rstrip()
+        self.assertEqual(header,'DataSource:Type\t%s' % (req_field))
     
     def test_basic_interval_and_range(self):
         '''make sure we're getting back an expected set of intropolis ids'''
@@ -159,6 +173,15 @@ class TestQueryCalls(unittest.TestCase):
         q = 0
         i = 0
         queries = self.process_query('regions=%s' % (IQs[i]))
+        iq = queries['iq'][q]
+        rq = ''
+        (iids,sids) = qr([iq],rq,set(),filtering=True)
+        self.assertEqual(iids, EXPECTED_IIDS[IQs[i]])
+    
+    def test_interval_query_for_ids(self):
+        q = 0
+        i = 0
+        queries = self.process_query('regions=%s&fields=snaptron_id' % (IQs[i]))
         iq = queries['iq'][q]
         rq = ''
         (iids,sids) = qr([iq],rq,set(),filtering=True)

@@ -89,7 +89,7 @@ def stream_header(fout,region_args=default_region_args):
     custom_header = ra.header
     #if the user asks for specific fields they only get those fields, no data source
     if len(REQ_FIELDS) > 0:
-        custom_header = "%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
+        custom_header = "DataSource:Type\t%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
         ra = ra._replace(prefix=None)
     if ra.stream_back and ra.print_header:
         if not ra.result_count:
@@ -109,7 +109,7 @@ def stream_intron(fout,line,fields,region_args=default_region_args):
     else:
         fout.write("%s\t%s" % (ra.prefix,newline))
 
-RETURN_FORMATS={TSV:(stream_header,stream_intron),UCSC_BED:(ucsc_format_header,ucsc_format_line)}
+return_formats={TSV:(stream_header,stream_intron),UCSC_BED:(ucsc_format_header,ucsc_format_line)}
 def run_tabix(qargs,region_args=default_region_args):
     ra = region_args
     m = snapconf.TABIX_PATTERN.search(qargs)
@@ -126,7 +126,7 @@ def run_tabix(qargs,region_args=default_region_args):
     filter_by_samples = (ra.sample_filter != None and len(ra.sample_filter) > 0)
     if ra.debug:
         sys.stderr.write("running %s %s %s\n" % (snapconf.TABIX,ra.tabix_db_file,qargs))
-    (header_method,streamer_method) = RETURN_FORMATS[ra.return_format]
+    (header_method,streamer_method) = return_formats[ra.return_format]
     header_method(sys.stdout,region_args=ra)
     tabixp = subprocess.Popen("%s %s %s | cut -f %d-" % (snapconf.TABIX,ra.tabix_db_file,qargs,ra.cut_start_col),stdout=subprocess.PIPE,shell=True)
     for line in tabixp.stdout:
