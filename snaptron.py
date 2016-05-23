@@ -87,13 +87,15 @@ def ucsc_format_intron(fout,line,fields,region_args=default_region_args):
     fout.write("%s\n" % ("\t".join(new_line)))
 
 def ucsc_url(fout,region_args=default_region_args,interval=None):
-    encoded_input_string = urllib.quote(region_args.original_input_string)
+    encoded_input_string = urllib.quote(re.sub(r'regions=[^&]+',"regions=%s" % (interval),region_args.original_input_string))
+    #encoded_input_string = urllib.quote(region_args.original_input_string)
     #change return_format=2 to =1 to actually return the introns in UCSC BED format
     eis = list(encoded_input_string)
     eis[-1]='1'
     encoded_input_string = "".join(eis)
     ucsc_url = "".join(["http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s&hgct_customText=" % (snapconf.HG,interval),snapconf.SERVER_STRING,"/snaptron?",encoded_input_string])
-    fout.write("DataSource:Type\tURL\n")
+    if region_args.print_header:
+        fout.write("DataSource:Type\tURL\n")
     fout.write("%s:U\t%s\n" % (snapconf.DATA_SOURCE,ucsc_url))
 
 
