@@ -498,6 +498,10 @@ def process_params(input_,region_args=default_region_args):
                     params['result_count'] = True
                     continue
                 REQ_FIELDS.append(snapconf.INTRON_HEADER_FIELDS_MAP[field])
+        elif key == 'rfilter':
+            #url decode the rfilters:
+            val = urllib.unquote(val)
+            params[key].append(val) 
         else:
             if isinstance(params[key], list):
                 params[key].append(val) 
