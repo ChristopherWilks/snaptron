@@ -109,7 +109,7 @@ MAX_DISTANCE_BETWEEN_IDS=1000
 #SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
 
 #GENE_ANNOTATION_HEADER (GTF)
-GENE_ANNOTATION_HEADER = "DataSource:Type\treference\tannotation_source\tfeature_type\tstart\tend\tunused\tstrand\tunused\tattributes\n";
+GENE_ANNOTATION_HEADER = "DataSource:Type\treference\tannotation_source\tfeature_type\tstart\tend\tunused\tstrand\tunused\tattributes";
 
 #setup headers for both the original intron list and the sample metadata list
 INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated?	left_motif	right_motif	left_annotated?	right_annotated?	samples	read_coverage_by_sample	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'
