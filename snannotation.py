@@ -64,7 +64,7 @@ class GeneCoords(object):
                     if chrom in gene_map[gene_name]:
                         for (idx,gene_tuple) in enumerate(gene_map[gene_name][chrom]):
                             (st2,en2) = gene_tuple
-                            if abs(en2-en) <= snapconf.MAX_GENE_PROXIMITY:
+                            if (st2 <= en and en2 >= en) or (st <= en2 and en >= en2) or abs(en2-en) <= snapconf.MAX_GENE_PROXIMITY:
                                 add_tuple = False
                                 if st < st2:
                                     gene_map[gene_name][chrom][idx][0] = st
@@ -100,8 +100,11 @@ def query_gene_regions(intervalq,contains=False,limit=0):
         if snapconf.INTERVAL_PATTERN.search(interval):
            (ids,sids) = snaptron.run_tabix(interval,region_args=ra)
         else:
+            intervals = gc.gene2coords(interval)
+            sys.stderr.write("# of gene intervals: %d\n" % (len(intervals)))
             #if given a gene name, first convert to coordinates and then search tabix
-            for (chrom,coord_tuples) in gc.gene2coords(interval):
+            for (chrom,coord_tuples) in intervals:
+                sys.stderr.write("# of gene intervals in chrom %s: %d\n" % (chrom,len(coord_tuples)))
                 for coord_tuple in coord_tuples:
                     (st,en) = coord_tuple
                     (ids_,sids_) = snaptron.run_tabix("%s:%d-%d" % (chrom,st,en),region_args=ra,additional_cmd=additional_cmd)
