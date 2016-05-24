@@ -88,15 +88,14 @@ def ucsc_format_intron(fout,line,fields,region_args=default_region_args):
 
 def ucsc_url(fout,region_args=default_region_args,interval=None):
     encoded_input_string = urllib.quote(re.sub(r'regions=[^&]+',"regions=%s" % (interval),region_args.original_input_string))
-    #encoded_input_string = urllib.quote(region_args.original_input_string)
     #change return_format=2 to =1 to actually return the introns in UCSC BED format
     eis = list(encoded_input_string)
     eis[-1]='1'
     encoded_input_string = "".join(eis)
     ucsc_url = "".join(["http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s&hgct_customText=" % (snapconf.HG,interval),snapconf.SERVER_STRING,"/snaptron?",encoded_input_string])
     if region_args.print_header:
-        fout.write("DataSource:Type\tURL\n")
-    fout.write("%s:U\t%s\n" % (snapconf.DATA_SOURCE,ucsc_url))
+        fout.write("DataSource:Type\tcoordinate_string\tURL\n")
+    fout.write("%s:U\t%s\t%s\n" % (snapconf.DATA_SOURCE,interval,ucsc_url))
 
 
 def stream_header(fout,region_args=default_region_args,interval=None):
@@ -290,7 +289,7 @@ def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],
         #custom_header = "Datasource:Type\t%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
         custom_header = "%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
     if ra.stream_back and ra.print_header:
-        if not ra.result_count: #and len(REQ_FIELDS) == 0:
+        if not ra.result_count:
             sys.stdout.write("DataSource:Type\t")
         sys.stdout.write("%s\n" % (custom_header))
     if ra.stream_back and ra.print_header and ra.post:
