@@ -20,7 +20,7 @@ import snaptron
 DEBUG_MODE=False
 
 def process_params(input_):
-    params = {'regions':[],'contains':0}
+    params = {'regions':[],'contains':0,'limit':0}
     params_ = input_.split('&')
     for param_ in params_:
         (key,val) = param_.split("=")
@@ -87,10 +87,15 @@ class GeneCoords(object):
             sys.exit(-1)
         return sorted(self.gene_map[geneq].iteritems())
 
-def query_gene_regions(intervalq,contains=False):
+def query_gene_regions(intervalq,contains=False,limit=0):
     print_header = True
     ra = snaptron.default_region_args._replace(tabix_db_file=snapconf.TABIX_GENE_INTERVAL_DB,range_filters=None,save_introns=False,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G",cut_start_col=1,region_start_col=snapconf.GENE_START_COL,region_end_col=snapconf.GENE_END_COL,contains=contains,debug=DEBUG_MODE)
     gc = GeneCoords()
+    limit_filter = 'perl -ne \'chomp; @f=split(/\\t/,$_); @f1=split(/;/,$f[8]); $boost=0; $boost=100000 if($f1[1]!~/"NA"/); @f2=split(/,/,$f1[2]); $s1=$f1[2]; print "$s1\\n"; $f[5]=(scalar @f2)+$boost; print "".(join("\\t",@f))."\\n";\' | sort -t"	" -k6,6nr'
+    sys.stderr.write("limit_filter %s\n" % (limit_filter))
+    additional_cmd = ""
+    if limit > 0:
+        additional_cmd = "%s | head -%d" % (limit_filter,limit)
     for interval in intervalq:
         if snapconf.INTERVAL_PATTERN.search(interval):
            (ids,sids) = snaptron.run_tabix(interval,region_args=ra)
@@ -99,7 +104,7 @@ def query_gene_regions(intervalq,contains=False):
             for (chrom,coord_tuples) in gc.gene2coords(interval):
                 for coord_tuple in coord_tuples:
                     (st,en) = coord_tuple
-                    (ids_,sids_) = snaptron.run_tabix("%s:%d-%d" % (chrom,st,en),region_args=ra)
+                    (ids_,sids_) = snaptron.run_tabix("%s:%d-%d" % (chrom,st,en),region_args=ra,additional_cmd=additional_cmd)
                     if ra.print_header:
                         ra=ra._replace(print_header=False)
   
@@ -109,7 +114,7 @@ def main():
     if len(sys.argv) > 2:
        DEBUG_MODE=True
     params = process_params(input_)
-    query_gene_regions(params['regions'],contains=(int(params['contains'])==1))
+    query_gene_regions(params['regions'],contains=(int(params['contains'])==1),limit=int(params['limit']))
 
 if __name__ == '__main__':
     main()

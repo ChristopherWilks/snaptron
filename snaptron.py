@@ -124,7 +124,7 @@ def stream_intron(fout,line,fields,region_args=default_region_args):
         fout.write("%s\t%s" % (ra.prefix,newline))
 
 return_formats={TSV:(stream_header,stream_intron),UCSC_BED:(ucsc_format_header,ucsc_format_intron),UCSC_URL:(ucsc_url,None)}
-def run_tabix(qargs,region_args=default_region_args):
+def run_tabix(qargs,region_args=default_region_args,additional_cmd=""):
     ra = region_args
     m = snapconf.TABIX_PATTERN.search(qargs)
     start = m.group(2)
@@ -145,7 +145,9 @@ def run_tabix(qargs,region_args=default_region_args):
     #exit early as we only want the ucsc_url
     if ra.return_format == UCSC_URL:
         return (set(),set())
-    tabixp = subprocess.Popen("%s %s %s | cut -f %d-" % (snapconf.TABIX,ra.tabix_db_file,qargs,ra.cut_start_col),stdout=subprocess.PIPE,shell=True)
+    if len(additional_cmd) > 0:
+        additional_cmd = " | %s" % (additional_cmd)
+    tabixp = subprocess.Popen("%s %s %s | cut -f %d- %s" % (snapconf.TABIX,ra.tabix_db_file,qargs,ra.cut_start_col,additional_cmd),stdout=subprocess.PIPE,shell=True)
     for line in tabixp.stdout:
         fields=line.rstrip().split("\t")
         #first attempt to filter by violation of containment (if in effect)
