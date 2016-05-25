@@ -86,8 +86,15 @@ def search_samples_lucene(sample_map,sampleq,sample_set,stream_sample_metadata=F
 #when not querying against Lucene
 def stream_samples(sample_set,sample_map):
     sys.stdout.write("DataSource:Type\t%s\n" % (snapconf.SAMPLE_HEADER))
+    num_columns = len(snapconf.SAMPLE_HEADER_FIELDS)
+    default_metadata = "\t".join(["NA" for x in xrange(0,num_columns-1)])
     for sample_id in sorted([int(x) for x in sample_set]):
-        sys.stdout.write("%s:S\t%s\n" % (snapconf.DATA_SOURCE,sample_map[str(sample_id)]))
+        try:
+            sys.stdout.write("%s:S\t%s\n" % (snapconf.DATA_SOURCE,sample_map[str(sample_id)]))
+        #if the sample id is missing just fill with generic 'NA's for now
+        except KeyError,ke:
+            sys.stdout.write("%s:S\t%s\t%s\n" % (snapconf.DATA_SOURCE,str(sample_id),default_metadata))
+            
 
 #use to load samples metadata to be returned
 #ONLY when the user requests by overlap coords OR

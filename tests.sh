@@ -65,7 +65,13 @@ echo "91" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/density?regions=chr2:1-100000&bigwig_db=all" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
-rm test_wc expected_wc
+echo "2" > expected_wc
+curl "http://$HOST:$PORT/$PATH_/samples?ids=4946" 2>/dev/null > test_wc
+diff test_wc test_4946_output
+cat test_wc | wc -l > test_wc2
+diff test_wc2 expected_wc
+
+rm test_wc expected_wc test_wc2
 
 echo "all tests run"
 
