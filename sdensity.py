@@ -11,7 +11,7 @@ import snapconf
 import snannotation
 
 bigwig_dir = snapconf.TABIX_DB_PATH
-bigwig_dbs = {'all':"%s/%s" % (bigwig_dir,'all.bed.bw')}
+bigwig_dbs = {'snps':"%s/%s" % (bigwig_dir,'snpdensity_hg19_by100b.bw'),'snps1k':"%s/%s" % (bigwig_dir,'snpdensity_hg19_byKB.bw')}
 
 def process_params(input_):
     params = {'regions':[],'bigwig_db':None}
