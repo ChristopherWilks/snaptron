@@ -65,11 +65,17 @@ echo "22" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/annotations?regions=CD99" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
-curl "http://stingray.cs.jhu.edu:8090/srav1/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&return_format=2" > test_ucsc_url
-diff test_ucsc_url expected_ucsc_url
+curl "http://stingray.cs.jhu.edu:8090/srav1/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&return_format=2" > test_wc
+diff test_wc expected_ucsc_url
 
-curl "http://stingray.cs.jhu.edu:8090/srav1/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&return_format=1" > test_ucsc_format
-diff test_ucsc_format expected_ucsc_format
+curl "http://stingray.cs.jhu.edu:8090/srav1/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&return_format=1" > test_wc
+diff test_wc expected_ucsc_format
+
+#ID version
+curl "http://localhost:1300/snaptron?ids=33401865,33401867,33401868&return_format=2&coordinate_string=chr6:9838875-10284241" > test_wc
+diff test_wc expected_ucsc_ids_url
+curl "http://localhost:1300/snaptron?ids=33401865,33401867,33401868&return_format=1&coordinate_string=chr6:9838875-10284241" > test_wc
+diff test_wc expected_ucsc_ids_format
 
 echo "91" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/density?regions=chr2:1-100000&bigwig_db=snps1k" 2>/dev/null | wc -l > test_wc

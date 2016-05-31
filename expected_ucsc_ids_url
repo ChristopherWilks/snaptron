@@ -1,0 +1,2 @@
+DataSource:Type	coordinate_string	URL
+SRA:U	chr6:9838875-10284241	http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position=chr6:9838875-10284241&hgct_customText=http://stingray.cs.jhu.edu:8090/srav1//snaptron?ids%3D33401865%2C33401867%2C33401868%26return_format%3D1%26coordinate_string%3Dchr6%3A9838875-10284241

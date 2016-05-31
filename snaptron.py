@@ -41,9 +41,9 @@ TSV='0'
 UCSC_BED='1'
 UCSC_URL='2'
 
-RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains result_count return_format score_by post original_input_string debug')
+RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains result_count return_format score_by post original_input_string coordinate_string debug')
 
-default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="Datasource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', debug=True)
+default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="Datasource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', debug=True)
 
 sconn = sqlite3.connect(snapconf.SNAPTRON_SQLITE_DB)
 snc = sconn.cursor()
@@ -80,23 +80,20 @@ def ucsc_format_header(fout,region_args=default_region_args,interval=None):
 
 def ucsc_format_intron(fout,line,fields,region_args=default_region_args):
     ra = region_args
-    new_line = fields[1:4]
+    new_line = list(fields[1:4])
     new_line.extend(["junc",fields[snapconf.INTRON_HEADER_FIELDS_MAP[ra.score_by]],fields[snapconf.STRAND_COL]])
     #adjust for UCSC BED start-at-0 coordinates
     new_line[snapconf.INTERVAL_START_COL-1] = str(int(new_line[snapconf.INTERVAL_START_COL-1]) - 1)
-    fout.write("%s\n" % ("\t".join(new_line)))
+    fout.write("%s\n" % ("\t".join([str(x) for x in new_line])))
 
 def ucsc_url(fout,region_args=default_region_args,interval=None):
-    encoded_input_string = urllib.quote(re.sub(r'regions=[^&]+',"regions=%s" % (interval),region_args.original_input_string))
     #change return_format=2 to =1 to actually return the introns in UCSC BED format
-    eis = list(encoded_input_string)
-    eis[-1]='1'
-    encoded_input_string = "".join(eis)
+    input_str = re.sub("return_format=2","return_format=1",region_args.original_input_string)
+    encoded_input_string = urllib.quote(re.sub(r'regions=[^&]+',"regions=%s" % (interval),input_str))
     ucsc_url = "".join(["http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s&hgct_customText=" % (snapconf.HG,interval),snapconf.SERVER_STRING,"/snaptron?",encoded_input_string])
     if region_args.print_header:
         fout.write("DataSource:Type\tcoordinate_string\tURL\n")
     fout.write("%s:U\t%s\t%s\n" % (snapconf.DATA_SOURCE,interval,ucsc_url))
-
 
 def stream_header(fout,region_args=default_region_args,interval=None):
     ra = region_args
@@ -104,6 +101,7 @@ def stream_header(fout,region_args=default_region_args,interval=None):
     #if the user asks for specific fields they only get those fields, no data source
     if len(REQ_FIELDS) > 0:
         custom_header = "DataSource:Type\t%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
+        #custom_header = "%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
         ra = ra._replace(prefix=None)
     if ra.stream_back and ra.print_header:
         if not ra.result_count:
@@ -286,20 +284,16 @@ def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],
     select = 'SELECT * from intron WHERE snaptron_id in'
     found_snaptron_ids = set()
     results = snaputil.retrieve_from_db_by_ids(snc,select,ids)
-    custom_header = snapconf.INTRON_HEADER
-    if len(REQ_FIELDS) > 0:
-        #custom_header = "Datasource:Type\t%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
-        custom_header = "%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
-    if ra.stream_back and ra.print_header:
-        if not ra.result_count:
-            sys.stdout.write("DataSource:Type\t")
-        sys.stdout.write("%s\n" % (custom_header))
-    if ra.stream_back and ra.print_header and ra.post:
-        sys.stdout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
+    #now get methods for 1) header output and 2) intron output (depending on request)
+    (header_method,streamer_method) = return_formats[ra.return_format]
+    header_method(sys.stdout,region_args=ra,interval=ra.coordinate_string)
+    #exit early as we only want the ucsc_url
+    if ra.return_format == UCSC_URL:
+        return (set(),set())
     for intron in results:
         found_snaptron_ids.update(set([str(intron[0])])) 
         if ra.stream_back:
-            stream_intron(sys.stdout,"%s\n" % "\t".join([str(x) for x in intron]),[])
+            streamer_method(sys.stdout,"%s\n" % "\t".join([str(x) for x in intron]),intron,ra)
     return (found_snaptron_ids,set())
 
 
@@ -481,7 +475,7 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
 
 
 def process_params(input_,region_args=default_region_args):
-    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','return_format':TSV,'score_by':'samples_count'}
+    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':''}
     params_ = input_.split('&')
     for param_ in params_:
         (key,val) = param_.split("=")
@@ -509,7 +503,7 @@ def process_params(input_,region_args=default_region_args):
                 params[key].append(val) 
             else:
                 params[key]=val
-    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),score_by=params['score_by'],return_format=params['return_format'],original_input_string=input_)
+    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),score_by=params['score_by'],return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'])
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'],ra)
 
 
@@ -568,6 +562,7 @@ def main():
     #back to usual processing, interval queries come first possibly with filters from the point range queries and/or ids
     found_snaptron_ids = set()
     found_sample_ids = set()
+    #favor intervals over everything else
     if len(intervalq) >= 1:
         (found_snaptron_ids,found_sample_ids) = query_regions(intervalq,rangeq,snaptron_ids,filtering=ra.result_count,region_args=ra)
     elif len(snaptron_ids) >= 1:
