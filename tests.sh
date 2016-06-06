@@ -72,9 +72,9 @@ curl "http://stingray.cs.jhu.edu:8090/srav1/snaptron?regions=chr11:82970135-8299
 diff test_wc expected_ucsc_format
 
 #ID version
-curl "http://localhost:1300/snaptron?ids=33401865,33401867,33401868&return_format=2&coordinate_string=chr6:9838875-10284241" > test_wc
+curl "http://$HOST:$PORT/$PATH_/snaptron?ids=33401865,33401867,33401868&return_format=2&coordinate_string=chr6:9838875-10284241" > test_wc
 diff test_wc expected_ucsc_ids_url
-curl "http://localhost:1300/snaptron?ids=33401865,33401867,33401868&return_format=1&coordinate_string=chr6:9838875-10284241" > test_wc
+curl "http://$HOST:$PORT/$PATH_/snaptron?ids=33401865,33401867,33401868&return_format=1&coordinate_string=chr6:9838875-10284241" > test_wc
 diff test_wc expected_ucsc_ids_format
 
 echo "91" > expected_wc
