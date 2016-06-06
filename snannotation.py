@@ -91,7 +91,7 @@ def query_gene_regions(intervalq,contains=False,limit=0):
     print_header = True
     ra = snaptron.default_region_args._replace(tabix_db_file=snapconf.TABIX_GENE_INTERVAL_DB,range_filters=None,save_introns=False,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G",cut_start_col=1,region_start_col=snapconf.GENE_START_COL,region_end_col=snapconf.GENE_END_COL,contains=contains,debug=DEBUG_MODE)
     gc = GeneCoords()
-    limit_filter = 'perl -ne \'chomp; @f=split(/\\t/,$_); @f1=split(/;/,$f[8]); $boost=0; $boost=100000 if($f1[1]!~/"NA"/); @f2=split(/,/,$f1[2]); $s1=$f1[2]; print "$s1\\n"; $f[5]=(scalar @f2)+$boost; print "".(join("\\t",@f))."\\n";\' | sort -t"	" -k6,6nr'
+    limit_filter = 'perl -ne \'chomp; @f=split(/\\t/,$_); @f1=split(/;/,$f[8]); $boost=0; $boost=100000 if($f1[1]!~/"NA"/); @f2=split(/,/,$f1[2]); $s1=$f1[2]; $f[5]=(scalar @f2)+$boost; print "".(join("\\t",@f))."\\n";\' | sort -t"	" -k6,6nr'
     sys.stderr.write("limit_filter %s\n" % (limit_filter))
     additional_cmd = ""
     if limit > 0:

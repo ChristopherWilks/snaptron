@@ -181,7 +181,7 @@ def sqlite3_range_query_parse(rquery,where,arguments):
     for query_tuple in queries_:
         m=snapconf.RANGE_QUERY_FIELD_PATTERN.search(query_tuple)
         (col,op_,val)=re.split(snapconf.RANGE_QUERY_OPS,query_tuple)
-        if not m or not col or col not in snapconf.TABIX_DBS or col not in snapconf.LUCENE_TYPES:
+        if not m or not col or col not in snapconf.LUCENE_TYPES:
             continue
         op=m.group(1)
         op=op.replace(':','=')
@@ -250,7 +250,7 @@ def search_ranges_sqlite3(rangeq,snaptron_ids,stream_back=True):
     for result in results:
         snaptron_id = result[0]
         if stream_back and (not snaptron_ids or len(snaptron_ids) == 0 or snaptron_id in snaptron_ids):
-            stream_intron(sys.stdout,"\t".join(str(x) for x in result),result)
+            stream_intron(sys.stdout,"%s\n" % ("\t".join(str(x) for x in result)),result)
         else:
             sids.add(str(snaptron_id))
     return (sids,set())
