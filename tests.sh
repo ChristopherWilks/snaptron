@@ -81,6 +81,14 @@ echo "91" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/density?regions=chr2:1-100000&bigwig_db=snps1k" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
+echo "3" > expected_wc
+curl --data 'fields="[{"ids":["7465808"],"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":"100"}],"coverage_sum":[{"op":">:","val":"1000"}]}]"' http://stingray.cs.jhu.edu:8090/srav1/snaptron 2>/dev/null | wc -l > test_wc
+diff test_wc expected_wc
+
+echo "6" > expected_wc
+curl --data 'fields="[{"ids":["7465808"],"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":"100"}],"coverage_sum":[{"op":">:","val":"1000"}]},{"ids":["33401865","33401867","33401868"]}]"' http://stingray.cs.jhu.edu:8090/srav1/snaptron 2>/dev/null | wc -l > test_wc
+diff test_wc expected_wc
+
 rm test_wc expected_wc
 
 echo "all tests run"

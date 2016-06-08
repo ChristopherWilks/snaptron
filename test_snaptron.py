@@ -43,7 +43,8 @@ srl = snaptron.search_ranges_sqlite3
 sbi = snaptron.search_introns_by_ids
 sbg = snaptron.search_by_gene_name
 
-pjq = snaptron.parse_json_query
+#pjq = snaptron.parse_json_query
+pjq = snaptron.process_post_params
 pp = snaptron.process_params
 
 qr = snaptron.query_regions
@@ -86,11 +87,11 @@ class TestTabixCalls(unittest.TestCase):
     def test_basic_json_parsing(self):
         '''tests to see if our json parsing for the original hacky query language works'''
         query = "'[{\"intervals\":[\"chr6:1-10000000\"],\"samples_count\":[{\"op\":\":\",\"val\":5}],\"ids\":[1,4]}]'"
-        (iq,rq,sq,idq,ra) = pjq(query)
-        self.assertEqual(iq[0],"chr6:1-10000000")
-        self.assertEqual(rq['rfilter'][0],"samples_count:5")
-        self.assertEqual(sq,[])
-        self.assertEqual(idq,[1,4])
+        (iq,rq,idq,ra) = pjq(query)
+        self.assertEqual(iq[0][0],'chr6:1-10000000')
+        self.assertEqual(rq[0]['rfilter'][0],"samples_count:5")
+        #self.assertEqual(sq,[])
+        self.assertEqual(idq[0],[1,4])
        
     def test_range_query_parsing(self):
         '''tests the parsing of the string of ranges-as-filters constraints'''

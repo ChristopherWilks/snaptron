@@ -379,28 +379,37 @@ def search_by_gene_name(gc,geneq,rquery,intron_filters=None,save_introns=False,p
     return (iids,sids)
 
                   
-def parse_json_query(input_,region_args=default_region_args):
+def process_post_params(input_,region_args=default_region_args):
     '''takes the more extensible JSON from a POST and converts it into a basic query assuming only 1 value per distinct argument'''
     jstring = list(input_)
     #get rid of extra quotes
     jstring[0]=''
     jstring[-1]=''
-    #jstring = "'%s'" % ''.join(jstring)
     jstring = ''.join(jstring)
     js = json.loads(jstring)
-    fields={}
-    fmap={'rfilter':[]}
-    #fmap = {'intervals':intervals,'genes':intervals,'rangesq':[],'mds':[],'snaptron_id':[]}
     #for now assume only one OR clause (so no ORing)
-    clause = js[0]
+    #clause = js[0]
+    ra=region_args._replace(post=True,original_input_string=input_)
+    or_intervals = []
+    or_ranges = []
+    or_ids = []
+    for clause in js:
+        (intervals,ranges,ids) = parse_json_query(clause,region_args=ra)
+        or_intervals.append(intervals)
+        or_ranges.append(ranges)
+        or_ids.append(ids)
+    return (or_intervals,or_ranges,or_ids,ra)
+
+def parse_json_query(clause,region_args=default_region_args):
+    ra = region_args
     #legacy_remap = {'gene':'genes','interval':'intervals','metadata_keyword':'metadata_keywords'}
     legacy_remap = {}
-    #for field in snapconf.TABIX_DBS.keys():
+    fields={}
+    fmap={'rfilter':[]}
     for field in snapconf.JSON_FIELDS:
         legacy_fieldname = field
         if field in legacy_remap:
             legacy_fieldname = legacy_remap[field]
-        #'ids' grandfathered in from the UI to mean snaptron ids
         if field in clause or legacy_fieldname in clause:
             submitted_fname = field
             if legacy_fieldname in clause:
@@ -419,27 +428,25 @@ def parse_json_query(input_,region_args=default_region_args):
                 #allow more than one snaptron id, but convert to a ',' separated list
                 if field == 'ids':
                     fmap[field].extend(clause[submitted_fname])
+                #otherwise only grab the first one (no nested OR)
                 else:
                     fmap[field].append(clause.get(submitted_fname)[0])
             else:
+                #for now we just return one range filter (no nested OR)
                 rmap = clause.get(submitted_fname)[0]
                 fmap['rfilter'].append("%s%s%s" % (field,rmap['op'],rmap['val']))
-    #for now we just return one interval/gene
+    #for now we just return one interval/gene (no nested OR)
     intervalqs=[]
     if 'intervals' in fmap:
         intervalqs = [fmap['intervals'][0]]
-    #rangeq = ','.join(fmap['rangesq'])
-    sampleq = []
+    #for now we just return one keyword (no nested OR)
     if 'metadata_keywords' in fmap:
         sampleq = fmap['metadata_keywords'][0]
     idq = []
     if 'ids' in fmap:
-        #idq.append("snaptron:%s" % (",".join(fmap['snaptron_id'])))
         idq=fmap['ids']
-        #idq[0]="snaptron:%s" % idq[0]
-    #return ([intervalq],[rangeq],mdq,idq)
-    ra=region_args._replace(post=True,original_input_string=input_)
-    return (intervalqs,{'rfilter':fmap['rfilter']},sampleq,idq,ra)
+    rangeqs = {'rfilter':fmap['rfilter']}
+    return (intervalqs,rangeqs,idq)
 
 
 
@@ -526,13 +533,15 @@ def main():
     DEBUG_MODE_=DEBUG_MODE
     if len(sys.argv) > 2:
        DEBUG_MODE_=True
-    (intervalq,rangeq,sampleq,idq) = (None,None,None,None)
+    (intervalq,rangeq,idq) = (None,None,None)
+    sampleq = []
     #(intervalq,rangeq,sampleq,idq) = ([],[],[],[])
     sys.stderr.write("%s\n" % input_)
     #make copy of the region_args tuple
     ra = default_region_args
     if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
-        (intervalq,rangeq,sampleq,idq,ra) = parse_json_query(input_)
+        (or_intervals,or_ranges,or_ids,ra) = process_post_params(input_)
+        (intervalq,rangeq,idq) = (or_intervals[0],or_ranges[0],or_ids[0])
     #update support simple '&' CGI format
     else:
         (intervalq,idq,rangeq,sampleq,ra) = process_params(input_)
