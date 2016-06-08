@@ -392,13 +392,15 @@ def process_post_params(input_,region_args=default_region_args):
     ra=region_args._replace(post=True,original_input_string=input_)
     or_intervals = []
     or_ranges = []
+    or_samples = []
     or_ids = []
     for clause in js:
-        (intervals,ranges,ids) = parse_json_query(clause,region_args=ra)
+        (intervals,ranges,samples,ids) = parse_json_query(clause,region_args=ra)
         or_intervals.append(intervals)
         or_ranges.append(ranges)
+        or_samples.append(samples)
         or_ids.append(ids)
-    return (or_intervals,or_ranges,or_ids,ra)
+    return (or_intervals,or_ranges,or_samples,or_ids,ra)
 
 def parse_json_query(clause,region_args=default_region_args):
     ra = region_args
@@ -440,16 +442,14 @@ def parse_json_query(clause,region_args=default_region_args):
     if 'intervals' in fmap:
         intervalqs = [fmap['intervals'][0]]
     #for now we just return one keyword (no nested OR)
+    sampleqs = []
     if 'metadata_keywords' in fmap:
-        sampleq = fmap['metadata_keywords'][0]
-    idq = []
+        sampleqs = fmap['metadata_keywords'][0]
+    idqs = []
     if 'ids' in fmap:
-        idq=fmap['ids']
+        idqs=fmap['ids']
     rangeqs = {'rfilter':fmap['rfilter']}
-    return (intervalqs,rangeqs,idq)
-
-
-
+    return (intervalqs,rangeqs,sampleqs,idqs)
 
 
 def query_ids(idq,snaptron_ids):
@@ -518,42 +518,14 @@ def process_params(input_,region_args=default_region_args):
                 params[key]=val
     ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),score_by=params['score_by'],return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'])
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'],ra)
+      
 
-
-#cases:
-#1) just interval (one function call)
-#2) interval + range query(s) (one tabix function call + field filter(s))
-#3) one or more range queries (one tabix range function call + field filter(s))
-#4) interval + sample (2 function calls: 1 lucene for sample filter + 1 tabix using snaptron_id filter)
-#5old) sample (1 lucene call -> use interval ids to return all intervals)
-#5) sample (1 lucene call -> use snaptron_ids to do a by_ids search (multiple tabix calls))
-#6) sample + range query(s) (2 function calls: 1 lucene for sample filter + 1 tabix using snaptron_id filter + field filter)
-def main():
-    input_ = sys.argv[1]
-    DEBUG_MODE_=DEBUG_MODE
-    if len(sys.argv) > 2:
-       DEBUG_MODE_=True
-    (intervalq,rangeq,idq) = (None,None,None)
-    sampleq = []
-    #(intervalq,rangeq,sampleq,idq) = ([],[],[],[])
-    sys.stderr.write("%s\n" % input_)
-    #make copy of the region_args tuple
-    ra = default_region_args
-    if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
-        (or_intervals,or_ranges,or_ids,ra) = process_post_params(input_)
-        (intervalq,rangeq,idq) = (or_intervals[0],or_ranges[0],or_ids[0])
-    #update support simple '&' CGI format
-    else:
-        (intervalq,idq,rangeq,sampleq,ra) = process_params(input_)
-    sample_map = snample.load_sample_metadata(snapconf.SAMPLE_MD_FILE)
-    if DEBUG_MODE_:
-        sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
-
-
+def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default_region_args):
     #first we build filter-by-snaptron_id list based either (or all) on passed ids directly
     #and/or what's dervied from the sample query and/or what sample ids were passed in as well
     #NOTE this is the only place where we have OR logic, i.e. the set of snaptron_ids passed in
     #and the set of snaptron_ids dervied from the passed in sample_ids are OR'd together in the filtering
+
     snaptron_ids = set()
     if len(idq) >= 1:
         query_ids(idq,snaptron_ids)
@@ -591,7 +563,39 @@ def main():
         (found_snaptron_ids,found_sample_ids) = search_ranges_sqlite3(rangeq,snaptron_ids,stream_back=not ra.result_count)
     
     if ra.result_count:
-        sys.stdout.write("%d\n" % (len(found_snaptron_ids)))
+            sys.stdout.write("%d\n" % (len(found_snaptron_ids)))
+
+
+#cases:
+#1) just interval (one function call)
+#2) interval + range query(s) (one tabix function call + field filter(s))
+#3) one or more range queries (one tabix range function call + field filter(s))
+#4) interval + sample (2 function calls: 1 lucene for sample filter + 1 tabix using snaptron_id filter)
+#5old) sample (1 lucene call -> use interval ids to return all intervals)
+#5) sample (1 lucene call -> use snaptron_ids to do a by_ids search (multiple tabix calls))
+#6) sample + range query(s) (2 function calls: 1 lucene for sample filter + 1 tabix using snaptron_id filter + field filter)
+def main():
+    input_ = sys.argv[1]
+    DEBUG_MODE_=DEBUG_MODE
+    if len(sys.argv) > 2:
+       DEBUG_MODE_=True
+    (intervalq,rangeq,idq) = (None,None,None)
+    sampleq = []
+    #(intervalq,rangeq,sampleq,idq) = ([],[],[],[])
+    sys.stderr.write("%s\n" % input_)
+    #make copy of the region_args tuple
+    ra = default_region_args
+    if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
+        (or_intervals,or_ranges,or_samples,or_ids,ra) = process_post_params(input_)
+        (intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
+    #update support simple '&' CGI format
+    else:
+        (intervalq,idq,rangeq,sampleq,ra) = process_params(input_)
+    sample_map = snample.load_sample_metadata(snapconf.SAMPLE_MD_FILE)
+    if DEBUG_MODE_:
+        sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
+    run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=sample_map,ra=ra)
+
 
 if __name__ == '__main__':
     main()
