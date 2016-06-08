@@ -554,7 +554,7 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
         (found_snaptron_ids,found_sample_ids) = query_regions(intervalq,rangeq,snaptron_ids,filtering=ra.result_count,region_args=ra)
     elif len(snaptron_ids) >= 1:
         rquery = range_query_parser(rangeq,snaptron_ids)
-        ra_ = ra._replace(tabix_db_file=snapconf.TABIX_DBS['snaptron_id'],stream_back=True,print_header=True)
+        ra_ = ra._replace(tabix_db_file=snapconf.TABIX_DBS['snaptron_id'],stream_back=True)
         (found_snaptron_ids,found_sample_ids) = search_introns_by_ids(snaptron_ids,rquery,filtering=ra_.result_count,region_args=ra_)
     #finally if there's no interval OR id query to use with tabix, use a point range query (first_rquery) with additional filters from the following point range queries and/or ids in lucene
     elif len(rangeq) >= 1:
@@ -583,18 +583,23 @@ def main():
     sampleq = []
     #(intervalq,rangeq,sampleq,idq) = ([],[],[],[])
     sys.stderr.write("%s\n" % input_)
+    sample_map = snample.load_sample_metadata(snapconf.SAMPLE_MD_FILE)
+    if DEBUG_MODE_:
+        sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
     #make copy of the region_args tuple
     ra = default_region_args
     if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
         (or_intervals,or_ranges,or_samples,or_ids,ra) = process_post_params(input_)
-        (intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
+        #(intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
+        print_header = True
+        for idx in (xrange(0,len(or_intervals))):
+            ra=ra._replace(print_header=print_header)
+            run_toplevel_AND_query(or_intervals[idx],or_ranges[idx],or_samples[idx],or_ids[idx],sample_map=sample_map,ra=ra)
+            print_header = False
     #update support simple '&' CGI format
     else:
         (intervalq,idq,rangeq,sampleq,ra) = process_params(input_)
-    sample_map = snample.load_sample_metadata(snapconf.SAMPLE_MD_FILE)
-    if DEBUG_MODE_:
-        sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
-    run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=sample_map,ra=ra)
+        run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=sample_map,ra=ra)
 
 
 if __name__ == '__main__':
