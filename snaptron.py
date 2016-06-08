@@ -378,7 +378,7 @@ def search_by_gene_name(gc,geneq,rquery,intron_filters=None,save_introns=False,p
                 sids.update(sids_)
     return (iids,sids)
 
-
+                  
 def parse_json_query(input_,region_args=default_region_args):
     '''takes the more extensible JSON from a POST and converts it into a basic query assuming only 1 value per distinct argument'''
     jstring = list(input_)
@@ -393,16 +393,22 @@ def parse_json_query(input_,region_args=default_region_args):
     #fmap = {'intervals':intervals,'genes':intervals,'rangesq':[],'mds':[],'snaptron_id':[]}
     #for now assume only one OR clause (so no ORing)
     clause = js[0]
-    for field in snapconf.TABIX_DBS.keys():
-        if field == 'chromosome':
-            field = 'intervals'
-        if field == 'snaptron_id':
-            field = 'ids'
-        if field in clause:
+    #legacy_remap = {'gene':'genes','interval':'intervals','metadata_keyword':'metadata_keywords'}
+    legacy_remap = {}
+    #for field in snapconf.TABIX_DBS.keys():
+    for field in snapconf.JSON_FIELDS:
+        legacy_fieldname = field
+        if field in legacy_remap:
+            legacy_fieldname = legacy_remap[field]
+        #'ids' grandfathered in from the UI to mean snaptron ids
+        if field in clause or legacy_fieldname in clause:
+            submitted_fname = field
+            if legacy_fieldname in clause:
+                submitted_fname = legacy_fieldname
             if field not in fields:
                 fields[field]=[]
             #adds array of values to a new entry in this field's array
-            fields[field].append(clause[field])
+            fields[field].append(clause[submitted_fname])
             #hack to support legacy query format (temporary), we're only assuming one val per array
             if field not in snapconf.RANGE_FIELDS:
                 #adjust to map intervals and genes to same array
@@ -412,11 +418,11 @@ def parse_json_query(input_,region_args=default_region_args):
                     fmap[field]=[]
                 #allow more than one snaptron id, but convert to a ',' separated list
                 if field == 'ids':
-                    fmap[field].extend(clause[field])
+                    fmap[field].extend(clause[submitted_fname])
                 else:
-                    fmap[field].append(clause.get(field)[0])
+                    fmap[field].append(clause.get(submitted_fname)[0])
             else:
-                rmap = clause.get(field)[0]
+                rmap = clause.get(submitted_fname)[0]
                 fmap['rfilter'].append("%s%s%s" % (field,rmap['op'],rmap['val']))
     #for now we just return one interval/gene
     intervalqs=[]

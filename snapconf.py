@@ -67,8 +67,10 @@ NFR = NumericRangeQuery.newFloatRange
 operators_old={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
 operators={'>:':operator.ge,'<:':operator.le,'>':operator.gt,'<':operator.lt,':':operator.eq,'!:':operator.ne}
 #we overloaded this map to be used for all searchable fields, not just those with TABIX dbs
-TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':TABIX_IDS_DB,'samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keywords':'','sample_id':'by_sample_id.gz'}
+TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'intervals':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':TABIX_IDS_DB,'samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keyword':'','sample_id':'by_sample_id.gz','ids':''}
 RANGE_FIELDS = ['length','samples_count','coverage_sum','coverage_avg','coverage_median']
+JSON_FIELDS=set(['intervals','genes','ids','metadata_keywords'])
+JSON_FIELDS.update(RANGE_FIELDS)
 SAMPLE_IDS_COL=12
 SAMPLE_ID_COL=0
 SAMPLES_COUNT_COL=13
