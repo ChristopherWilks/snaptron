@@ -9,35 +9,32 @@ from org.apache.lucene.search import NumericRangeQuery
 from org.apache.lucene.document import Document, Field, IntField, FloatField, StringField, TextField, StoredField
 
 #####fields that need to be changed for a different instance
-DATA_SOURCE='SRA'
-#IP='128.220.35.129'
+DATA_SOURCE='SRAv2'
 IP='127.0.0.1'
-SERVER_STRING='http://stingray.cs.jhu.edu:8090/srav1/'
+PORT=1556
+SERVER_STRING='http://stingray.cs.jhu.edu:8090/srav2/'
 HG='hg19'
-#PORT=8443
-PORT=1555
+BIGWIG2WIG="bigWigToWig"
 ROOT_DIR='./'
 PYTHON_PATH="python"
 TABIX="tabix"
-BIGWIG2WIG="bigWigToWig"
 #tabix related
 TABIX_DB_PATH='./data'
-#TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.gtf.sorted.gz'
-TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.sorted.gtf.gz'
-TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
-#TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new3_w_sourcedb2.gz'
-TABIX_IDS_DB='by_id.gz'
-ID_START_COL=3
-CUT_START_COL=2
+TABIX_GENE_INTERVAL_DB='gensemrefg.hg38_annotations.gtf.sorted.gz'
+TABIX_INTERVAL_DB='intropolis.v2.hg38.tsv.snaptron2.bgzip'
+TABIX_IDS_DB='by_idV2.gz'
+ID_START_COL=2
+CUT_START_COL=1
 #sqlite3 dbs
-SAMPLE_SQLITE_DB="%s/by_sample_ids.sqlite3" % (TABIX_DB_PATH)
-SNAPTRON_SQLITE_DB="%s/snaptron2.sqlite3" % (TABIX_DB_PATH)
+SAMPLE_SQLITE_DB="%s/by_sample_ids.v2.sqlite3" % (TABIX_DB_PATH)
+SNAPTRON_SQLITE_DB="%s/snaptronV2.sqlite3" % (TABIX_DB_PATH)
 #Lucene dbs
+LUCENE_SAMPLE_DB="%s/lucene_v2/" % (TABIX_DB_PATH)
 LUCENE_RANGE_DB="%s/lucene_ranges_v1/" % (TABIX_DB_PATH)
-LUCENE_SAMPLE_DB="%s/lucene_v1/" % (TABIX_DB_PATH)
 #gene annotation related flat files
-REFSEQ_ANNOTATION='refFlat.hg19.txt.sorted'
-SAMPLE_MD_FILE="%s/all_illumina_sra_for_human_ids.tsv" % (TABIX_DB_PATH)
+#need to change to update it to hg38 coordinate/annotations
+REFSEQ_ANNOTATION='refFlat.hg38.txt.sorted'
+SAMPLE_MD_FILE="%s/illumina_sra_for_human_ids.v2.tsv" % (TABIX_DB_PATH)
 #####END of fields that need to be changed for a different instance
 
 
@@ -109,7 +106,7 @@ MAX_DISTANCE_BETWEEN_IDS=1000
 #SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
 
 #GENE_ANNOTATION_HEADER (GTF)
-GENE_ANNOTATION_HEADER = "DataSource:Type\treference\tannotation_source\tfeature_type\tstart\tend\tunused\tstrand\tunused\tattributes";
+GENE_ANNOTATION_HEADER = "DataSource:Type\treference\tannotation_source\tfeature_type\tstart\tend\tunused\tstrand\tunused\tattributes\n";
 
 #setup headers for both the original intron list and the sample metadata list
 INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated?	left_motif	right_motif	left_annotated?	right_annotated?	samples	read_coverage_by_sample	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'
