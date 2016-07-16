@@ -348,7 +348,7 @@ def range_query_parser(rangeq,snaptron_ids):
             sys.stderr.write("bad operator %s in range query,exiting\n" % (str(op)))
             sys.exit(-1)
         #queries by id are a different type of query, we simply record the id
-        #and then move on, if there is only a id query that will be caught higher up
+        #and then move on, if there is only an id query that will be caught higher up
         if col == 'snaptron_id':
             snaptron_ids.update(set(val.split('-')))
             continue

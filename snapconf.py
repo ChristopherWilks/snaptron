@@ -67,7 +67,7 @@ NFR = NumericRangeQuery.newFloatRange
 operators_old={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
 operators={'>:':operator.ge,'<:':operator.le,'>':operator.gt,'<':operator.lt,':':operator.eq,'!:':operator.ne}
 #we overloaded this map to be used for all searchable fields, not just those with TABIX dbs
-TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'intervals':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':TABIX_IDS_DB,'samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keyword':'','sample_id':'by_sample_id.gz','ids':''}
+TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'intervals':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':TABIX_IDS_DB,'samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keyword':'','sample_id':'by_sample_id.gz','ids':'','annotated':'','left_annotated':'','right_annotated':''}
 RANGE_FIELDS = ['length','samples_count','coverage_sum','coverage_avg','coverage_median']
 JSON_FIELDS=set(['intervals','genes','ids','metadata_keywords'])
 JSON_FIELDS.update(RANGE_FIELDS)
@@ -114,8 +114,8 @@ MAX_DISTANCE_BETWEEN_IDS=1000
 GENE_ANNOTATION_HEADER = "DataSource:Type\treference\tannotation_source\tfeature_type\tstart\tend\tunused\tstrand\tunused\tattributes";
 
 #setup headers for both the original intron list and the sample metadata list
-INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated?	left_motif	right_motif	left_annotated?	right_annotated?	samples	read_coverage_by_sample	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'
-INTRON_TYPE_HEADER_MAP={'snaptron_id':int,'chromosome':str,'start':int,'end':int,'length':int,'strand':str,'annotated?':bool,'left_motif':str,'right_motif':str,'left_annotated?':str,'right_annotated?':str,'samples':str,'read_coverage_by_sample':str,'samples_count':int,'coverage_sum':int,'coverage_avg':float,'coverage_median':float,'source_dataset_id':str}
+INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated	left_motif	right_motif	left_annotated	right_annotated	samples	read_coverage_by_sample	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'
+INTRON_TYPE_HEADER_MAP={'snaptron_id':int,'chromosome':str,'start':int,'end':int,'length':int,'strand':str,'annotated':bool,'left_motif':str,'right_motif':str,'left_annotated':str,'right_annotated':str,'samples':str,'read_coverage_by_sample':str,'samples_count':int,'coverage_sum':int,'coverage_avg':float,'coverage_median':float,'source_dataset_id':str}
 
 SAMPLE_HEADER='intropolis_sample_id_i	run_accession_s	sample_accession_s	experiment_accession_s	study_accession_s	submission_accession_s	sra_ID_s	run_ID_s	run_alias_t	run_date_t	updated_date_t	spots_s	bases_s	run_center_t	experiment_name_t	run_attribute_t	experiment_ID_s	experiment_alias_t	experiment_title_t	study_name_t	sample_name_t	design_description_t	library_name_t	library_strategy_s	library_source_t	library_selection_t	library_layout_t	library_construction_protocol_t	read_spec_t	platform_t	instrument_model_t	platform_parameters_t	experiment_url_link_s	experiment_attribute_t	sample_ID_s	sample_alias_t	taxon_id_s	common_name_t	description_t	sample_url_link_s	sample_attribute_t	study_ID_s	study_alias_t	study_title_t	study_type_t	study_abstract_t	center_project_name_t	study_description_t	study_url_link_s	study_attribute_t	related_studies_t	primary_study_s	submission_ID_s	submission_comment_t	submission_center_t	submission_lab_t	submission_date_t	sradb_updated.x_s	fastq_ID_s	file_name_t	md5_s	bytes_s	audit_time_s	sradb_updated_file_s	date_download_t	URL_s	layout_s	URL_R_s	md5_R_s	cell_type_t	tissue_t	cell_line_t	strain_t	age_s	disease_t	population_t	sex_s	source_name_s'
 
