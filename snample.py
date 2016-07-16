@@ -174,10 +174,8 @@ def main():
     ra = snaptron.default_region_args
     sys.stderr.write("INPUT_ %s\n" % input_)
     if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
-        #(intervalq,rangeq,sampleq,idq,ra) = snaptron.parse_json_query(input_)
         (or_intervals,or_ranges,or_samples,or_ids,ra) = snaptron.process_post_params(input_)
         (intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
-        #POST=True
     else:
         #just stream back the whole sample metadata file
         if 'all=1' in input_:
