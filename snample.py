@@ -179,6 +179,15 @@ def main():
         (intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
         #POST=True
     else:
+        #just stream back the whole sample metadata file
+        if 'all=1' in input_:
+            #sample_map = load_sample_metadata(snapconf.SAMPLE_MD_FILE)
+            cmd = 'cat'
+            if '.gz' in snapconf.SAMPLE_MD_FILE:
+                cmd = 'zcat'
+            subp = subprocess.Popen('%s %s' % (cmd,snapconf.SAMPLE_MD_FILE),shell=True,stdin=None,stdout=sys.stdout,stderr=sys.stderr)
+            subp.wait()
+            return 
         #update support simple '&' CGI format
         (intervalq,idq,rangeq,sampleq,ra) = snaptron.process_params(input_)
     #only care about sampleq

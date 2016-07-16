@@ -101,7 +101,6 @@ def stream_header(fout,region_args=default_region_args,interval=None):
     #if the user asks for specific fields they only get those fields, no data source
     if len(REQ_FIELDS) > 0:
         custom_header = "DataSource:Type\t%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
-        #custom_header = "%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
         ra = ra._replace(prefix=None)
     if ra.stream_back and ra.print_header:
         if not ra.result_count:
@@ -467,7 +466,7 @@ def query_ids(idq,snaptron_ids):
 def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=default_region_args):
     rquery = range_query_parser(rangeq,snaptron_ids)
     #intervals/genes are OR'd, but all ranges are ANDed together with each interval/gene search
-    print_header = True
+    print_header = region_args.print_header
     snaptron_ids_returned = set()
     sample_ids_returned = set()
     gc = snannotation.GeneCoords()
@@ -488,7 +487,7 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
 
 
 def process_params(input_,region_args=default_region_args):
-    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':''}
+    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1'}
     params_ = input_.split('&')
     for param_ in params_:
         (key,val) = param_.split("=")
@@ -516,9 +515,9 @@ def process_params(input_,region_args=default_region_args):
                 params[key].append(val) 
             else:
                 params[key]=val
-    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),score_by=params['score_by'],return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'])
+    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),score_by=params['score_by'],print_header=bool(int(params['header'])),return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'])
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'],ra)
-      
+
 
 def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default_region_args):
     #first we build filter-by-snaptron_id list based either (or all) on passed ids directly
@@ -563,7 +562,7 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
         (found_snaptron_ids,found_sample_ids) = search_ranges_sqlite3(rangeq,snaptron_ids,stream_back=not ra.result_count)
     
     if ra.result_count:
-            sys.stdout.write("%d\n" % (len(found_snaptron_ids)))
+        sys.stdout.write("%d\n" % (len(found_snaptron_ids)))
 
 
 #cases:
@@ -591,11 +590,9 @@ def main():
     if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
         (or_intervals,or_ranges,or_samples,or_ids,ra) = process_post_params(input_)
         #(intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
-        print_header = True
         for idx in (xrange(0,len(or_intervals))):
-            ra=ra._replace(print_header=print_header)
             run_toplevel_AND_query(or_intervals[idx],or_ranges[idx],or_samples[idx],or_ids[idx],sample_map=sample_map,ra=ra)
-            print_header = False
+            ra=ra._replace(print_header=False)
     #update support simple '&' CGI format
     else:
         (intervalq,idq,rangeq,sampleq,ra) = process_params(input_)
