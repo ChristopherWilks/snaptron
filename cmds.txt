@@ -133,6 +133,8 @@ cat sarven_splices.tsv | perl -ne 'chomp; ($f,$t)=split(/\s+/,$_); $f1=$f; $f1=~
 
 curl "http://stingray.cs.jhu.edu:8090/srav1/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&fields=snaptron_id"
 
+curl "http://stingray.cs.jhu.edu:8090/srav1/density?bigwig_db=snps&regions=chr1:1-100000"
+
 #direct link to custom track
 http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg18&position=chr21:33038447-33041505&hgct_customText=track%20type=bigBed%20name=myBigBedTrack%20description=%22a%20bigBed%20track%22%20visibility=full%20bigDataUrl=http://genome.ucsc.edu/goldenPath/help/examples/bigBedExample.bb 
 
@@ -140,3 +142,12 @@ http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position=chr11:82970135-82997450
 
 #works
 http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position=chr11:82970135-82997450&hgct_customText=http://stingray.cs.jhu.edu:8090/srav1/snaptron?regions=chr11:82970135-82997450%26rfilter=samples_count>:100%26rfilter=coverage_sum>:1000%26return_format=1%22
+
+#filter/limit for gene models
+zcat /data2/gigatron2/gensemrefg.hg19_annotations.sorted.gtf.gz | perl -ne 'chomp; @f=split(/\t/,$_); $f[5]=0.0; @f1=split(/;/,$f[8]); $boost=0; $boost=100000 if($f1[1]!~/"NA"/); @f2=split(/,/,$f1[2]); $s1=$f1[2]; print "$s1\n"; $f[5]=(scalar @f2)+$boost; print "".(join("\t",@f))."\n";' | sort -t"   " -k6,6nr | head -10
+
+#find the gaps in the sample id metadata
+cut -f 1 data/illumina_sra_for_human_ids.v2.tsv | sort -n | perl -ne 'chomp; $s=$_; if($p) { $d=abs($s-$p); if($d>1) { print "$s-$p:\t"; for($i=$p+1; $i<=$p+($d-1); $i++) { print "$i,"; } print "\n"; } } $p=$s;' > data/illumina_sra_for_human_ids.v2.tsv.missing_sample_ids
+
+#look for total top covered unannotated junctions (Ben's idea):
+time python ./snaptron.py "rfilter=annotated:0,length<:10000" | sort -t'       ' -k15,15nr -k16,16nr | bgzip > /data3/unannotated_short_srav1_sorted_samplescount_coverage.tsv.bgz
