@@ -10,7 +10,7 @@ import snaptron
 import snannotation
 
 #set of test interval queries
-IQs=['chr1:10160-10161','CD99','chr11:82970135-82997450','chr11:82985784-82989768']
+IQs=['chr1:10160-10161','CD99','chr11:82970135-82997450','chr11:82985784-82989768','chr11:82571908-82571909']
 #RQs=['1:100000-100000','1:5-5']
 #IRQs are a set of combination of indexes from IQs and RQs
 #RQs=[{'length':[snapconf.operators['='],54]},{'samples_count':[snapconf.operators['='],10]}]
@@ -26,7 +26,8 @@ EXPECTED_IIDS={
                IQs[1]+str(RQs[1]):set(['41341710','41341711','41341836','41342617','41343142','41343152','41343193','42691062','42691119','42691141','42691142']),
                IQs[2]+str(RQs_flat[1])+str(RQs_flat[2]):set(['7474725','7474726','7475267']),
                IQs[3]+str(RQs_flat[3])+str(RQs_flat[4]):set(['7475067']),
-               str(RQs_flat[5])+str(RQs_flat[6]):set(['1900915','17229066','14511883','18158500','19434757'])
+               str(RQs_flat[5])+str(RQs_flat[6]):set(['1900915','17229066','14511883','18158500','19434757']),
+               IQs[4]+str(RQs_flat[3])+str(RQs_flat[4]):set(['7465808'])
               }
 
 def setUpModule():
@@ -250,8 +251,27 @@ class TestQueryCalls(unittest.TestCase):
         iq = queries['iq'][q]
         rq = queries['rq']
         (iids,sids) = qr([iq],rq,set(),filtering=True,region_args=queries['ra'])
-        #snaptron.RETURN_ONLY_CONTAINED = False
         self.assertEqual(iids, EXPECTED_IIDS[IQs[i]+str(RQs_flat[r])+str(RQs_flat[r+1])])
+    
+    def test_interval_with_range_query_within_start(self):
+        q = 0
+        i = 4
+        r = 3
+        queries = self.process_query('regions=%s&rfilter=%s&rfilter=%s&within=1' % (IQs[i],RQs_flat[r],RQs_flat[r+1]))
+        iq = queries['iq'][q]
+        rq = queries['rq']
+        (iids,sids) = qr([iq],rq,set(),filtering=True,region_args=queries['ra'])
+        self.assertEqual(iids, EXPECTED_IIDS[IQs[i]+str(RQs_flat[r])+str(RQs_flat[r+1])])
+    
+    def test_interval_with_range_query_not_within_end(self):
+        q = 0
+        i = 4
+        r = 3
+        queries = self.process_query('regions=%s&rfilter=%s&rfilter=%s&within=2' % (IQs[i],RQs_flat[r],RQs_flat[r+1]))
+        iq = queries['iq'][q]
+        rq = queries['rq']
+        (iids,sids) = qr([iq],rq,set(),filtering=True,region_args=queries['ra'])
+        self.assertEqual(iids, set([]))
    
 if __name__ == '__main__':
     unittest.main()
