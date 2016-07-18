@@ -46,9 +46,9 @@ UCSC_URL='2'
 WITHIN_START=1
 WITHIN_END=2
 
-RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains within result_count return_format score_by post original_input_string coordinate_string debug')
+RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains within exact result_count return_format score_by post original_input_string coordinate_string debug')
 
-default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="Datasource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, within=0, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', debug=True)
+default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="Datasource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, within=0, exact=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', debug=True)
 
 sconn = sqlite3.connect(snapconf.SNAPTRON_SQLITE_DB)
 snc = sconn.cursor()
@@ -129,8 +129,8 @@ return_formats={TSV:(stream_header,stream_intron),UCSC_BED:(ucsc_format_header,u
 def run_tabix(qargs,region_args=default_region_args,additional_cmd=""):
     ra = region_args
     m = snapconf.TABIX_PATTERN.search(qargs)
-    start = m.group(2)
-    end = m.group(3)
+    start = int(m.group(2))
+    end = int(m.group(3))
     ids_found=set()
     samples_set=set()
     #this trumps whatever stream_back instructions we were given
@@ -152,11 +152,16 @@ def run_tabix(qargs,region_args=default_region_args,additional_cmd=""):
     tabixp = subprocess.Popen("%s %s %s | cut -f %d- %s" % (snapconf.TABIX,ra.tabix_db_file,qargs,ra.cut_start_col,additional_cmd),stdout=subprocess.PIPE,shell=True)
     for line in tabixp.stdout:
         fields=line.rstrip().split("\t")
+        lstart = int(fields[ra.region_start_col])
+        lend = int(fields[ra.region_end_col])
         #first attempt to filter by violation of containment (if in effect)
-        if ra.contains and (fields[ra.region_start_col] < start or fields[ra.region_end_col] > end):
+        if ra.exact and (lstart != start or lend != end):
             continue
-        #2nd attempt to filter by violation of within one end or the other (if in effect)
-        if (ra.within == WITHIN_START and fields[ra.region_start_col] < start) or (ra.within == WITHIN_END and fields[ra.region_end_col] > end):
+        #2nd attempt to filter by violation of containment (if in effect)
+        if ra.contains and (lstart < start or lend > end):
+            continue
+        #third attempt to filter by violation of within one end or the other (if in effect)
+        if (ra.within == WITHIN_START and lstart < start) or (ra.within == WITHIN_END and lend > end):
             continue
         #now filter, this order is important (filter first, than save ids/print)
         if filter_by_introns and fields[snapconf.INTRON_ID_COL] not in ra.intron_filter:
@@ -495,7 +500,7 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
 
 
 def process_params(input_,region_args=default_region_args):
-    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','within':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1'}
+    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','within':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1'}
     params_ = input_.split('&')
     for param_ in params_:
         (key,val) = param_.split("=")
@@ -523,7 +528,7 @@ def process_params(input_,region_args=default_region_args):
                 params[key].append(val) 
             else:
                 params[key]=val
-    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),within=(int(params['within'])),score_by=params['score_by'],print_header=bool(int(params['header'])),return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'])
+    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),within=(int(params['within'])),exact=bool(int(params['exact'])),score_by=params['score_by'],print_header=bool(int(params['header'])),return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'])
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'],ra)
 
 

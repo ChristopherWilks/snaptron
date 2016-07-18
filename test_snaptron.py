@@ -10,7 +10,7 @@ import snaptron
 import snannotation
 
 #set of test interval queries
-IQs=['chr1:10160-10161','CD99','chr11:82970135-82997450','chr11:82985784-82989768','chr11:82571908-82571909']
+IQs=['chr1:10160-10161','CD99','chr11:82970135-82997450','chr11:82985784-82989768','chr11:82571908-82571909','chr11:82571908-82976906']
 #RQs=['1:100000-100000','1:5-5']
 #IRQs are a set of combination of indexes from IQs and RQs
 #RQs=[{'length':[snapconf.operators['='],54]},{'samples_count':[snapconf.operators['='],10]}]
@@ -268,6 +268,26 @@ class TestQueryCalls(unittest.TestCase):
         i = 4
         r = 3
         queries = self.process_query('regions=%s&rfilter=%s&rfilter=%s&within=2' % (IQs[i],RQs_flat[r],RQs_flat[r+1]))
+        iq = queries['iq'][q]
+        rq = queries['rq']
+        (iids,sids) = qr([iq],rq,set(),filtering=True,region_args=queries['ra'])
+        self.assertEqual(iids, set([]))
+    
+    def test_interval_with_range_query_exact(self):
+        q = 0
+        i = 5
+        r = 3
+        queries = self.process_query('regions=%s&rfilter=%s&rfilter=%s&exact=1' % (IQs[i],RQs_flat[r],RQs_flat[r+1]))
+        iq = queries['iq'][q]
+        rq = queries['rq']
+        (iids,sids) = qr([iq],rq,set(),filtering=True,region_args=queries['ra'])
+        self.assertEqual(iids, EXPECTED_IIDS[IQs[i-1]+str(RQs_flat[r])+str(RQs_flat[r+1])])
+    
+    def test_interval_with_range_query_not_exact(self):
+        q = 0
+        i = 4
+        r = 3
+        queries = self.process_query('regions=%s&rfilter=%s&rfilter=%s&exact=1' % (IQs[i],RQs_flat[r],RQs_flat[r+1]))
         iq = queries['iq'][q]
         rq = queries['rq']
         (iids,sids) = qr([iq],rq,set(),filtering=True,region_args=queries['ra'])
