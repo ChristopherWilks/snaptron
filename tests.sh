@@ -27,7 +27,7 @@ curl "http://$HOST:$PORT/$PATH_/snaptron?regions=chr11:82970135-82997450&rfilter
 diff test_wc expected_wc
 
 echo "27" > expected_wc
-curl --data 'fields="[{"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":100}],"coverage_sum":[{"op":">:","val":1000}]}]"' http://$HOST:$PORT/$PATH_/snaptron 2>/dev/null | wc -l > test_wc
+curl --data 'fields=[{"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":100}],"coverage_sum":[{"op":">:","val":1000}]}]' http://$HOST:$PORT/$PATH_/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "32" > expected_wc
@@ -50,11 +50,11 @@ curl "http://$HOST:$PORT/$PATH_/snaptron?ids=33401865,33401867,33401868" 2>/dev/
 diff test_wc expected_wc
 
 echo "5" > expected_wc
-curl --data 'fields="[{"ids":["33401865","33401867","33401868"]}]"' http://$HOST:$PORT/$PATH_/snaptron 2>/dev/null | wc -l > test_wc
+curl --data 'fields=[{"ids":["33401865","33401867","33401868"]}]' http://$HOST:$PORT/$PATH_/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "4" > expected_wc
-curl --data 'fields="[{"ids":["0","5","11"]}]"' http://$HOST:$PORT/$PATH_/samples 2>/dev/null | wc -l > test_wc
+curl --data 'fields=[{"ids":["0","5","11"]}]' http://$HOST:$PORT/$PATH_/samples 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 #echo "3" > expected_wc
@@ -82,11 +82,11 @@ curl "http://$HOST:$PORT/$PATH_/density?regions=chr2:1-100000&bigwig_db=snps1k" 
 diff test_wc expected_wc
 
 echo "3" > expected_wc
-curl --data 'fields="[{"ids":["7465808"],"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":"100"}],"coverage_sum":[{"op":">:","val":"1000"}]}]"' http://stingray.cs.jhu.edu:8090/srav1/snaptron 2>/dev/null | wc -l > test_wc
+curl --data 'fields=[{"ids":["7465808"],"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":"100"}],"coverage_sum":[{"op":">:","val":"1000"}]}]' http://stingray.cs.jhu.edu:8090/srav1/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "6" > expected_wc
-curl --data 'fields="[{"ids":["7465808"],"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":"100"}],"coverage_sum":[{"op":">:","val":"1000"}]},{"ids":["33401865","33401867","33401868"]}]"' http://stingray.cs.jhu.edu:8090/srav1/snaptron 2>/dev/null | wc -l > test_wc
+curl --data 'fields=[{"ids":["7465808"],"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":"100"}],"coverage_sum":[{"op":">:","val":"1000"}]},{"ids":["33401865","33401867","33401868"]}]' http://stingray.cs.jhu.edu:8090/srav1/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 rm test_wc expected_wc
