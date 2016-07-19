@@ -151,3 +151,6 @@ cut -f 1 data/illumina_sra_for_human_ids.v2.tsv | sort -n | perl -ne 'chomp; $s=
 
 #look for total top covered unannotated junctions (Ben's idea):
 time python ./snaptron.py "rfilter=annotated:0,length<:10000" | sort -t'       ' -k15,15nr -k16,16nr | bgzip > /data3/unannotated_short_srav1_sorted_samplescount_coverage.tsv.bgz
+
+#client
+python query_snaptron.py --query-file alk.tsv --function jir

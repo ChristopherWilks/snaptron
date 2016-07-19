@@ -18,30 +18,26 @@ TMPDIR='/tmp'
 def parse_query_params(args):
     queries = []
     groups = []
+    fmap = {'thresholds':'rfilter','filters':'sfilter','region':'regions'}
     with open(args.query_file,"r") as cfin:
-        creader = csv.DictReader(cfin,['region','contains','thresholds','filters','group'],dialect=csv.excel_tab)
+        creader = csv.DictReader(cfin,dialect=csv.excel_tab)
         for (i,record) in enumerate(creader):
             query=[]
-            #TODO format/name check here
-            #have to have a region
-            query.append("regions=%s" % record['region'])
-            group = ''
-            if len(record['contains']) > 0:
-                query.append('contains=1')
-            if record['thresholds'] is not None and len(record['thresholds']) > 0:
-                thresholds = record['thresholds']
-                thresholds = re.sub("=",":",thresholds)
-                thresholds = thresholds.split('&')
-                query.append("&".join(["rfilter=%s" % x for x in thresholds]))
-            if record['filters'] is not None and len(record['filters']) > 0:
-                filters = record['filters']
-                filters = filters.split('&')
-                query.append("&".join(["sfilter=%s" % x for x in filters]))
-            if record['group'] is not None and len(record['group']) > 0:
-                group = record['group']
+            for field in creader.fieldnames:
+                if len(record[field]) > 0:
+                    if field == 'thresholds' or field == 'filters':
+                        predicates = re.sub("=",":",record[field])
+                        predicates = predicates.split('&')
+                        query.append("&".join(["%s=%s" % (fmap[field],x) for x in predicates]))
+                    elif field == 'group':
+                        groups.append(record[field])
+                    else:
+                        mapped_field = field
+                        if field in fmap:
+                            mapped_field = fmap[field]
+                        query.append("%s=%s" % (mapped_field,record[field]))
             if args.function is not None:
                 query.append("header=0")
-            groups.append(group)
             queries.append("&".join(query))
     return (queries,groups)
 
@@ -57,7 +53,7 @@ def junction_inclusion_ratio(sample_stats,group_list,sample_records):
             sample_stats[sample][group_b]=0
         numer = sample_stats[sample][group_b] - sample_stats[sample][group_a]
         denom = sample_stats[sample][group_b] + sample_stats[sample][group_a] + 1
-        sample_scores[sample]=float(numer/float(denom))
+        sample_scores[sample]=numer/float(denom)
     missing_sample_ids = set()
     for sample in sorted(sample_scores.keys(),key=sample_scores.__getitem__,reverse=True):
         score = sample_scores[sample]

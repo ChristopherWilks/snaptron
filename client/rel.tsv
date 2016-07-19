@@ -1,0 +1,4 @@
+region	within	exact	thresholds	group
+chr7:104708920-104708921	2		samples_count>=1000	groupB
+chr7:104708992-104708993	1		samples_count>=1000	groupB
+chr7:104707255-104714065		1	samples_count>=1000	groupA
