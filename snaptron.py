@@ -48,7 +48,7 @@ WITHIN_END=2
 
 RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains within exact result_count return_format score_by post original_input_string coordinate_string debug')
 
-default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="Datasource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, within=0, exact=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', debug=True)
+default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="DataSource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, within=0, exact=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', debug=True)
 
 sconn = sqlite3.connect(snapconf.SNAPTRON_SQLITE_DB)
 snc = sconn.cursor()
@@ -394,9 +394,6 @@ def search_by_gene_name(gc,geneq,rquery,intron_filters=None,save_introns=False,p
 def process_post_params(input_,region_args=default_region_args):
     '''takes the more extensible JSON from a POST and converts it into a basic query assuming only 1 value per distinct argument'''
     jstring = list(input_)
-    #get rid of extra quotes
-    jstring[0]=''
-    jstring[-1]=''
     jstring = ''.join(jstring)
     js = json.loads(jstring)
     #for now assume only one OR clause (so no ORing)
@@ -415,6 +412,7 @@ def process_post_params(input_,region_args=default_region_args):
     return (or_intervals,or_ranges,or_samples,or_ids,ra)
 
 def parse_json_query(clause,region_args=default_region_args):
+    sys.stderr.write("clause %s\n"  % (clause))
     ra = region_args
     #legacy_remap = {'gene':'genes','interval':'intervals','metadata_keyword':'metadata_keywords'}
     legacy_remap = {}
@@ -600,7 +598,7 @@ def main():
         sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
     #make copy of the region_args tuple
     ra = default_region_args
-    if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
+    if '[' in input_:
         (or_intervals,or_ranges,or_samples,or_ids,ra) = process_post_params(input_)
         #(intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
         for idx in (xrange(0,len(or_intervals))):
