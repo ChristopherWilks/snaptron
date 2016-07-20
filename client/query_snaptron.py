@@ -138,11 +138,6 @@ if __name__ == '__main__':
     parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples; currently only supports Junction Inclusion Ratio (JIR)')
     parser.add_argument('--tmpdir', metavar='/path/to/tmpdir', type=str, default=TMPDIR, help='path to temporary storage for downloading and manipulating junction and sample records')
 
-    parser.add_argument('--regions', metavar='chr#:#-#|chr#:#-#|CD99|...', type=str, default='BRCA1', help='one or more genomic regions (gene names and/or genomic intervals) seperated by \'|\' (logical OR) or the name of a file with a list of one or more regions (include one or more \'/\'s to denote a file path)')
-    parser.add_argument('--thresholds', metavar='samples_count>=#[&|]coverage_avg=#[&|]...', type=str, default='samples_count>=1000&coverage_avg>100', help='one or more cutoffs for filtering returned junctions; separator is either \'&\' (logical AND) or \'|\' (logical OR)')
-    parser.add_argument('--filters', metavar='design_description:cortex[&|]library_layout=PAIRED[&|]...', type=str, default=None, help='one or more filter predicates on the metadata of the samples from which the junctions are derived; separator is either \'&\' (logical AND) or \'|\' (logical OR)')
-    parser.add_argument('--contained', action='store_const', const=True, default=False,
-                        help='only return junctions whose coordinate span are within one or more of the regions specified')
     #returned format (UCSC, and/or subselection of fields) option?
     #intersection or union of intervals option?
 
