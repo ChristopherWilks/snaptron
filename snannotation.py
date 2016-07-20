@@ -127,10 +127,6 @@ class GeneCoords(object):
                     for eidx2 in xrange(int(e1),int(e2)+1):
                         (start,end) = self.canonical_gene_map[geneq][2][int(eidx2)-1]
                         regions.append([start,end])
-                    #if '-' in strand:
-                    #    temp = e2
-                    #    e2 = e1
-                    #    e1 = temp
                 else:        
                     (start,end) = self.canonical_gene_map[geneq][2][int(eidx)-1]
                     regions.append([start,end])
