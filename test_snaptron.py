@@ -292,6 +292,40 @@ class TestQueryCalls(unittest.TestCase):
         rq = queries['rq']
         (iids,sids) = qr([iq],rq,set(),filtering=True,region_args=queries['ra'])
         self.assertEqual(iids, set([]))
+
+import sbreakpoint
+class TestCosmic(unittest.TestCase):
+    '''
+    Test the COSMIC fusion decoding and mapping code.
+    '''
+
+    def setUp(self):
+        pass
+
+    def test_mrna_coord_decoding(self):
+        mrna_exact_coord = '1_535_RET' 
+        is_first = True
+        (gname2, gstart, gend, intron_coord) = sbreakpoint.decode_cosmic_mrna_coord_format(mrna_exact_coord,first_gene=is_first)
+        self.assertEqual(gname2, 'RET')
+        self.assertEqual(gstart, 1)
+        self.assertEqual(gend, 535)
+        self.assertEqual(intron_coord, -1)
+        
+        mrna_exact_coord = '2369_5659' 
+        is_first = False
+        (gname2, gstart, gend, intron_coord) = sbreakpoint.decode_cosmic_mrna_coord_format(mrna_exact_coord,first_gene=is_first)
+        self.assertEqual(gname2, None)
+        self.assertEqual(gstart, 2369)
+        self.assertEqual(gend, 5659)
+        self.assertEqual(intron_coord, -1)
+
+    def test_decoding(self):
+        decoded_bp_true = sbreakpoint.BreakPoint('CCDC6','ENST00000263102',1,535,-1,0,61666414,False,'RET','ENST00000355710',2369,5659,-1,10,43609928,False)
+        cosmic_fusion_bp = 'CCDC6{ENST00000263102}:r.1_535_RET{ENST00000355710}:r.2369_5659'
+
+        gc = snannotation.GeneCoords(load_refseq=False, load_canonical=False, load_transcript=True)
+        decoded_bp = sbreakpoint.decode_cosmic_fusion_breakpoint_format(cosmic_fusion_bp, gc.transcript_map)
+        self.assertEqual(decoded_bp, decoded_bp_true)
    
 if __name__ == '__main__':
     unittest.main()

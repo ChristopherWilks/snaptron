@@ -10,6 +10,7 @@ import subprocess
 import json
 import time
 import operator
+import re
 
 import gzip
 
@@ -38,19 +39,31 @@ def process_params(input_):
 
 class GeneCoords(object):
 
-    def __init__(self):
-        gene_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.REFSEQ_ANNOTATION)
-        canonical_gene_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.CANONICAL_ANNOTATION)
-        gene_pickle_file = "%s.pkl" % (gene_file)
-        canonical_gene_pickle_file = "%s.pkl" % (canonical_gene_file)
-        self.gene_map = snaputil.load_cpickle_file(gene_pickle_file)
-        self.canonical_gene_map = snaputil.load_cpickle_file(canonical_gene_pickle_file)
-        if not self.gene_map:
-            self.gene_map = self.load_gene_coords(gene_file)
-        if not self.canonical_gene_map:
-            self.canonical_gene_map = self.load_canonical_gene_coords(canonical_gene_file)
-        snaputil.store_cpickle_file(gene_pickle_file,self.gene_map)
-        snaputil.store_cpickle_file(canonical_gene_pickle_file,self.canonical_gene_map)
+    def __init__(self,load_refseq=True,load_canonical=True,load_transcript=False):
+        self.ensembl_id_patt = re.compile('(ENST\d+)')
+        if load_refseq:
+            gene_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.REFSEQ_ANNOTATION)
+            gene_pickle_file = "%s.pkl" % (gene_file)
+            self.gene_map = snaputil.load_cpickle_file(gene_pickle_file)
+            if not self.gene_map:
+                self.load_gene_coords(gene_file)
+            snaputil.store_cpickle_file(gene_pickle_file,self.gene_map)
+        if load_canonical:
+            canonical_gene_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.CANONICAL_ANNOTATION)
+            canonical_gene_pickle_file = "%s.pkl" % (canonical_gene_file)
+            self.canonical_gene_map = snaputil.load_cpickle_file(canonical_gene_pickle_file)
+            if not self.canonical_gene_map:
+                self.load_canonical_gene_coords(canonical_gene_file)
+            snaputil.store_cpickle_file(canonical_gene_pickle_file,self.canonical_gene_map)
+       
+        #per transcript exons
+        if load_transcript:
+            transcript_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.TABIX_GENE_INTERVAL_DB)
+            transcript_pickle_file = "%s.pkl" % (transcript_file)
+            self.transcript_map = snaputil.load_cpickle_file(transcript_pickle_file)
+            if not self.transcript_map:
+                self.load_transcripts(transcript_file)
+            snaputil.store_cpickle_file(transcript_pickle_file,self.transcript_map)
 
     def load_gene_coords(self,filepath):
         gene_map = {}
@@ -81,6 +94,7 @@ class GeneCoords(object):
                 else:
                     gene_map[gene_name]={}
                     gene_map[gene_name][chrom]=[[st,en]]
+        self.gene_map = gene_map
         return gene_map
     
     def load_canonical_gene_coords(self,filepath):
@@ -105,8 +119,30 @@ class GeneCoords(object):
                 else:
                     line_map = [[int(x1)+1,int(x2)] for (x1,x2) in zip(estarts,eends)] 
                 gene_map[gene_name]=[chrom,strand,line_map]
+        self.canonical_gene_map = gene_map
         return gene_map
 
+    def load_transcripts(self,filepath):
+        gene_map = {}
+        with gzip.open(filepath,"r") as f:
+            for line in f:
+                #chr1    GC,ES   transcript      26504039        26516377        .       +       .       transcript_id "ENST00000361530.6,ENST00000361530";cds_span "26504039-26516036";exons "26503894-26504090,26506944-26507101";
+                (chrom,annots,ttype,tstart,tend,_,strand,_,info) = line.rstrip().split('\t')
+                fields = info.split(';')
+                m = self.ensembl_id_patt.search(fields[0])
+                if m is None:
+                    continue
+                eid = m.group(1)
+                fields[2] = fields[2].replace('"','')
+                (_,exons) = fields[2].split(' ')
+                exons = exons.split(',')
+                if strand == '-':
+                    exons.reverse()
+                exon_coords = [x.split('-') for x in exons]
+                gene_map[eid]=[chrom,strand,exon_coords]
+        self.transcript_map = gene_map
+        return gene_map
+                    
 
     def gene2coords(self,geneq):
         exon_idxs = []
