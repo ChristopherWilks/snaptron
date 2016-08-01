@@ -2,7 +2,12 @@
 import sys
 import re
 from collections import namedtuple
+import gzip
+import snapconf
+import snannotation
 
+BREAKPOINT_COLUMN = 11
+breakpoint_pattern = re.compile(r'^([^{]+){([^}]+)}:r.([^{]+){([^}]+)}:r\.(.+)$')
 BreakPoint = namedtuple('BreakPoint','gname1 gid1 g1start g1end intron_coord1 exon_offset1 genomic_range1 antisense1 gname2 gid2 g2start g2end intron_coord2 exon_offset2 genomic_range2 antisense2')
 
 #normal exon2exon fusion
@@ -45,7 +50,6 @@ def is_gene_breakpoint_antisense(gname):
     return (gname,False)
 
 
-breakpoint_pattern = re.compile(r'^([^{]+){([^}]+)}:r.([^{]+){([^}]+)}:r\.(.+)$')
 def decode_cosmic_fusion_breakpoint_format(breakpoint_str, transcript_map):
     #TODO: support 3 or more region breakpoints
     m = breakpoint_pattern.search(breakpoint_str) 
@@ -136,3 +140,60 @@ def map_mrna2genomic_coord(gid, mrna_coord, transcript_map, first_gene=True):
     brange = determine_genomic_range_for_breakpoint(chrom, strand, transcript_coords, last_exon, first_gene)
     nrange = determine_genomic_range_for_outside_breakpoint(chrom, strand, transcript_coords, last_exon, first_gene)
     return (last_exon, brange, nrange)
+
+class CosmicFusions(object):
+
+    def __init__(self, cosmic_fp):
+        self.name2id = {}
+        self.id2fusion = {}
+        with gzip.open(cosmic_fp) as fin:
+            for line in fin:
+                line = line.rstrip()
+                fields = line.split('\t')
+                #only load the fusions with breakpoint info
+                if len(fields[BREAKPOINT_COLUMN]) < 1:
+                    continue
+                self.id2fusion[fields[BREAKPOINT_COLUMN-1]] = fields
+                m = breakpoint_pattern.search(fields[BREAKPOINT_COLUMN])
+                if m is not None:
+                    gname1 = m.group(1)
+                    gid1 = m.group(2)
+                    mcoords1_gname2 = m.group(3)
+                    gid2 = m.group(4)
+                    gname2 = mcoords1_gname2.split('_')[-1]
+                    self.name2id["%s-%s" % (gname1.upper(),gname2.upper())]=fields[BREAKPOINT_COLUMN-1] 
+
+
+
+def process_params(input_, cosmic_db):
+    cosmic_fusion_id = None
+    try:
+        cosmic_fusion_id = str(int(input_))
+    except ValueError, ve:
+        #(g1,g2) = input_.split('-')
+        fusion_name = input_.upper()
+        cosmic_fusion_id = cosmic_db.name2id[fusion_name]
+    fusion = cosmic_db.id2fusion[cosmic_fusion_id]
+    return (cosmic_fusion_id, fusion)
+
+
+def main():
+    input_ = sys.argv[1]
+    try:
+        cosmic_db = CosmicFusions(snapconf.COSMIC_FUSION_FILE)
+        (cosmic_fusion_id, fusion_info) = process_params(input_, cosmic_db)
+        breakpoint = fusion_info[BREAKPOINT_COLUMN]
+        gc = snannotation.GeneCoords(load_refseq=False, load_canonical=False, load_transcript=True)
+        (brks, norms, decoded_bp) = decode_cosmic_fusion_breakpoint_format(breakpoint, gc.transcript_map)
+        sys.stdout.write("region\tcontains\tgroup\n")
+        for norm in norms:
+            sys.stdout.write("%s\t1\tnormal\n" % norm)
+        for bp in brks:
+            sys.stdout.write("%s\t1\tbreakpoint\n" % bp)
+    except KeyError, ke:
+        sys.stderr.write("bad cosmic fusion id or name\n")
+        sys.exit(-1)
+
+
+if __name__ == '__main__':
+    main()

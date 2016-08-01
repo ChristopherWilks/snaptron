@@ -39,6 +39,7 @@ LUCENE_SAMPLE_DB="%s/lucene_v1/" % (TABIX_DB_PATH)
 REFSEQ_ANNOTATION='refFlat.hg19.txt.sorted'
 CANONICAL_ANNOTATION='hg19.ucsc_known_canonical.tsv'
 SAMPLE_MD_FILE="%s/all_illumina_sra_for_human_ids.tsv" % (TABIX_DB_PATH)
+COSMIC_FUSION_FILE="%s/CosmicFusionExport.tsv.gz" % (TABIX_DB_PATH)
 #####END of fields that need to be changed for a different instance
 
 
