@@ -3,7 +3,7 @@ import sys
 import re
 from collections import namedtuple
 
-BreakPoint = namedtuple('BreakPoint','gname1 gid1 g1start g1end intron_coord1 exon_offset1 genomic_coord1 antisense1 gname2 gid2 g2start g2end intron_coord2 exon_offset2 genomic_coord2 antisense2')
+BreakPoint = namedtuple('BreakPoint','gname1 gid1 g1start g1end intron_coord1 exon_offset1 genomic_range1 antisense1 gname2 gid2 g2start g2end intron_coord2 exon_offset2 genomic_range2 antisense2')
 
 #normal exon2exon fusion
 #CCDC6{ENST00000263102}:r.1_535_RET{ENST00000355710}:r.2369_5659
@@ -44,8 +44,10 @@ def is_gene_breakpoint_antisense(gname):
         return (gname[1:],True)
     return (gname,False)
 
+
 breakpoint_pattern = re.compile(r'^([^{]+){([^}]+)}:r.([^{]+){([^}]+)}:r\.(.+)$')
 def decode_cosmic_fusion_breakpoint_format(breakpoint_str, transcript_map):
+    #TODO: support 3 or more region breakpoints
     m = breakpoint_pattern.search(breakpoint_str) 
     if m is not None:
         gname1 = m.group(1)
@@ -59,30 +61,77 @@ def decode_cosmic_fusion_breakpoint_format(breakpoint_str, transcript_map):
         (_, g2start, g2end, intron_coord2) = decode_cosmic_mrna_coord_format(mcoords2, first_gene=False)
         (gname1, antisense1) = is_gene_breakpoint_antisense(gname1)
         (gname2, antisense2) = is_gene_breakpoint_antisense(gname2)
-        
-        (exon_offset1, exon_gcoords) = map_mrna2genomic_coord(gid1, g1end, transcript_map)
-        genomic_coord1 = int(exon_gcoords[1])
-        (exon_offset2, exon_gcoords) = map_mrna2genomic_coord(gid2, g2start, transcript_map)
-        genomic_coord2 = int(exon_gcoords[0])
+       
+        #now we need the genomic range for the exon sub-span of the transcript (inclusive) which are either in or outside of the fusion gene
+        brk_group = []
+        norm_group = []
+
+        (exon_offset1, brk_range1, norm_range1) = map_mrna2genomic_coord(gid1, g1end, transcript_map, first_gene=True)
+        brk_group.append(brk_range1)
+        norm_group.append(norm_range1)
+
+        (exon_offset2, brk_range2, norm_range2) = map_mrna2genomic_coord(gid2, g2start, transcript_map, first_gene=False)
+        brk_group.append(brk_range2)
+        norm_group.append(norm_range2)
          
-        return BreakPoint(gname1, gid1, g1start, g1end, intron_coord1, exon_offset1, genomic_coord1, antisense1, gname2, gid2, g2start, g2end, intron_coord2, exon_offset2, genomic_coord2, antisense2)
+        return (brk_group, norm_group, BreakPoint(gname1, gid1, g1start, g1end, intron_coord1, exon_offset1, brk_group[0], antisense1, gname2, gid2, g2start, g2end, intron_coord2, exon_offset2, brk_group[1], antisense2))
 
 
-def map_mrna2genomic_coord(gid, mrna_coord, transcript_map):
+def prepare_final_range(chrom,strand, e1start, e1end, e2start, e2end):
+    #default start/end
+    start = e1start
+    end = e2end
+    #swap so we always have start <= end
+    if strand == '-':
+        start = e2start
+        end = e1end
+    return "%s:%d-%d" % (chrom, int(start), int(end))
+
+def determine_genomic_range_for_outside_breakpoint(chrom, strand, transcript_coords, last_exon, first_gene=True):
+    (e1start,e1end) = transcript_coords[last_exon]
+    (e2start,e2end) = transcript_coords[-1]
+    #breakpoint exon end+1 thru end of transcript
+    if first_gene:
+        e1start = int(e1end) + 1
+        e1end = int(e1start) - 1 #only for reverse
+    #transcript start thru breakpoint exon start-1
+    else:
+        e2start = int(e1end) + 1 #only for reverse
+        e2end = int(e1start) - 1 
+        (e1start,e1end) = transcript_coords[0]
+    return prepare_final_range(chrom, strand, e1start, e1end, e2start, e2end)
+
+def determine_genomic_range_for_breakpoint(chrom, strand, transcript_coords, last_exon, first_gene=True):
+    #transcript start thru breakpoint exon end
+    (e1start,e1end) = transcript_coords[0]
+    (e2start,e2end) = transcript_coords[last_exon]
+    #breakpoint exon start thru end of transcript
+    if not first_gene:
+        (e1start,e1end) = (e2start,e2end)
+        (e2start,e2end) = transcript_coords[-1]
+    return prepare_final_range(chrom, strand, e1start, e1end, e2start, e2end)
+
+def map_mrna2genomic_coord(gid, mrna_coord, transcript_map, first_gene=True):
     if gid not in transcript_map:
         return (None, None)
     (chrom, strand, transcript_coords) = transcript_map[gid]
     toffset = 0
     last_exon = 0
     eidx = 0
-    #assume transcript coords are sorted
+    #assume transcript coords are sorted in correct order based on strand
     #TODO: could speed this up using a binary search, not necessary at this time
     for (s1,e1) in transcript_coords:
+        poffset = toffset+1
         #calculate offset for the span of this current exon
         #assume 1-based
         toffset += (int(e1) - int(s1)) + 1
-        if mrna_coord >= toffset:
+        if mrna_coord >= poffset:
             last_exon = eidx
+        if mrna_coord <= toffset:
+            break
         eidx += 1 
-    return (last_exon, transcript_coords[last_exon])
-
+    #now determine the full exon coordinate range from the original transcript for
+    #this gene's part of the fusion
+    brange = determine_genomic_range_for_breakpoint(chrom, strand, transcript_coords, last_exon, first_gene)
+    nrange = determine_genomic_range_for_outside_breakpoint(chrom, strand, transcript_coords, last_exon, first_gene)
+    return (last_exon, brange, nrange)

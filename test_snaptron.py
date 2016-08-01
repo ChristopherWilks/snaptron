@@ -320,11 +320,12 @@ class TestCosmic(unittest.TestCase):
         self.assertEqual(intron_coord, -1)
 
     def test_decoding(self):
-        decoded_bp_true = sbreakpoint.BreakPoint('CCDC6','ENST00000263102',1,535,-1,0,61666414,False,'RET','ENST00000355710',2369,5659,-1,10,43609928,False)
+        decoded_bp_true = sbreakpoint.BreakPoint('CCDC6','ENST00000263102',1,535,-1,0,"chr10:61665880-61666414",False,'RET','ENST00000355710',2369,5659,-1,11,"chr10:43612032-43625797",False)
         cosmic_fusion_bp = 'CCDC6{ENST00000263102}:r.1_535_RET{ENST00000355710}:r.2369_5659'
 
         gc = snannotation.GeneCoords(load_refseq=False, load_canonical=False, load_transcript=True)
-        decoded_bp = sbreakpoint.decode_cosmic_fusion_breakpoint_format(cosmic_fusion_bp, gc.transcript_map)
+        norms_true = []
+        (brks, norms, decoded_bp) = sbreakpoint.decode_cosmic_fusion_breakpoint_format(cosmic_fusion_bp, gc.transcript_map)
         self.assertEqual(decoded_bp, decoded_bp_true)
    
 if __name__ == '__main__':
