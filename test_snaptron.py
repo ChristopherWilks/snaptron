@@ -320,13 +320,43 @@ class TestCosmic(unittest.TestCase):
         self.assertEqual(intron_coord, -1)
 
     def test_decoding(self):
+        #-gene,+gene
         decoded_bp_true = sbreakpoint.BreakPoint('CCDC6','ENST00000263102',1,535,-1,0,"chr10:61665880-61666414",False,'RET','ENST00000355710',2369,5659,-1,11,"chr10:43612032-43625797",False)
         cosmic_fusion_bp = 'CCDC6{ENST00000263102}:r.1_535_RET{ENST00000355710}:r.2369_5659'
 
         gc = snannotation.GeneCoords(load_refseq=False, load_canonical=False, load_transcript=True)
-        norms_true = []
+        norms_true = ['chr10:61548521-61665879','chr10:43572517-43612031']
         (brks, norms, decoded_bp) = sbreakpoint.decode_cosmic_fusion_breakpoint_format(cosmic_fusion_bp, gc.transcript_map)
         self.assertEqual(decoded_bp, decoded_bp_true)
-   
+        self.assertEqual(norms, norms_true)
+        
+        #+gene,-gene
+        decoded_bp_true = sbreakpoint.BreakPoint('RET','ENST00000355710',1,2369,-1,11,"chr10:43572517-43612179",False,'CCDC6','ENST00000263102',685,5811,-1,1,"chr10:61548521-61612460",False)
+        cosmic_fusion_bp = 'RET{ENST00000355710}:r.1_2369_CCDC6{ENST00000263102}:r.685_5811'
+
+        norms_true = ['chr10:43612180-43625797','chr10:61612461-61666414']
+        (brks, norms, decoded_bp) = sbreakpoint.decode_cosmic_fusion_breakpoint_format(cosmic_fusion_bp, gc.transcript_map)
+        self.assertEqual(decoded_bp, decoded_bp_true)
+        self.assertEqual(norms, norms_true)
+        
+        #+gene,-gene w/ intron
+        decoded_bp_true = sbreakpoint.BreakPoint('RET','ENST00000355710',1,2369,10,11,"chr10:43572517-43612179",False,'CCDC6','ENST00000263102',685,5811,50,1,"chr10:61548521-61612460",False)
+        cosmic_fusion_bp = 'RET{ENST00000355710}:r.1_2369+10_CCDC6{ENST00000263102}:r.685-50_5811'
+
+        norms_true = ['chr10:43612180-43625797','chr10:61612461-61666414']
+        (brks, norms, decoded_bp) = sbreakpoint.decode_cosmic_fusion_breakpoint_format(cosmic_fusion_bp, gc.transcript_map)
+        self.assertEqual(decoded_bp, decoded_bp_true)
+        self.assertEqual(norms, norms_true)
+        
+        #-gene,+gene w/ unknown intron coords
+        decoded_bp_true = sbreakpoint.BreakPoint('CCDC6','ENST00000263102',1,535,-1,0,"chr10:61665880-61666414",False,'RET','ENST00000355710',2369,5659,-1,11,"chr10:43612032-43625797",False)
+        cosmic_fusion_bp = 'CCDC6{ENST00000263102}:r.1_535+?_RET{ENST00000355710}:r.2369-?_5659'
+
+        norms_true = ['chr10:61548521-61665879','chr10:43572517-43612031']
+        (brks, norms, decoded_bp) = sbreakpoint.decode_cosmic_fusion_breakpoint_format(cosmic_fusion_bp, gc.transcript_map)
+        self.assertEqual(decoded_bp, decoded_bp_true)
+        self.assertEqual(norms, norms_true)
+  
+
 if __name__ == '__main__':
     unittest.main()

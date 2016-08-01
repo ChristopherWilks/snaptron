@@ -31,7 +31,7 @@ def decode_cosmic_mrna_coord_format(mrna_coord_str, first_gene=True):
         fields = gend.split('+')
     #check if breakpoint in intron for current gene
     intron_coord = -1
-    if len(fields) > 1:
+    if len(fields) > 1 and fields[1] != '?':
         intron_coord = fields[1]
     if first_gene:
         gend = fields[0]
@@ -92,8 +92,9 @@ def determine_genomic_range_for_outside_breakpoint(chrom, strand, transcript_coo
     (e2start,e2end) = transcript_coords[-1]
     #breakpoint exon end+1 thru end of transcript
     if first_gene:
+        e1start_old = e1start
         e1start = int(e1end) + 1
-        e1end = int(e1start) - 1 #only for reverse
+        e1end = int(e1start_old) - 1 #only for reverse
     #transcript start thru breakpoint exon start-1
     else:
         e2start = int(e1end) + 1 #only for reverse
