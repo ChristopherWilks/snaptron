@@ -158,3 +158,4 @@ python query_snaptron.py --query-file alk.tsv --function jir
 python ./sbreakpoint.py '1271' > CCDC6_RET_breakpoint.tsv
 python ./sbreakpoint.py 'CCDC6-RET' > CCDC6_RET_breakpoint.tsv
 
+curl "http://stingray.cs.jhu.edu:8090/srav1/breakpoint?eml4-alk"

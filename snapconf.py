@@ -50,6 +50,7 @@ SNAPTRON_APP = "%s/snaptron.py" % (ROOT_DIR)
 SAMPLES_APP = "%s/snample.py" % (ROOT_DIR)
 ANNOTATIONS_APP = "%s/snannotation.py" % (ROOT_DIR)
 DENSITY_APP = "%s/sdensity.py" % (ROOT_DIR)
+BREAKPOINT_APP = "%s/sbreakpoint.py" % (ROOT_DIR)
 #size for the OS buffer on the input pipe reading from samtools output
 CMD_BUFFER_SIZE = -1
 #a low max for what we want to pass to samtools for start/end coordinates, otherwise samtools will return everything

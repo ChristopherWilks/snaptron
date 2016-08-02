@@ -19,6 +19,7 @@ from snaptronws import snaptron_endpoint
 from snaptronws import samples_endpoint
 from snaptronws import annotations_endpoint
 from snaptronws import density_endpoint
+from snaptronws import breakpoint_endpoint
 
 import snapconf
 
@@ -85,6 +86,10 @@ def annotation_service(environ, start_response):
 def density_service(environ, start_response):
     environ['read_size'] = options.read_size
     return density_endpoint(environ, start_response)
+
+def breakpoint_service(environ, start_response):
+    environ['read_size'] = options.read_size
+    return breakpoint_endpoint(environ, start_response)
 
 def lookup_user(username, err_str):
     try:
@@ -164,6 +169,7 @@ def run_server():
     cherrypy.tree.graft(sample_service, "/samples")
     cherrypy.tree.graft(annotation_service, "/annotations")
     cherrypy.tree.graft(density_service, "/density")
+    cherrypy.tree.graft(breakpoint_service, "/breakpoint")
 
     #cherrypy.config.update({'server.socket_host': "127.0.0.1", 'server.socket_port': 1555, 'server.thread_pool': 30})
     #cherrypy.config.update({'server.socket_host': "10.1.1.50", 'server.socket_port': 1555, 'server.thread_pool': 30})
