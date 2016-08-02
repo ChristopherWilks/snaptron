@@ -154,3 +154,7 @@ time python ./snaptron.py "rfilter=annotated:0,length<:10000" | sort -t'       '
 
 #client
 python query_snaptron.py --query-file alk.tsv --function jir
+
+python ./sbreakpoint.py '1271' > CCDC6_RET_breakpoint.tsv
+python ./sbreakpoint.py 'CCDC6-RET' > CCDC6_RET_breakpoint.tsv
+
