@@ -1,0 +1,5 @@
+region	contains	group
+chr2:42491872-42559688	1	normal
+chr2:29446395-30144432	1	normal
+chr2:42396490-42491871	1	breakpoint
+chr2:29415640-29446394	1	breakpoint
