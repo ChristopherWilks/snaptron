@@ -14,7 +14,9 @@ from SnaptronIteratorHTTP import SnaptronIteratorHTTP
 
 
 fmap = {'thresholds':'rfilter','filters':'sfilter','region':'regions'}
+breakpoint_patt = re.compile(r'^[^:]+-[^:]+$')
 def parse_query_argument(args, record, fieldnames, groups):
+    endpoint = 'snaptron'
     query=[]
     for field in fieldnames:
         if len(record[field]) > 0:
@@ -29,33 +31,38 @@ def parse_query_argument(args, record, fieldnames, groups):
                 if field in fmap:
                     mapped_field = fmap[field]
                 query.append("%s=%s" % (mapped_field,record[field]))
+            if field == 'region' and breakpoint_patt.search(record[field]) is not None:
+                endpoint = 'breakpoint'
     if args.function is not None:
         query.append("header=0")
-    return query
+    return (query,endpoint)
 
 
 def parse_command_line_args(args):
     fieldnames = []
+    endpoint = 'snaptron'
     #for field in (['region', 'thresholds', 'filters', 'contains', 'exact', 'within']):
     for field in clsnapconf.FIELD_ARGS.keys():
         if field in vars(args) and vars(args)[field] is not None:
             fieldnames.append(field)
     groups = []
-    query = parse_query_argument(args, vars(args), fieldnames, groups)
-    return (["&".join(query)], groups)
+    (query,endpoint) = parse_query_argument(args, vars(args), fieldnames, groups)
+    return (["&".join(query)], groups, endpoint)
 
 
 def parse_query_params(args):
     if args.query_file is None:
         return parse_command_line_args(args)
+    endpoint = 'snaptron'
     queries = []
     groups = []
     with open(args.query_file,"r") as cfin:
         creader = csv.DictReader(cfin,dialect=csv.excel_tab)
         for (i,record) in enumerate(creader):
-            query = parse_query_argument(args, record, creader.fieldnames, groups)
+            (query, endpoint) = parse_query_argument(args, record, creader.fieldnames, groups)
             queries.append("&".join(query))
-    return (queries,groups)
+    #assume the endpoint will be the same for all lines in the file
+    return (queries,groups,endpoint)
 
 
 def junction_inclusion_ratio(sample_stats,group_list,sample_records):
@@ -91,6 +98,7 @@ def count_sample_coverage_per_group(args, sample_stats, record, group):
             sample_stats[sample_id][group]=0
         sample_stats[sample_id][group]+=int(sample_covs[i])
 
+
 def download_sample_metadata(args):
     sample_records = {}
     gfout = None
@@ -121,8 +129,7 @@ def download_sample_metadata(args):
 
 compute_functions={'jir':(count_sample_coverage_per_group,junction_inclusion_ratio),None:(None,None)}
 def main(args):
-    (query_params_per_region,groups)=parse_query_params(args)
-    endpoint = 'snaptron'
+    (query_params_per_region,groups,endpoint)=parse_query_params(args)
     sample_stats = {}
     (count_function,summary_function) = compute_functions[args.function]
     sample_records={}
@@ -152,12 +159,6 @@ if __name__ == '__main__':
 
     #parser.add_argument('queries', metavar='"query"', type=str, nargs='+', help='raw query directly passed to the web services as is')
     
-    #parser.add_argument('--region', metavar='chr#:start-end', type=str, default=None, help='either a simple genomic region (e.g. chr1:1-1000) or a gene fusion pair (e.g. EML4-ALK)')
-    
-    #parser.add_argument('--thresholds', metavar='coverage_sum>=5&annotated=1', type=str, default=None, help='one or more junction specific thresholds/filters')
-    
-    #parser.add_argument('--filters', metavar='design_description: cortex', type=str, default=None, help='one or more sample specific filters passed to Lucene (using the Lucene query langage)')
-
     parser.add_argument('--query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more thresholds and/or filters specified and/or contained flag turned on')
 
     parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples; currently only supports Junction Inclusion Ratio (JIR)')

@@ -167,6 +167,7 @@ class CosmicFusions(object):
 
 def process_params(input_, cosmic_db):
     cosmic_fusion_id = None
+    (_,input_) = input_.split('=')
     try:
         cosmic_fusion_id = str(int(input_))
     except ValueError, ve:

@@ -3,7 +3,7 @@ import urllib2
 from SnaptronIterator import SnaptronIterator
 import clsnapconf
 
-ENDPOINTS={'snaptron':'snaptron','sample':'sample','annotation':'annotation','density':'density'}
+ENDPOINTS={'snaptron':'snaptron','sample':'sample','annotation':'annotation','density':'density','breakpoint':'breakpoint'}
 
 class SnaptronIteratorHTTP(SnaptronIterator):
 
