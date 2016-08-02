@@ -12,32 +12,48 @@ import snapconf
 import clsnapconf
 from SnaptronIteratorHTTP import SnaptronIteratorHTTP
 
-#TODO use python tmp
-TMPDIR='/tmp'
+
+fmap = {'thresholds':'rfilter','filters':'sfilter','region':'regions'}
+def parse_query_argument(args, record, fieldnames, groups):
+    query=[]
+    for field in fieldnames:
+        if len(record[field]) > 0:
+            if field == 'thresholds' or field == 'filters':
+                predicates = re.sub("=",":",record[field])
+                predicates = predicates.split('&')
+                query.append("&".join(["%s=%s" % (fmap[field],x) for x in predicates]))
+            elif field == 'group':
+                groups.append(record[field])
+            else:
+                mapped_field = field
+                if field in fmap:
+                    mapped_field = fmap[field]
+                query.append("%s=%s" % (mapped_field,record[field]))
+    if args.function is not None:
+        query.append("header=0")
+    return query
+
+
+def parse_command_line_args(args):
+    fieldnames = []
+    #for field in (['region', 'thresholds', 'filters', 'contains', 'exact', 'within']):
+    for field in clsnapconf.FIELD_ARGS.keys():
+        if field in vars(args) and vars(args)[field] is not None:
+            fieldnames.append(field)
+    groups = []
+    query = parse_query_argument(args, vars(args), fieldnames, groups)
+    return (["&".join(query)], groups)
+
 
 def parse_query_params(args):
+    if args.query_file is None:
+        return parse_command_line_args(args)
     queries = []
     groups = []
-    fmap = {'thresholds':'rfilter','filters':'sfilter','region':'regions'}
     with open(args.query_file,"r") as cfin:
         creader = csv.DictReader(cfin,dialect=csv.excel_tab)
         for (i,record) in enumerate(creader):
-            query=[]
-            for field in creader.fieldnames:
-                if len(record[field]) > 0:
-                    if field == 'thresholds' or field == 'filters':
-                        predicates = re.sub("=",":",record[field])
-                        predicates = predicates.split('&')
-                        query.append("&".join(["%s=%s" % (fmap[field],x) for x in predicates]))
-                    elif field == 'group':
-                        groups.append(record[field])
-                    else:
-                        mapped_field = field
-                        if field in fmap:
-                            mapped_field = fmap[field]
-                        query.append("%s=%s" % (mapped_field,record[field]))
-            if args.function is not None:
-                query.append("header=0")
+            query = parse_query_argument(args, record, creader.fieldnames, groups)
             queries.append("&".join(query))
     return (queries,groups)
 
@@ -122,7 +138,7 @@ def main(args):
                 count_function(args,sample_stats,record,groups[group_idx])
             else:
                 group_label = ''
-                if len(groups[group_idx]) > 0:
+                if len(groups) > 0 and len(groups[group_idx]) > 0:
                     group_label = "%s\t" % (groups[group_idx])
                 sys.stdout.write("%s%s\n" % (group_label,record))
     if args.function:
@@ -131,14 +147,31 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Snaptron command line client')
+    for (field,settings) in clsnapconf.FIELD_ARGS.iteritems():
+        parser.add_argument("--%s" % field, metavar=settings[0], type=settings[1], default=settings[2], help=settings[3])
 
-    parser.add_argument('--query-file', metavar='/path/to/file_with_queries', type=str, required=True, help='path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more thresholds and/or filters specified and/or contained flag turned on')
+    #parser.add_argument('queries', metavar='"query"', type=str, nargs='+', help='raw query directly passed to the web services as is')
+    
+    #parser.add_argument('--region', metavar='chr#:start-end', type=str, default=None, help='either a simple genomic region (e.g. chr1:1-1000) or a gene fusion pair (e.g. EML4-ALK)')
+    
+    #parser.add_argument('--thresholds', metavar='coverage_sum>=5&annotated=1', type=str, default=None, help='one or more junction specific thresholds/filters')
+    
+    #parser.add_argument('--filters', metavar='design_description: cortex', type=str, default=None, help='one or more sample specific filters passed to Lucene (using the Lucene query langage)')
 
-#    parser.add_argument('--groups', metavar='a=chr#:#-#,chr#:#-#;b=chr#:#-#;...', type=str, default='', help='comma separated list of junction groups defined by genomic intervals; records are prefixed with the group name on output')
+    parser.add_argument('--query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more thresholds and/or filters specified and/or contained flag turned on')
+
     parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples; currently only supports Junction Inclusion Ratio (JIR)')
-    parser.add_argument('--tmpdir', metavar='/path/to/tmpdir', type=str, default=TMPDIR, help='path to temporary storage for downloading and manipulating junction and sample records')
+
+    #parser.add_argument('--fusions', metavar='gene1-gene2', type=str, default=None, help='a list of one or more gene pairs present in a fusion database (currently only COSMIC) which have simple breakpoints definitions for which to run the JIR on; simple is defined here as those which have a single coordinate range for each gene')
+
+    parser.add_argument('--tmpdir', metavar='/path/to/tmpdir', type=str, default=clsnapconf.TMPDIR, help='path to temporary storage for downloading and manipulating junction and sample records')
 
     #returned format (UCSC, and/or subselection of fields) option?
     #intersection or union of intervals option?
 
-    main(parser.parse_args())
+    args = parser.parse_args()
+    if args.region is None and args.thresholds is None and args.filters is None and args.query_file is None:
+        sys.stderr.write("no discernible arguments passed in, exiting\n")
+        parser.print_help()
+        sys.exit(-1)
+    main(args)
