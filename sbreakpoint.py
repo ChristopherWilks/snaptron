@@ -168,6 +168,7 @@ class CosmicFusions(object):
 def process_params(input_, cosmic_db):
     cosmic_fusion_id = None
     (_,input_) = input_.split('=')
+    input_ = re.sub(r'^COSF(\d+)',r'\1',input_)
     try:
         cosmic_fusion_id = str(int(input_))
     except ValueError, ve:
