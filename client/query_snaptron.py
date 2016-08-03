@@ -14,7 +14,7 @@ from SnaptronIteratorHTTP import SnaptronIteratorHTTP
 
 fmap = {'thresholds':'rfilter','filters':'sfilter','region':'regions'}
 breakpoint_patt = re.compile(r'^[^:]+-[^:]+$')
-def parse_query_argument(args, record, fieldnames, groups):
+def parse_query_argument(record, fieldnames, groups, header=True):
     endpoint = 'snaptron'
     query=[]
     for field in fieldnames:
@@ -32,7 +32,7 @@ def parse_query_argument(args, record, fieldnames, groups):
                 query.append("%s=%s" % (mapped_field,record[field]))
             if field == 'region' and breakpoint_patt.search(record[field]) is not None:
                 endpoint = 'breakpoint'
-    if args.function is not None:
+    if not header:
         query.append("header=0")
     return (query,endpoint)
 
@@ -40,12 +40,11 @@ def parse_query_argument(args, record, fieldnames, groups):
 def parse_command_line_args(args):
     fieldnames = []
     endpoint = 'snaptron'
-    #for field in (['region', 'thresholds', 'filters', 'contains', 'exact', 'within']):
     for field in clsnapconf.FIELD_ARGS.keys():
         if field in vars(args) and vars(args)[field] is not None:
             fieldnames.append(field)
     groups = []
-    (query,endpoint) = parse_query_argument(args, vars(args), fieldnames, groups)
+    (query,endpoint) = parse_query_argument(vars(args), fieldnames, groups, header=args.function is None)
     return (["&".join(query)], groups, endpoint)
 
 
@@ -58,7 +57,7 @@ def parse_query_params(args):
     with open(args.query_file,"r") as cfin:
         creader = csv.DictReader(cfin,dialect=csv.excel_tab)
         for (i,record) in enumerate(creader):
-            (query, endpoint) = parse_query_argument(args, record, creader.fieldnames, groups)
+            (query, endpoint) = parse_query_argument(record, creader.fieldnames, groups, header=args.function is None)
             queries.append("&".join(query))
     #assume the endpoint will be the same for all lines in the file
     return (queries,groups,endpoint)
@@ -156,13 +155,9 @@ if __name__ == '__main__':
     for (field,settings) in clsnapconf.FIELD_ARGS.iteritems():
         parser.add_argument("--%s" % field, metavar=settings[0], type=settings[1], default=settings[2], help=settings[3])
 
-    #parser.add_argument('queries', metavar='"query"', type=str, nargs='+', help='raw query directly passed to the web services as is')
-    
     parser.add_argument('--query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more thresholds and/or filters specified and/or contained flag turned on')
 
     parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples; currently only supports Junction Inclusion Ratio (JIR)')
-
-    #parser.add_argument('--fusions', metavar='gene1-gene2', type=str, default=None, help='a list of one or more gene pairs present in a fusion database (currently only COSMIC) which have simple breakpoints definitions for which to run the JIR on; simple is defined here as those which have a single coordinate range for each gene')
 
     parser.add_argument('--tmpdir', metavar='/path/to/tmpdir', type=str, default=clsnapconf.TMPDIR, help='path to temporary storage for downloading and manipulating junction and sample records')
 
