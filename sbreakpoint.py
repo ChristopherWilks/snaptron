@@ -30,7 +30,7 @@ def decode_cosmic_mrna_coord_format(mrna_coord_str, first_gene=True):
         gname2 = fields.pop(-1)
     gend = fields.pop(-1)
     if gend == '?':
-        raise ValueError("missing coordinate in breakpoint string %s" % (mrna_coord_str))
+        raise RuntimeError("no coordinate available in breakpoint string %s from COSMIC" % (mrna_coord_str))
     gstart = fields[-1]
     fields = []
     fields = gstart.split('-')
@@ -180,7 +180,7 @@ def process_params(input_, cosmic_db):
         fusion_name = input_.upper()
         cosmic_fusion_ids = cosmic_db.name2id[fusion_name]
         if len(cosmic_fusion_ids) > 1:
-            raise ValueError("more than one fusion ID for the name %s" % fusion_name)
+            raise RuntimeError("more than one fusion ID for the name %s" % fusion_name)
     fusion = cosmic_db.id2fusion[cosmic_fusion_id]
     return (cosmic_fusion_id, fusion)
 
@@ -200,6 +200,10 @@ def main():
             sys.stdout.write("%s\t1\tbreakpoint\n" % bp)
     except KeyError, ke:
         sys.stderr.write("bad cosmic fusion id or name\n")
+        sys.exit(-1)
+    #want to avoid the full stacktrace for downstream users
+    except RuntimeError, e:
+        sys.stderr.write("%s\n" % str(e))
         sys.exit(-1)
 
 
