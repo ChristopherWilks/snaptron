@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.7
+import sys
 import urllib2
 from SnaptronIterator import SnaptronIterator
 import clsnapconf
@@ -20,7 +21,7 @@ class SnaptronIteratorHTTP(SnaptronIterator):
         return self.query_string
 
     def execute_query_string(self):
-        print(self.query_string)
+        sys.stderr.write("%s\n" % (self.query_string))
         self.response = urllib2.urlopen(self.query_string)
         return self.response
 

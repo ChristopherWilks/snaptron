@@ -8,7 +8,6 @@ import gzip
 import csv
 import re
 
-import snapconf
 import clsnapconf
 from SnaptronIteratorHTTP import SnaptronIteratorHTTP
 
@@ -89,8 +88,8 @@ def junction_inclusion_ratio(sample_stats,group_list,sample_records):
 
 def count_sample_coverage_per_group(args, sample_stats, record, group):
     fields = record.split('\t')
-    samples = fields[snapconf.SAMPLE_IDS_COL].split(',')
-    sample_covs = fields[snapconf.SAMPLE_IDS_COL+1].split(',')
+    samples = fields[clsnapconf.SAMPLE_IDS_COL].split(',')
+    sample_covs = fields[clsnapconf.SAMPLE_IDS_COL+1].split(',')
     for (i,sample_id) in enumerate(samples):
         if sample_id not in sample_stats:
             sample_stats[sample_id]={}
