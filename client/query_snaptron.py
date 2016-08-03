@@ -13,7 +13,7 @@ from SnaptronIteratorHTTP import SnaptronIteratorHTTP
 
 
 fmap = {'thresholds':'rfilter','filters':'sfilter','region':'regions'}
-breakpoint_patt = re.compile(r'^([^:]+-[^:]+)|(COSF\d+)|(\d+)$')
+breakpoint_patt = re.compile(r'(^[^:]+-[^:]+$)|(^COSF\d+$)|(^\d+$)')
 def parse_query_argument(record, fieldnames, groups, header=True):
     endpoint = 'snaptron'
     query=[]
