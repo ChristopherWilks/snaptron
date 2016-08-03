@@ -29,6 +29,8 @@ def decode_cosmic_mrna_coord_format(mrna_coord_str, first_gene=True):
     if first_gene:
         gname2 = fields.pop(-1)
     gend = fields.pop(-1)
+    if gend == '?':
+        raise ValueError("missing coordinate in breakpoint string %s" % (mrna_coord_str))
     gstart = fields[-1]
     fields = []
     fields = gstart.split('-')
@@ -161,7 +163,10 @@ class CosmicFusions(object):
                     mcoords1_gname2 = m.group(3)
                     gid2 = m.group(4)
                     gname2 = mcoords1_gname2.split('_')[-1]
-                    self.name2id["%s-%s" % (gname1.upper(),gname2.upper())]=fields[BREAKPOINT_COLUMN-1] 
+                    fusion_name = "%s-%s" % (gname1.upper(),gname2.upper())
+                    if fusion_name not in self.name2id:
+                        self.name2id[fusion_name] = set()
+                    self.name2id[fusion_name].add(fields[BREAKPOINT_COLUMN-1])
 
 
 
@@ -172,9 +177,10 @@ def process_params(input_, cosmic_db):
     try:
         cosmic_fusion_id = str(int(input_))
     except ValueError, ve:
-        #(g1,g2) = input_.split('-')
         fusion_name = input_.upper()
-        cosmic_fusion_id = cosmic_db.name2id[fusion_name]
+        cosmic_fusion_ids = cosmic_db.name2id[fusion_name]
+        if len(cosmic_fusion_ids) > 1:
+            raise ValueError("more than one fusion ID for the name %s" % fusion_name)
     fusion = cosmic_db.id2fusion[cosmic_fusion_id]
     return (cosmic_fusion_id, fusion)
 
