@@ -47,6 +47,7 @@ class StreamingResponseIterator:
         self.closed = False
         self.read_size = read_size
         self.stderr = []
+        self.error = False
 
     def __iter__(self):
         return self
@@ -80,21 +81,21 @@ class StreamingResponseIterator:
 
     def _wait(self):
         if self.closed:
-            return
+            return False
         self._read_last_stderr()
         self.stream_subproc.wait()
         self.closed = True
         if self.stream_subproc.returncode != 0 or len(self.stderr) > 0:
             errors = []
             logger.error("in _wait, found an error message")
-            stderr = "".join(self.stderr)
-            for line in stderr.split("\n"):
+            self.stderr = "".join(self.stderr)
+            for line in self.stderr.split("\n"):
                 errors.append("%s:%s" % (snapconf.SNAPTRON_APP, line.rstrip()))
                 logger.error("%s:%s" % (snapconf.SNAPTRON_APP, line.rstrip()))
             #alert the server to the error by THROWING AN EXCEPTION (not re-calling start_response)
             if self.stream_subproc.returncode != 0 or (not DEBUG_MODE and len(self.stderr) > 0):
-                raise Exception("%s failed on %s" % (snapconf.SNAPTRON_APP, ":::".join(errors)))
-            #raise Exception("%s failed on %s" % (SNAPTRON_APP, ":::".join(errors)))
+                return True
+        return False
 
     def _terminate(self):
         if self.closed:
@@ -104,6 +105,8 @@ class StreamingResponseIterator:
         self.closed = True
 
     def next(self):
+        if self.error:
+            raise Exception("%s failed on %s" % (snapconf.SNAPTRON_APP, self.stderr))
         if self.done:
             raise StopIteration
         #read next "chunk" from stream output, stream and return, 
@@ -111,7 +114,10 @@ class StreamingResponseIterator:
         chunk = self.stream_subproc.stdout.read(snapconf.READ_SIZE)
         if chunk == "":
             self.done = True
-            self._wait()
+            error = self._wait()
+            if error:
+                self.error = True
+                return self.stderr
             if self.request_id is not None:
                 with open(os.path.join(tempfile.gettempdir(), "snaptron.%s" % self.request_id), "w") as hashfile:
                     hashfile.write(self.content_hash.hexdigest())
