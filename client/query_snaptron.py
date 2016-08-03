@@ -124,30 +124,49 @@ def download_sample_metadata(args):
         gfout.close()
     return sample_records
 
-
-compute_functions={'jir':(count_sample_coverage_per_group,junction_inclusion_ratio),None:(None,None)}
-def main(args):
-    (query_params_per_region,groups,endpoint)=parse_query_params(args)
-    sample_stats = {}
-    (count_function,summary_function) = compute_functions[args.function]
-    sample_records={}
-    if args.function:
-        sample_records = download_sample_metadata(args)
-    group_list = set()
-    map(lambda x: group_list.add(x),groups)
-    group_list = sorted(group_list)
-    for (group_idx,query_param_string) in enumerate(query_params_per_region):
-        sIT = SnaptronIteratorHTTP(query_param_string,endpoint)
+def process_queries(query_params_per_region, groups, endpoint, function=None):
+    results = {'samples':{},'queries':[]}
+    for (group_idx, query_param_string) in enumerate(query_params_per_region):
+        sIT = SnaptronIteratorHTTP(query_param_string, endpoint)
         for record in sIT:
-            if args.function:
-                count_function(args,sample_stats,record,groups[group_idx])
+            if function is not None:
+                function(args, results['samples'], record, groups[group_idx])
+            elif endpoint == 'breakpoint':
+                (region, contains, group) = record.split('\t')
+                if region == 'region':
+                    continue
+                (query, _) = parse_query_argument({'region':region,'contains':contains,'group':group}, ['region', 'contains', 'group'], groups, header=False)
+                results['queries'].append("&".join(query))
             else:
                 group_label = ''
                 if len(groups) > 0 and len(groups[group_idx]) > 0:
                     group_label = "%s\t" % (groups[group_idx])
-                sys.stdout.write("%s%s\n" % (group_label,record))
-    if args.function:
-        scores = summary_function(sample_stats,group_list,sample_records)
+                sys.stdout.write("%s%s\n" % (group_label, record))
+    return results
+
+
+compute_functions={'jir':(count_sample_coverage_per_group,junction_inclusion_ratio),None:(None,None)}
+def main(args):
+    #parse original set of queries
+    (query_params_per_region, groups, endpoint) = parse_query_params(args)
+    #get original functions (if passed in)
+    (count_function, summary_function) = compute_functions[args.function]
+    #process original queries
+    results = process_queries(query_params_per_region, groups, endpoint, function=count_function)
+    #we have to do a double process if doing a breakpoint query since we get the coordinates
+    #in the first query round and then query them in the second (here)
+    if endpoint == 'breakpoint':
+        #update original None functions with the JIR
+        (count_function, summary_function) = compute_functions['jir']
+        #now process the coordinates that came back from the first breakpoint query using the normal query + JIR
+        results = process_queries(results['queries'], groups, 'snaptron', function=count_function)
+    #if either the user wanted the JIR to start with on some coordinate groups OR they asked for a breakpoint, do the JIR now
+    if args.function or endpoint == 'breakpoint':
+        sample_records = download_sample_metadata(args)
+        group_list = set()
+        map(lambda x: group_list.add(x), groups)
+        group_list = sorted(group_list)
+        scores = summary_function(results['samples'],group_list,sample_records)
 
 
 if __name__ == '__main__':
