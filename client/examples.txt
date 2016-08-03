@@ -1,0 +1,1 @@
+../../test_snaptron/client/cmds.txt
