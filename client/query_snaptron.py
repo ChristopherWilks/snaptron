@@ -76,6 +76,7 @@ def junction_inclusion_ratio(sample_stats,group_list,sample_records):
         denom = sample_stats[sample][group_b] + sample_stats[sample][group_a] + 1
         sample_scores[sample]=numer/float(denom)
     missing_sample_ids = set()
+    sys.stdout.write("analysis_score\t%s raw count\t%s raw count\tsample metadata\n" % (group_a,group_b))
     for sample in sorted(sample_scores.keys(),key=sample_scores.__getitem__,reverse=True):
         score = sample_scores[sample]
         if sample not in sample_records:
