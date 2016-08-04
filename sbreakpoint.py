@@ -195,9 +195,9 @@ def main():
         (brks, norms, decoded_bp) = decode_cosmic_fusion_breakpoint_format(breakpoint, gc.transcript_map)
         sys.stdout.write("region\tcontains\tgroup\n")
         for norm in norms:
-            sys.stdout.write("%s\t1\tnormal\n" % norm)
+            sys.stdout.write("%s\t1\t1_normal\n" % norm)
         for bp in brks:
-            sys.stdout.write("%s\t1\tbreakpoint\n" % bp)
+            sys.stdout.write("%s\t1\t2_breakpoint\n" % bp)
     except KeyError, ke:
         sys.stderr.write("bad cosmic fusion id or name\n")
         sys.exit(-1)
