@@ -120,7 +120,6 @@ def download_sample_metadata(args):
         sample_records[fields[0]]=line
         if gfout is not None:
             gfout.write("%s\n" % (line))
-        line = response.readline()
     if gfout is not None:
         gfout.close()
     return sample_records
