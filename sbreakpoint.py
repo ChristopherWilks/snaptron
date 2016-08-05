@@ -194,10 +194,10 @@ def main():
         gc = snannotation.GeneCoords(load_refseq=False, load_canonical=False, load_transcript=True)
         (brks, norms, decoded_bp) = decode_cosmic_fusion_breakpoint_format(breakpoint, gc.transcript_map)
         sys.stdout.write("region\tcontains\tgroup\n")
-        for norm in norms:
-            sys.stdout.write("%s\t1\t1_normal\n" % norm)
-        for bp in brks:
-            sys.stdout.write("%s\t1\t2_breakpoint\n" % bp)
+        for (i,norm) in enumerate(norms):
+            sys.stdout.write("%s\t1\tAnormal_%d\n" % (norm,i+1))
+        for (i,bp) in enumerate(brks):
+            sys.stdout.write("%s\t1\tBbreakpoint_%d\n" % (bp,i+1))
     except KeyError, ke:
         sys.stderr.write("bad cosmic fusion id or name\n")
         sys.exit(-1)

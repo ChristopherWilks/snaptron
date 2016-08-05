@@ -62,6 +62,38 @@ def parse_query_params(args):
     #assume the endpoint will be the same for all lines in the file
     return (queries,groups,endpoint)
 
+def junction_inclusion_ratio_bp(sample_stats,group_list,sample_records):
+    (group_a_g1, group_a_g2, group_b_g1, group_b_g2) = group_list
+    group_a = group_a_g1[:-2]
+    group_b = group_b_g1[:-2]
+    
+    sample_scores = {}
+    for sample in sample_stats:
+        if group_a_g1 not in sample_stats[sample]:
+            sample_stats[sample][group_a_g1]=0
+        if group_b_g1 not in sample_stats[sample]:
+            sample_stats[sample][group_b_g1]=0
+        if group_a_g2 not in sample_stats[sample]:
+            sample_stats[sample][group_a_g2]=0
+        if group_b_g2 not in sample_stats[sample]:
+            sample_stats[sample][group_b_g2]=0
+
+        sample_stats[sample][group_a] = max(sample_stats[sample][group_a_g1],sample_stats[sample][group_a_g2])
+        sample_stats[sample][group_b] = min(sample_stats[sample][group_b_g1],sample_stats[sample][group_b_g2])
+        numer = sample_stats[sample][group_b] - sample_stats[sample][group_a]
+        denom = sample_stats[sample][group_b] + sample_stats[sample][group_a] + 1
+        sample_scores[sample]=numer/float(denom)
+
+    missing_sample_ids = set()
+    sys.stdout.write("analysis_score\t%s raw count\t%s raw count\tsample metadata\n" % (group_a,group_b))
+    for sample in sorted(sample_scores.keys(),key=sample_scores.__getitem__,reverse=True):
+        score = sample_scores[sample]
+        if sample not in sample_records:
+            missing_sample_ids.add(sample)
+            continue
+        sample_record = sample_records[sample]
+        sys.stdout.write("%s\t%d\t%d\t%s\n" % (str(score),sample_stats[sample][group_a],sample_stats[sample][group_b],sample_record))
+
 
 def junction_inclusion_ratio(sample_stats,group_list,sample_records):
     group_a = group_list[0]
@@ -145,7 +177,7 @@ def process_queries(query_params_per_region, groups, endpoint, function=None):
     return results
 
 
-compute_functions={'jir':(count_sample_coverage_per_group,junction_inclusion_ratio),None:(None,None)}
+compute_functions={'jir':(count_sample_coverage_per_group,junction_inclusion_ratio),'jirbp':(count_sample_coverage_per_group,junction_inclusion_ratio_bp),None:(None,None)}
 def main(args):
     #parse original set of queries
     (query_params_per_region, groups, endpoint) = parse_query_params(args)
@@ -157,7 +189,7 @@ def main(args):
     #in the first query round and then query them in the second (here)
     if endpoint == 'breakpoint':
         #update original None functions with the JIR
-        (count_function, summary_function) = compute_functions['jir']
+        (count_function, summary_function) = compute_functions['jirbp']
         #now process the coordinates that came back from the first breakpoint query using the normal query + JIR
         results = process_queries(results['queries'], groups, 'snaptron', function=count_function)
     #if either the user wanted the JIR to start with on some coordinate groups OR they asked for a breakpoint, do the JIR now
@@ -166,7 +198,11 @@ def main(args):
         group_list = set()
         map(lambda x: group_list.add(x), groups)
         group_list = sorted(group_list)
-        scores = summary_function(results['samples'],group_list,sample_records)
+        #if endpoint == 'breakpoint':
+        #    junction_inclusion_ratio_bp(results['samples'],group_list,sample_records)
+        #else:
+        summary_function(results['samples'],group_list,sample_records)
+
 
 
 if __name__ == '__main__':
