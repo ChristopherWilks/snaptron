@@ -32,12 +32,7 @@ class SnaptronIterator():
         raise StopIteration
 
     def fill_buffer(self):
-        buf_ = None
-        try:
-            buf_ = self.response.read(self.buffer_size)
-        except httplib.IncompleteRead, ir:
-            sys.stderr.write(ir.partial)
-            raise ir
+        buf_ = self.response.read(self.buffer_size)
         if buf_ is None or buf_ == '':
             return 0
         bufs = [buf_]

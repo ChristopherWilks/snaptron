@@ -1,6 +1,7 @@
 #!/usr/bin/env python2.7
 import sys
 import urllib2
+import httplib
 from SnaptronIterator import SnaptronIterator
 import clsnapconf
 
@@ -25,6 +26,13 @@ class SnaptronIteratorHTTP(SnaptronIterator):
         self.response = urllib2.urlopen(self.query_string)
         return self.response
 
+    def fill_buffer(self):
+        #extend parent version to catch HTTP specific error
+        try:
+            return SnaptronIterator.fill_buffer(self)
+        except httplib.IncompleteRead, ir:
+            sys.stderr.write(ir.partial)
+            raise ir
 
 if __name__ == '__main__':
     it = SnaptronIteratorHTTP('regions=chr1:1-100000&rfilter=samples_count>:5','snaptron')
