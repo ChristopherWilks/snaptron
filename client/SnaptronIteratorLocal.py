@@ -34,9 +34,11 @@ class SnaptronIteratorLocal(SnaptronIterator):
             return lines_read
         self.subp.wait()
         errors = self.errors.read()
+        #dump any stderr output, not necessarily an error
+        #and it if its they'll see the stacktrace from the local module
         if len(errors) > 0:
             sys.stderr.write(errors)
-            raise RuntimeError("error from local command call %s" % (self.cmd))
+            #raise RuntimeError("error from local command call %s" % (self.cmd))
         return 0
 
 if __name__ == '__main__':

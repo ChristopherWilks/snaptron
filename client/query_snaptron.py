@@ -10,6 +10,7 @@ import re
 
 import clsnapconf
 from SnaptronIteratorHTTP import SnaptronIteratorHTTP
+from SnaptronIteratorLocal import SnaptronIteratorLocal
 
 
 fmap = {'thresholds':'rfilter','filters':'sfilter','region':'regions'}
@@ -156,10 +157,12 @@ def download_sample_metadata(args):
         gfout.close()
     return sample_records
 
-def process_queries(query_params_per_region, groups, endpoint, function=None):
+iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
+def process_queries(query_params_per_region, groups, endpoint, function=None, local=False):
     results = {'samples':{},'queries':[]}
     for (group_idx, query_param_string) in enumerate(query_params_per_region):
-        sIT = SnaptronIteratorHTTP(query_param_string, endpoint)
+        #sIT = SnaptronIteratorHTTP(query_param_string, endpoint)
+        sIT = iterator_map[local](query_param_string, endpoint)
         for record in sIT:
             if function is not None:
                 function(args, results['samples'], record, groups[group_idx])
@@ -184,14 +187,14 @@ def main(args):
     #get original functions (if passed in)
     (count_function, summary_function) = compute_functions[args.function]
     #process original queries
-    results = process_queries(query_params_per_region, groups, endpoint, function=count_function)
+    results = process_queries(query_params_per_region, groups, endpoint, function=count_function, local=args.local)
     #we have to do a double process if doing a breakpoint query since we get the coordinates
     #in the first query round and then query them in the second (here)
     if endpoint == 'breakpoint':
         #update original None functions with the JIR
         (count_function, summary_function) = compute_functions['jirbp']
         #now process the coordinates that came back from the first breakpoint query using the normal query + JIR
-        results = process_queries(results['queries'], groups, 'snaptron', function=count_function)
+        results = process_queries(results['queries'], groups, 'snaptron', function=count_function, local=args.local)
     #if either the user wanted the JIR to start with on some coordinate groups OR they asked for a breakpoint, do the JIR now
     if args.function or endpoint == 'breakpoint':
         sample_records = download_sample_metadata(args)
@@ -215,6 +218,9 @@ if __name__ == '__main__':
     parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples; currently only supports Junction Inclusion Ratio (JIR)')
 
     parser.add_argument('--tmpdir', metavar='/path/to/tmpdir', type=str, default=clsnapconf.TMPDIR, help='path to temporary storage for downloading and manipulating junction and sample records')
+    
+    parser.add_argument('--local', action='store_const', const=True, default=False, help='if running Snaptron modeules locally (skipping WSI)')
+    
 
     #returned format (UCSC, and/or subselection of fields) option?
     #intersection or union of intervals option?
