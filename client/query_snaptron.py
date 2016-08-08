@@ -63,7 +63,7 @@ def parse_query_params(args):
     #assume the endpoint will be the same for all lines in the file
     return (queries,groups,endpoint)
 
-def junction_inclusion_ratio_bp(sample_stats,group_list,sample_records):
+def junction_inclusion_ratio_bp(args, sample_stats, group_list, sample_records):
     (group_a_g1, group_a_g2, group_b_g1, group_b_g2) = group_list
     group_a = group_a_g1[:-2]
     group_b = group_b_g1[:-2]
@@ -86,8 +86,12 @@ def junction_inclusion_ratio_bp(sample_stats,group_list,sample_records):
         sample_scores[sample]=numer/float(denom)
 
     missing_sample_ids = set()
+    counter = 0
     sys.stdout.write("analysis_score\t%s raw count\t%s raw count\tsample metadata\n" % (group_a,group_b))
     for sample in sorted(sample_scores.keys(),key=sample_scores.__getitem__,reverse=True):
+        counter += 1
+        if args.limit > -1 and counter > args.limit:
+            break
         score = sample_scores[sample]
         if sample not in sample_records:
             missing_sample_ids.add(sample)
@@ -96,7 +100,7 @@ def junction_inclusion_ratio_bp(sample_stats,group_list,sample_records):
         sys.stdout.write("%s\t%d\t%d\t%s\n" % (str(score),sample_stats[sample][group_a],sample_stats[sample][group_b],sample_record))
 
 
-def junction_inclusion_ratio(sample_stats,group_list,sample_records):
+def junction_inclusion_ratio(args, sample_stats,group_list, sample_records):
     group_a = group_list[0]
     group_b = group_list[1]
     sample_scores = {}
@@ -109,8 +113,12 @@ def junction_inclusion_ratio(sample_stats,group_list,sample_records):
         denom = sample_stats[sample][group_b] + sample_stats[sample][group_a] + 1
         sample_scores[sample]=numer/float(denom)
     missing_sample_ids = set()
+    counter = 0
     sys.stdout.write("analysis_score\t%s raw count\t%s raw count\tsample metadata\n" % (group_a,group_b))
     for sample in sorted(sample_scores.keys(),key=sample_scores.__getitem__,reverse=True):
+        counter += 1
+        if args.limit > -1 and counter > args.limit:
+            break
         score = sample_scores[sample]
         if sample not in sample_records:
             missing_sample_ids.add(sample)
@@ -158,11 +166,13 @@ def download_sample_metadata(args):
     return sample_records
 
 iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
-def process_queries(query_params_per_region, groups, endpoint, function=None, local=False):
+def process_queries(args, query_params_per_region, groups, endpoint, function=None, local=False):
     results = {'samples':{},'queries':[]}
     for (group_idx, query_param_string) in enumerate(query_params_per_region):
         #sIT = SnaptronIteratorHTTP(query_param_string, endpoint)
         sIT = iterator_map[local](query_param_string, endpoint)
+        #assume we get a header in this case and don't count it against the args.limit
+        counter = -1
         for record in sIT:
             if function is not None:
                 function(args, results['samples'], record, groups[group_idx])
@@ -173,6 +183,9 @@ def process_queries(query_params_per_region, groups, endpoint, function=None, lo
                 (query, _) = parse_query_argument({'region':region,'contains':contains,'group':group}, ['region', 'contains', 'group'], groups, header=False)
                 results['queries'].append("&".join(query))
             else:
+                counter += 1
+                if args.limit > -1 and counter > args.limit:
+                    break
                 group_label = ''
                 if len(groups) > 0 and len(groups[group_idx]) > 0:
                     group_label = "%s\t" % (groups[group_idx])
@@ -187,14 +200,14 @@ def main(args):
     #get original functions (if passed in)
     (count_function, summary_function) = compute_functions[args.function]
     #process original queries
-    results = process_queries(query_params_per_region, groups, endpoint, function=count_function, local=args.local)
+    results = process_queries(args, query_params_per_region, groups, endpoint, function=count_function, local=args.local)
     #we have to do a double process if doing a breakpoint query since we get the coordinates
     #in the first query round and then query them in the second (here)
     if endpoint == 'breakpoint':
         #update original None functions with the JIR
         (count_function, summary_function) = compute_functions['jirbp']
         #now process the coordinates that came back from the first breakpoint query using the normal query + JIR
-        results = process_queries(results['queries'], groups, 'snaptron', function=count_function, local=args.local)
+        results = process_queries(args, results['queries'], groups, 'snaptron', function=count_function, local=args.local)
     #if either the user wanted the JIR to start with on some coordinate groups OR they asked for a breakpoint, do the JIR now
     if args.function or endpoint == 'breakpoint':
         sample_records = download_sample_metadata(args)
@@ -204,7 +217,7 @@ def main(args):
         #if endpoint == 'breakpoint':
         #    junction_inclusion_ratio_bp(results['samples'],group_list,sample_records)
         #else:
-        summary_function(results['samples'],group_list,sample_records)
+        summary_function(args, results['samples'],group_list,sample_records)
 
 
 
@@ -218,6 +231,8 @@ if __name__ == '__main__':
     parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples; currently only supports Junction Inclusion Ratio (JIR)')
 
     parser.add_argument('--tmpdir', metavar='/path/to/tmpdir', type=str, default=clsnapconf.TMPDIR, help='path to temporary storage for downloading and manipulating junction and sample records')
+    
+    parser.add_argument('--limit', metavar='1', type=int, default=-1, help='# of records to return, defaults to all (-1)')
     
     parser.add_argument('--local', action='store_const', const=True, default=False, help='if running Snaptron modeules locally (skipping WSI)')
     
