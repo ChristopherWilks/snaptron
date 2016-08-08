@@ -45,7 +45,7 @@ def parse_command_line_args(args):
         if field in vars(args) and vars(args)[field] is not None:
             fieldnames.append(field)
     groups = []
-    (query,endpoint) = parse_query_argument(vars(args), fieldnames, groups, header=args.function is None)
+    (query,endpoint) = parse_query_argument(vars(args), fieldnames, groups, header=args.function is None and not args.noheader)
     return (["&".join(query)], groups, endpoint)
 
 
@@ -58,7 +58,7 @@ def parse_query_params(args):
     with open(args.query_file,"r") as cfin:
         creader = csv.DictReader(cfin,dialect=csv.excel_tab)
         for (i,record) in enumerate(creader):
-            (query, endpoint) = parse_query_argument(record, creader.fieldnames, groups, header=args.function is None)
+            (query, endpoint) = parse_query_argument(record, creader.fieldnames, groups, header=args.function is None and not args.noheader)
             queries.append("&".join(query))
     #assume the endpoint will be the same for all lines in the file
     return (queries,groups,endpoint)
@@ -87,7 +87,8 @@ def junction_inclusion_ratio_bp(args, sample_stats, group_list, sample_records):
 
     missing_sample_ids = set()
     counter = 0
-    sys.stdout.write("analysis_score\t%s raw count\t%s raw count\tsample metadata\n" % (group_a,group_b))
+    if not args.noheader:
+        sys.stdout.write("analysis_score\t%s raw count\t%s raw count\tsample metadata\n" % (group_a,group_b))
     for sample in sorted(sample_scores.keys(),key=sample_scores.__getitem__,reverse=True):
         counter += 1
         if args.limit > -1 and counter > args.limit:
@@ -114,7 +115,8 @@ def junction_inclusion_ratio(args, sample_stats,group_list, sample_records):
         sample_scores[sample]=numer/float(denom)
     missing_sample_ids = set()
     counter = 0
-    sys.stdout.write("analysis_score\t%s raw count\t%s raw count\tsample metadata\n" % (group_a,group_b))
+    if not args.noheader:
+        sys.stdout.write("analysis_score\t%s raw count\t%s raw count\tsample metadata\n" % (group_a,group_b))
     for sample in sorted(sample_scores.keys(),key=sample_scores.__getitem__,reverse=True):
         counter += 1
         if args.limit > -1 and counter > args.limit:
@@ -173,6 +175,8 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
         sIT = iterator_map[local](query_param_string, endpoint)
         #assume we get a header in this case and don't count it against the args.limit
         counter = -1
+        if args.noheader:
+            counter = 0
         for record in sIT:
             if function is not None:
                 function(args, results['samples'], record, groups[group_idx])
@@ -234,7 +238,9 @@ if __name__ == '__main__':
     
     parser.add_argument('--limit', metavar='1', type=int, default=-1, help='# of records to return, defaults to all (-1)')
     
+    
     parser.add_argument('--local', action='store_const', const=True, default=False, help='if running Snaptron modeules locally (skipping WSI)')
+    parser.add_argument('--noheader', action='store_const', const=True, default=False, help='turn off printing header in ouput')
     
 
     #returned format (UCSC, and/or subselection of fields) option?
