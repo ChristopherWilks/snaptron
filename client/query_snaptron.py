@@ -63,10 +63,18 @@ def parse_query_params(args):
     #assume the endpoint will be the same for all lines in the file
     return (queries,groups,endpoint)
 
+def calc_jir(a, b):
+    numer = b - a
+    denom = a + b + 1
+    return numer/float(denom)
+
+
 def junction_inclusion_ratio_bp(args, sample_stats, group_list, sample_records):
     (group_a_g1, group_a_g2, group_b_g1, group_b_g2) = group_list
     group_a = group_a_g1[:-2]
     group_b = group_b_g1[:-2]
+    g1 = group_a_g1[-1:]
+    g2 = group_a_g2[-1:]
     
     sample_scores = {}
     for sample in sample_stats:
@@ -79,16 +87,14 @@ def junction_inclusion_ratio_bp(args, sample_stats, group_list, sample_records):
         if group_b_g2 not in sample_stats[sample]:
             sample_stats[sample][group_b_g2]=0
 
-        sample_stats[sample][group_a] = max(sample_stats[sample][group_a_g1],sample_stats[sample][group_a_g2])
-        sample_stats[sample][group_b] = min(sample_stats[sample][group_b_g1],sample_stats[sample][group_b_g2])
-        numer = sample_stats[sample][group_b] - sample_stats[sample][group_a]
-        denom = sample_stats[sample][group_b] + sample_stats[sample][group_a] + 1
-        sample_scores[sample]=numer/float(denom)
+        sample_stats[sample][g1] = [calc_jir(sample_stats[sample][group_a_g1], sample_stats[sample][group_b_g1]), sample_stats[sample][group_a_g1], sample_stats[sample][group_b_g1]]
+        sample_stats[sample][g2] = [calc_jir(sample_stats[sample][group_a_g2], sample_stats[sample][group_b_g2]), sample_stats[sample][group_a_g2], sample_stats[sample][group_b_g2]]
+        sample_scores[sample] = min(sample_stats[sample][g1][0], sample_stats[sample][g2][0])
 
     missing_sample_ids = set()
     counter = 0
     if not args.noheader:
-        sys.stdout.write("analysis_score\t%s raw count\t%s raw count\tsample metadata\n" % (group_a,group_b))
+        sys.stdout.write("analysis_score\t%s jir/a/b raw counts\t%s jir/a/b raw counts\tsample metadata\n" % (g1,g2))
     for sample in sorted(sample_scores.keys(),key=sample_scores.__getitem__,reverse=True):
         counter += 1
         if args.limit > -1 and counter > args.limit:
@@ -98,7 +104,7 @@ def junction_inclusion_ratio_bp(args, sample_stats, group_list, sample_records):
             missing_sample_ids.add(sample)
             continue
         sample_record = sample_records[sample]
-        sys.stdout.write("%s\t%d\t%d\t%s\n" % (str(score),sample_stats[sample][group_a],sample_stats[sample][group_b],sample_record))
+        sys.stdout.write("%s\t%s\t%s\t%s\n" % (str(score),":".join([str(x) for x in sample_stats[sample][g1]]),":".join([str(x) for x in sample_stats[sample][g2]]),sample_record))
 
 
 def junction_inclusion_ratio(args, sample_stats,group_list, sample_records):
@@ -110,9 +116,11 @@ def junction_inclusion_ratio(args, sample_stats,group_list, sample_records):
             sample_stats[sample][group_a]=0
         if group_b not in sample_stats[sample]:
             sample_stats[sample][group_b]=0
-        numer = sample_stats[sample][group_b] - sample_stats[sample][group_a]
-        denom = sample_stats[sample][group_b] + sample_stats[sample][group_a] + 1
-        sample_scores[sample]=numer/float(denom)
+        #numer = sample_stats[sample][group_b] - sample_stats[sample][group_a]
+        #denom = sample_stats[sample][group_b] + sample_stats[sample][group_a] + 1
+        #sample_scores[sample]=numer/float(denom)
+        sample_scores[sample] = calc_jir(sample_stats[sample][group_a], sample_stats[sample][group_b])
+
     missing_sample_ids = set()
     counter = 0
     if not args.noheader:
