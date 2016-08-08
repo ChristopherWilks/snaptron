@@ -89,6 +89,13 @@ echo "6" > expected_wc
 curl --data 'fields=[{"ids":["7465808"],"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":"100"}],"coverage_sum":[{"op":">:","val":"1000"}]},{"ids":["33401865","33401867","33401868"]}]' http://stingray.cs.jhu.edu:8090/srav1/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
+echo "chr7:5566782-5568791	1	Anormal_1" > expected_wc
+echo "chr12:57853934-57859570	1	Anormal_2" >> expected_wc
+echo "chr7:5568792-5570340	1	Bbreakpoint_1" >> expected_wc
+echo "chr12:57859571-57866047	1	Bbreakpoint_2" >> expected_wc
+curl "http://$HOST:$PORT/$PATH_//breakpoint?regions=COSF1392&header=0" > test_wc
+diff test_wc expected_wc
+
 rm test_wc expected_wc
 
 echo "all tests run"

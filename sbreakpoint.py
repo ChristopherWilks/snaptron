@@ -172,28 +172,37 @@ class CosmicFusions(object):
 
 def process_params(input_, cosmic_db):
     cosmic_fusion_id = None
-    (_,input_) = input_.split('=')
-    input_ = re.sub(r'^COSF(\d+)',r'\1',input_)
-    try:
-        cosmic_fusion_id = str(int(input_))
-    except ValueError, ve:
-        fusion_name = input_.upper()
-        cosmic_fusion_ids = cosmic_db.name2id[fusion_name]
-        if len(cosmic_fusion_ids) > 1:
-            raise RuntimeError("more than one fusion ID for the name %s" % fusion_name)
-    fusion = cosmic_db.id2fusion[cosmic_fusion_id]
-    return (cosmic_fusion_id, fusion)
+    fields = input_.split('&')
+    header = True
+    cosmic_fusion_id = -1
+    fusion = ""
+    for field in fields:
+        (fname,input_) = field.split('=')
+        if fname == 'header':
+            header = bool(int(input_))
+            continue
+        input_ = re.sub(r'^COSF(\d+)',r'\1',input_)
+        try:
+            cosmic_fusion_id = str(int(input_))
+        except ValueError, ve:
+            fusion_name = input_.upper()
+            cosmic_fusion_ids = cosmic_db.name2id[fusion_name]
+            if len(cosmic_fusion_ids) > 1:
+                raise RuntimeError("more than one fusion ID for the name %s" % fusion_name)
+        fusion = cosmic_db.id2fusion[cosmic_fusion_id]
+    return (cosmic_fusion_id, fusion, header)
 
 
 def main():
     input_ = sys.argv[1]
     try:
         cosmic_db = CosmicFusions(snapconf.COSMIC_FUSION_FILE)
-        (cosmic_fusion_id, fusion_info) = process_params(input_, cosmic_db)
+        (cosmic_fusion_id, fusion_info, header) = process_params(input_, cosmic_db)
         breakpoint = fusion_info[BREAKPOINT_COLUMN]
         gc = snannotation.GeneCoords(load_refseq=False, load_canonical=False, load_transcript=True)
         (brks, norms, decoded_bp) = decode_cosmic_fusion_breakpoint_format(breakpoint, gc.transcript_map)
-        sys.stdout.write("region\tcontains\tgroup\n")
+        if header:
+            sys.stdout.write("region\tcontains\tgroup\n")
         for (i,norm) in enumerate(norms):
             sys.stdout.write("%s\t1\tAnormal_%d\n" % (norm,i+1))
         for (i,bp) in enumerate(brks):
