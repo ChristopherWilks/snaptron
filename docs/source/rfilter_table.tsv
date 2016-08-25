@@ -1,0 +1,7 @@
+Field,Range of Values,Example,Description
+length,1-600K,intron_length<:5000,length of exon-exon junction (intron)
+annotated,0 or 1,annotated:1,whether both left and right splice sites in one or more annotations
+samples_count,1-Inf,samples_count>:5,number of samples in which this junction has one or more reads covering it
+coverage_sum**,1-Inf,coverage_sum>:10,aggregate count of reads covering the junction across all samples the junction appears in
+coverage_avg**,1.0-Inf,coverage_avg>:5.0,average of read coverage across all samples the junction appears in
+coverage_median**,1.0-Inf,coverage_median>:6.0,median of read coverage across all samples the junction appears in

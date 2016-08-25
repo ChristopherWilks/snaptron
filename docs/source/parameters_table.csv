@@ -1,0 +1,10 @@
+Parameter,Values,# Occurrences,Example,Description
+regions,chr[1-22XYM]:\d+-\d+; HUGO gene name,1 but can take multiple arguments separated by a comma representing an OR,chr1:1-5000;DRD4,coordinate intervals and/or HUGO gene names
+ids,"ids=\d+[,\d+]*",1,"ids=5,6,7",ID filter for snaptron_id (endpoint="snaptron") and sample_id (endpoint="samples")
+rfilter,fieldname[><!:]value,0 or more,rfilter=samples_count>:5&rfilter=coverage_sum:3,point range filter (inclusion)
+sfilter,fieldname:value OR freetext,0 or more,sfilter=description:Cortex&sfilter=library_strategy:RNA-Seq,sample metadata filter (inclusion)
+contains,"0,1",0-1 occurrences,contains=1,return only those junctions whose start and end coordinates are within the boundaries of the region (using either coordinates directly or passed in gene name)
+exact,"0,1",0-1 occurrences,exact=1,return only those junctions whose start and end coordinates are match the boundaries of the region requested
+within,"0,1,2",0-1 occurrences,within=2,return only those junctions whose start (within=1) or end (within=2) coordinate match or are within the boundaries of the region requested
+header,"0,1",0-1 occurrences,header=0,include the header as the first line (or not)
+fields**,"fields=fieldname[,fieldname]*",0 or more unique fieldnames within one fields clause,"fields=snaptron_id,samples_count",which fields to return

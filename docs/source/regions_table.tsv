@@ -1,0 +1,3 @@
+Field,Range of Values,Example,Description
+coordinate*,chr(1-22;X;Y;M):1-size of chromosome,chr1:4-100,chromosome:start-end
+gene symbol*,a-zA-Z0-9,CD99,HUGO (HGNC) gene symbols
