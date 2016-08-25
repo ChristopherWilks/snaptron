@@ -295,6 +295,8 @@ def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],
     tabix_db = ra.tabix_db_file
     select = 'SELECT * from intron WHERE snaptron_id in'
     found_snaptron_ids = set()
+    if len(ids) == 0:
+        return (set(),set())
     results = snaputil.retrieve_from_db_by_ids(snc,select,ids)
     #now get methods for 1) header output and 2) intron output (depending on request)
     (header_method,streamer_method) = return_formats[ra.return_format]

@@ -77,7 +77,7 @@ def search_samples_lucene(sample_map,sampleq,sample_set,stream_sample_metadata=F
         doc = searcher.doc(hit.doc)
         sid = doc.get("intropolis_sample_id_i")
         #track the sample ids if asked to
-        if sample_set != None:
+        if sample_set != None and len(sid) >= 1:
             sample_set.add(sid)
         #stream back the full sample metadata record from the in-memory dictionary
         if stream_sample_metadata:
@@ -126,7 +126,9 @@ def sample_ids2intron_ids(sample_ids):
     found_snaptron_ids = set()
     results = snaputil.retrieve_from_db_by_ids(sc,select,sample_ids)
     for snaptron_ids in results:
-       found_snaptron_ids.update(set(snaptron_ids[0].split(','))) 
+        found_snaptron_ids.update(set(snaptron_ids[0].split(',')))
+    if '' in found_snaptron_ids:
+        found_snaptron_ids.remove('')
     return found_snaptron_ids
 
 
