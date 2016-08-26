@@ -72,10 +72,18 @@ def filter_by_ranges(fields,rquerys):
             sys.exit(-1)
         fidx = snapconf.INTRON_HEADER_FIELDS_MAP[rfield]
         (ltype,ptype,qtype) = snapconf.LUCENE_TYPES[rfield]
-        val=ptype(fields[fidx])
-        if not op(val,rval):
-            skip=True
-            break
+        if rfield == 'annotated':
+            val = str(fields[fidx])
+            rval = str(rval)
+            #special casing for the annotated field since it's a mix of integer and string
+            if (len(val) > 1 and rval == '0') or (val == '0' and rval == '1'):
+                skip=True
+                break
+        else:
+            val=ptype(fields[fidx])
+            if not op(val,rval):
+                skip=True
+                break
     return skip
 
 def ucsc_format_header(fout,region_args=default_region_args,interval=None):

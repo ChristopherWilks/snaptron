@@ -96,6 +96,9 @@ echo "chr12:57859571-57866047	1	Bbreakpoint_2" >> expected_wc
 curl "http://$HOST:$PORT/$PATH_//breakpoint?regions=COSF1392&header=0" > test_wc
 diff test_wc expected_wc
 
+curl "http://$HOST:$PORT/$PATH_/snaptron?contains=1&regions=chr2:29446395-30142858&rfilter=samples_count>:100&rfilter=annotated:1" 2>/dev/null > test_annot_full.test
+diff test_annot_full.test test_annot_full
+
 rm test_wc expected_wc
 
 echo "all tests run"
