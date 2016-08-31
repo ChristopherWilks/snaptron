@@ -69,7 +69,8 @@ def calc_jir(a, b):
     return numer/float(denom)
 
 
-def junction_inclusion_ratio_bp(args, sample_stats, group_list, sample_records):
+def junction_inclusion_ratio_bp(args, results, group_list, sample_records):
+    sample_stats = results['samples']
     (group_a_g1, group_a_g2, group_b_g1, group_b_g2) = group_list
     group_a = group_a_g1[:-2]
     group_b = group_b_g1[:-2]
@@ -107,7 +108,8 @@ def junction_inclusion_ratio_bp(args, sample_stats, group_list, sample_records):
         sys.stdout.write("%s\t%s\t%s\t%s\n" % (str(score),":".join([str(x) for x in sample_stats[sample][g1]]),":".join([str(x) for x in sample_stats[sample][g2]]),sample_record))
 
 
-def junction_inclusion_ratio(args, sample_stats,group_list, sample_records):
+def junction_inclusion_ratio(args, results, group_list, sample_records):
+    sample_stats = results['samples']
     group_a = group_list[0]
     group_b = group_list[1]
     sample_scores = {}
@@ -136,8 +138,47 @@ def junction_inclusion_ratio(args, sample_stats,group_list, sample_records):
         sample_record = sample_records[sample]
         sys.stdout.write("%s\t%d\t%d\t%s\n" % (str(score),sample_stats[sample][group_a],sample_stats[sample][group_b],sample_record))
 
+def track_exons(args, results, record, group):
+    exons = results['exons']
+    fields = record.split('\t')
+    snid = fields[clsnapconf.INTRON_ID_COL]
+    for (type_,col) in {'start':clsnapconf.INTERVAL_START_COL,'end':clsnapconf.INTERVAL_END_COL}.iteritems():
+        coord = int(fields[col])
+        if coord not in exons:
+            exons[coord]={type_:set()}
+        if type_ not in exons[coord]:
+            exons[coord][type_]=set()
+        exons[coord][type_].add(snid)
 
-def count_sample_coverage_per_group(args, sample_stats, record, group):
+def filter_exons(args, results, group_list, sample_records):
+    #only used if filtering by length range
+    (rlen1,rlen2) = (None,None)
+    if args.exon_length is not None:
+        (rlen1,rlen2) = map(lambda x: int(x), args.exon_length.split('-'))
+    #filter the joint list of both intron start and end coordinates
+    coords = sorted(results['exons'].keys())
+    end = None
+    end_ids = None
+    sys.stdout.write("Type\tLeft End Snaptron IDs\tRight End Snaptron IDs\tstart\tend\tlength\n")
+    for (i,coord) in enumerate(coords):
+        fields = results['exons'][coord]
+        #end here is intron end (exon start)
+        if 'end' in fields:
+            end = coord
+            end_ids = fields['end']
+            #look for joining exon ends after this entry
+            for coord2 in coords[i+1:]:
+                fields2 = results['exons'][coord2]
+                #start here is intron start (exon end)
+                if 'start' in fields2:
+                    start_ids = fields2['start']
+                    dist = coord2 - 1 - end
+                    if dist >= clsnapconf.MIN_EXON_SIZE and (rlen1 is None or (dist >= int(rlen1) and dist <= int(rlen2))):
+                        sys.stdout.write("exon\t%s\t%s\t%d\t%d\t%d\n" % (",".join(end_ids),",".join(start_ids),end+1,coord2-1,dist))
+
+
+def count_sample_coverage_per_group(args, results, record, group):
+    sample_stats = results['samples']
     fields = record.split('\t')
     samples = fields[clsnapconf.SAMPLE_IDS_COL].split(',')
     sample_covs = fields[clsnapconf.SAMPLE_IDS_COL+1].split(',')
@@ -177,7 +218,7 @@ def download_sample_metadata(args):
 
 iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
 def process_queries(args, query_params_per_region, groups, endpoint, function=None, local=False):
-    results = {'samples':{},'queries':[]}
+    results = {'samples':{},'queries':[],'exons':{'start':{},'end':{}}} 
     for (group_idx, query_param_string) in enumerate(query_params_per_region):
         #sIT = SnaptronIteratorHTTP(query_param_string, endpoint)
         sIT = iterator_map[local](query_param_string, endpoint)
@@ -187,7 +228,10 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
             counter = 0
         for record in sIT:
             if function is not None:
-                function(args, results['samples'], record, groups[group_idx])
+                group = None
+                if group_idx < len(groups):
+                    group = groups[group_idx]
+                function(args, results, record, group)
             elif endpoint == 'breakpoint':
                 (region, contains, group) = record.split('\t')
                 if region == 'region':
@@ -205,7 +249,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
     return results
 
 
-compute_functions={'jir':(count_sample_coverage_per_group,junction_inclusion_ratio),'jirbp':(count_sample_coverage_per_group,junction_inclusion_ratio_bp),None:(None,None)}
+compute_functions={'jir':(count_sample_coverage_per_group,junction_inclusion_ratio),'jirbp':(count_sample_coverage_per_group,junction_inclusion_ratio_bp),'exon':(track_exons,filter_exons),None:(None,None)}
 def main(args):
     #parse original set of queries
     (query_params_per_region, groups, endpoint) = parse_query_params(args)
@@ -213,6 +257,7 @@ def main(args):
     (count_function, summary_function) = compute_functions[args.function]
     #process original queries
     results = process_queries(args, query_params_per_region, groups, endpoint, function=count_function, local=args.local)
+    print "results length %d\n" % len(results['samples'])
     #we have to do a double process if doing a breakpoint query since we get the coordinates
     #in the first query round and then query them in the second (here)
     if endpoint == 'breakpoint':
@@ -222,14 +267,13 @@ def main(args):
         results = process_queries(args, results['queries'], groups, 'snaptron', function=count_function, local=args.local)
     #if either the user wanted the JIR to start with on some coordinate groups OR they asked for a breakpoint, do the JIR now
     if args.function or endpoint == 'breakpoint':
-        sample_records = download_sample_metadata(args)
+        sample_records = {}
+        if args.function != 'exon':
+            sample_records = download_sample_metadata(args)
         group_list = set()
         map(lambda x: group_list.add(x), groups)
         group_list = sorted(group_list)
-        #if endpoint == 'breakpoint':
-        #    junction_inclusion_ratio_bp(results['samples'],group_list,sample_records)
-        #else:
-        summary_function(args, results['samples'],group_list,sample_records)
+        summary_function(args,results,group_list,sample_records)
 
 
 
@@ -240,11 +284,13 @@ if __name__ == '__main__':
 
     parser.add_argument('--query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more thresholds and/or filters specified and/or contained flag turned on')
 
-    parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples; currently only supports Junction Inclusion Ratio (JIR)')
+    parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples; currently only supports Junction Inclusion Ratio "jir" and exon finding "exon"')
 
     parser.add_argument('--tmpdir', metavar='/path/to/tmpdir', type=str, default=clsnapconf.TMPDIR, help='path to temporary storage for downloading and manipulating junction and sample records')
     
     parser.add_argument('--limit', metavar='1', type=int, default=-1, help='# of records to return, defaults to all (-1)')
+
+    parser.add_argument('--exon-length', metavar='50-60', type=str, default=None, help='length range of exons to look for within queried region when function is set to "exon", defaults to None (print out all exons in queried region when function is "exon")')
     
     
     parser.add_argument('--local', action='store_const', const=True, default=False, help='if running Snaptron modeules locally (skipping WSI)')
