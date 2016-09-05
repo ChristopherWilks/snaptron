@@ -28,6 +28,10 @@ if __name__ == "__main__":
   for n, l in enumerate(sys.stdin):
     doc = Document()
     fields = l.rstrip().split("\t")
+    #add one more field to header field set, which will index the concatenated set of all fields for general searches
+    all_ = []
+    if len(fields) < 1 or len(fields[0]) == 0:
+        continue
     for (idx,field) in enumerate(fields):
         if n == 0:
             typechar = field[-1]
@@ -36,13 +40,17 @@ if __name__ == "__main__":
                 exit(-1) 
             header.append([field,LUCENE_TYPES[typechar]])
         else:
+            all_.append(field)
             (fname,fieldtype) = header[idx]
             if fieldtype is IntField:
                 #sys.stdout.write("int field %s:%s\n" % (fname,field))
-                field = int(field) 
+                field = int(field)
             doc.add(fieldtype(fname, field, Field.Store.YES))  #Field.Store.YES, Field.Index.ANALYZED))
             #doc.add(Field(fieldtype, field, Field.Store.YES, Field.Index.ANALYZED))
             #doc.add(fieldtype(header[idx][1],field,Field.Store.YES)
+    if n > 0:
+        all_fields = ' '.join(all_)
+        doc.add(TextField('all_t', all_fields, Field.Store.NO))
     writer.addDocument(doc)
   print "Indexed %d lines from stdin (%d docs in index)" % (n, writer.numDocs())
   print "Closing index of %d docs..." % writer.numDocs()
