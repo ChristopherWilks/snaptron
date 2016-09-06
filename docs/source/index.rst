@@ -16,6 +16,19 @@ Christopher Wilks, Phani Gaddipati, Abhinav Nellore, Ben Langmead
 .. toctree::
    :maxdepth: 2
 
+SnaptronUI
+----------
+
+As an example of a downstream interface that can be built on top of the Snaptron web service interface there is the SnaptronUI for which there are two instances, one for SRAv1 (~21,000 samples) and a second for SRAv2 (~49,000 samples):
+
+SRAv1:
+  http://stingray.cs.jhu.edu:8100
+
+SRAv2
+  http://stingray.cs.jhu.edu:8443
+
+Caveat emptor, these instances are provided as examples only, at this time.  While they serve real data and may prove useful for investigations, they are not guaranteed to be stable/performant in anyway.
+
 Quickstart
 ----------
 
