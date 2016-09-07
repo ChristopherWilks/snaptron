@@ -38,7 +38,7 @@ close(IN);
 close(OUT);
 
 print "running ./liftover $file.bed $liftover_chain_file $file.bed.liftedover.$ref unmapped\n";
-`./liftover $file.bed $liftover_chain_file $file.bed.liftedover.$ref unmapped`;
+`./liftover -minMatch=1.00 -ends=2 $file.bed $liftover_chain_file $file.bed.liftedover.$ref unmapped`;
 
 open(IN,"<$file.bed.liftedover.$ref");
 open(OUT,">$file.$ref");
