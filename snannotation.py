@@ -21,7 +21,7 @@ import snaptron
 DEBUG_MODE=False
 
 def process_params(input_):
-    params = {'regions':[],'contains':'0','within':'0','exact':'0','limit':0}
+    params = {'regions':[],'contains':'0','within':'0','exact':'0','limit':20}
     params_ = input_.split('&')
     for param_ in params_:
         (key,val) = param_.split("=")
@@ -170,7 +170,7 @@ class GeneCoords(object):
         return sorted(self.gene_map[geneq].iteritems())
 
 
-def query_gene_regions(intervalq,contains=False,within=0,exact=False,limit=0):
+def query_gene_regions(intervalq,contains=False,within=0,exact=False,limit=20):
     print_header = True
     ra = snaptron.default_region_args._replace(tabix_db_file=snapconf.TABIX_GENE_INTERVAL_DB,range_filters=None,save_introns=False,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G",cut_start_col=1,region_start_col=snapconf.GENE_START_COL,region_end_col=snapconf.GENE_END_COL,contains=contains,within=within,exact=exact,debug=DEBUG_MODE)
     gc = GeneCoords()
