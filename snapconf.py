@@ -24,17 +24,19 @@ BIGWIG2WIG="bigWigToWig"
 TABIX_DB_PATH='./data'
 #TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.gtf.sorted.gz'
 TABIX_GENE_INTERVAL_DB='gensemrefg.hg19_annotations.sorted.gtf.gz'
-TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
+TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2_expanded_annots.gz'
+#TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new2_w_sourcedb2.gz'
 #TABIX_INTERVAL_DB='all_SRA_introns_ids_stats.tsv.new3_w_sourcedb2.gz'
 TABIX_IDS_DB='by_id.gz'
 ID_START_COL=3
 CUT_START_COL=2
 #sqlite3 dbs
 SAMPLE_SQLITE_DB="%s/by_sample_ids.sqlite3" % (TABIX_DB_PATH)
-SNAPTRON_SQLITE_DB="%s/snaptron2.sqlite3" % (TABIX_DB_PATH)
+SNAPTRON_SQLITE_DB="%s/snaptron2b.sqlite3" % (TABIX_DB_PATH)
 #Lucene dbs
 LUCENE_RANGE_DB="%s/lucene_ranges_v1/" % (TABIX_DB_PATH)
-LUCENE_SAMPLE_DB="%s/lucene_v1/" % (TABIX_DB_PATH)
+#LUCENE_SAMPLE_DB="%s/lucene_v1/" % (TABIX_DB_PATH)
+LUCENE_SAMPLE_DB="%s/lucene/" % (TABIX_DB_PATH)
 #gene annotation related flat files
 REFSEQ_ANNOTATION='refFlat.hg19.txt.sorted'
 CANONICAL_ANNOTATION='hg19.ucsc_known_canonical.tsv'
@@ -114,7 +116,7 @@ MAX_DISTANCE_BETWEEN_IDS=1000
 #SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
 
 #GENE_ANNOTATION_HEADER (GTF)
-GENE_ANNOTATION_HEADER = "DataSource:Type\treference\tannotation_source\tfeature_type\tstart\tend\tunused\tstrand\tunused\tattributes";
+GENE_ANNOTATION_HEADER = "DataSource:Type\treference\tannotation_source\tfeature_type\tstart\tend\tscore\tstrand\tunused\tattributes";
 
 #setup headers for both the original intron list and the sample metadata list
 INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated	left_motif	right_motif	left_annotated	right_annotated	samples	read_coverage_by_sample	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'
