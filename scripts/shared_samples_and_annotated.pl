@@ -54,7 +54,7 @@ sub get_tissues
 	}
 	close(INP);
 	my $tissue_counts="";
-	map { $tissue_counts.=",".$_.":".$tissues{$_}.",".($tissues{$_}/$sample_count); } sort { $tissues{$b} <=> $tissues{$a} } keys %tissues;
+	map { $tissue_counts.=",".$_.":".$tissues{$_}.",".sprintf("%.3f",$tissues{$_}/$sample_count); } sort { $tissues{$b} <=> $tissues{$a} } keys %tissues;
 	$tissue_counts=~s/^,//;
 	return $tissue_counts;
 }
@@ -118,7 +118,7 @@ sub process_splice_pairs
 
 	my ($ss_count,$ss_percent1,$ss_percent2,$scov_sum1,$scov_sum2,$ssamples,$nssamples1,$nssamples2) = determine_shared_samples($f1[$SAMPLES_COL],$f2[$SAMPLES_COL],$f1[$SAMPLES_COV_COL],$f2[$SAMPLES_COV_COL]);
 	my $annotated_info = join("\t",($f1[$L_ANNOTATED_COL],$f1[$R_ANNOTATED_COL],$f2[$L_ANNOTATED_COL],$f2[$R_ANNOTATED_COL]));
-	my ($scov_avg1,$scov_avg2) = ($scov_sum1/$f1[$SAMPLES_COV_SUM_COL],$scov_sum2/$f2[$SAMPLES_COV_SUM_COL]);
+	my ($scov_avg1,$scov_avg2) = (sprintf("%.3f",$scov_sum1/$f1[$SAMPLES_COV_SUM_COL]),sprintf("%.3f",$scov_sum2/$f2[$SAMPLES_COV_SUM_COL]));
 
 	#if requested (only for GTEx) get the tissues for all shared samples
 	my $tissues_shared = get_tissues($ssamples,$ss_count) if($get_tissues);
@@ -164,5 +164,5 @@ sub determine_shared_samples
 		}
 	}
 	my $count = scalar @shared;
-	return ($count, $count/$count1, $count/$count2, $scov_sum1, $scov_sum2, join(",",(sort {$a<=>$b} @shared)), join(",",(sort {$a<=>$b} keys %s1)), join(",",(sort {$a<=>$b} keys %s2)));
+	return ($count, sprintf("%.3f",$count/$count1), sprintf("%.3f",$count/$count2), $scov_sum1, $scov_sum2, join(",",(sort {$a<=>$b} @shared)), join(",",(sort {$a<=>$b} keys %s1)), join(",",(sort {$a<=>$b} keys %s2)));
 }
