@@ -76,7 +76,7 @@ def filter_by_ranges(fields,rquerys):
             val = str(fields[fidx])
             rval = str(rval)
             #special casing for the annotated field since it's a mix of integer and string
-            if (len(val) > 1 and rval == '0') or (val == '0' and rval == '1'):
+            if ((len(val) > 1 or val == '1') and rval == '0') or (val == '0' and rval == '1'):
                 skip=True
                 break
         else:
