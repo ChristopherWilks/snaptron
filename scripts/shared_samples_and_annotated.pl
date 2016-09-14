@@ -36,6 +36,8 @@ sub main
 sub get_tissues
 {
 	my $sample_ids = shift;
+	my $sample_count = shift;
+
 	$sample_ids =~s/,$//;
 	$sample_ids=~s/,/","/g;
 	$sample_ids='"'.$sample_ids.'"';
@@ -52,7 +54,7 @@ sub get_tissues
 	}
 	close(INP);
 	my $tissue_counts="";
-	map { $tissue_counts.=",".$_.":".$tissues{$_}; } sort { $tissues{$b} <=> $tissues{$a} } keys %tissues;
+	map { $tissue_counts.=",".$_.":".$tissues{$_}.",".($tissues{$_}/$sample_count); } sort { $tissues{$b} <=> $tissues{$a} } keys %tissues;
 	$tissue_counts=~s/^,//;
 	return $tissue_counts;
 }
@@ -119,9 +121,9 @@ sub process_splice_pairs
 	my ($scov_avg1,$scov_avg2) = ($scov_sum1/$f1[$SAMPLES_COV_SUM_COL],$scov_sum2/$f2[$SAMPLES_COV_SUM_COL]);
 
 	#if requested (only for GTEx) get the tissues for all shared samples
-	my $tissues_shared = get_tissues($ssamples) if($get_tissues);
-	my $tissues1 = get_tissues($nssamples1) if($get_tissues);
-	my $tissues2 = get_tissues($nssamples2) if($get_tissues);
+	my $tissues_shared = get_tissues($ssamples,$ss_count) if($get_tissues);
+	my $tissues1 = get_tissues($nssamples1,$f1[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues);
+	my $tissues2 = get_tissues($nssamples2,$f2[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues);
 
 	print "$gene\t$fully_annotated\t$ss_count\t".$f1[$SAMPLES_COUNT_COL]."\t".$f2[$SAMPLES_COUNT_COL]."\t$ss_percent1\t$ss_percent2\t$scov_sum1\t$scov_sum2\t$f1[$SAMPLES_COV_SUM_COL]\t$f2[$SAMPLES_COV_SUM_COL]\t$scov_avg1\t$scov_avg2\t$tissues_shared\t$tissues1\t$tissues2\t$annotated_info\t$ssamples\t$nssamples1\t$nssamples2\n";
 }
