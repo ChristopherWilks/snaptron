@@ -34,7 +34,7 @@ Quickstart
 
 First, we will present an example query and then break it down to allow the impatient users to get on with their research and skip the longer explanation of the details: ::
 
-  curl "http://stingray.cs.jhu.edu:8090/srav1/snaptron?region=chr6:1-514015&rfilter=samples_count:100"
+  curl "http://stingray.cs.jhu.edu:8090/srav1/snaptron?regions=chr6:1-514015&rfilter=samples_count:100"
 
 The above command uses cURL to query the Snaptron web service for all junctions that overlap the coordinate range of ``1-514015`` on chromosome 6 and that have 1 or more reads coverage in exactly 100 samples (for CGI parsing reasons the .:. is used instead of .=. as a range operator).  The return format is a TAB delimited text stream of junction records, one per line including a header as the first line to explain the columns returned.
 
