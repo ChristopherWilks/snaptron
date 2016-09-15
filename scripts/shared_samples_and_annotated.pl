@@ -38,12 +38,16 @@ sub get_tissues
 	my $sample_ids = shift;
 	my $sample_count = shift;
 
+	return "" if($sample_count == 0);
+
 	$sample_ids =~s/,$//;
 	$sample_ids=~s/,/","/g;
 	$sample_ids='"'.$sample_ids.'"';
 	
 	my %tissues;
-
+	open(OUT1,">log");
+	print OUT1 "[$sample_ids]";
+	close(OUT1);
 	open(INP,"-|","curl --data 'fields=[{\"ids\":[$sample_ids]}]' http://stingray.cs.jhu.edu:8090/gtex/samples | cut -f 2,66,67");
 	while(my $row = <INP>)
 	{
