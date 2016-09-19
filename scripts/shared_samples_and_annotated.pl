@@ -2,6 +2,9 @@
 use strict;
 #produces summary info per exon (2 flanking JXs) including list of shared samples between flanking splice sites
 
+my $CHROM_COL=2;
+my $START_COL=3;
+my $END_COL=4;
 my $STRAND_COL=6;
 my $ANNOTATED_COL=7;
 my $L_ANNOTATED_COL=10;
@@ -120,6 +123,9 @@ sub process_splice_pairs
 	my $fully_annotated = 0;
 	$fully_annotated = 1 if((length($f1[$ANNOTATED_COL]) > 1 || $f1[$ANNOTATED_COL] == 1) && (length($f2[$ANNOTATED_COL]) > 1 || $f2[$ANNOTATED_COL] == 1));
 
+	#get coordinates for JIR calculation
+	create_JIR_query_file($gene,\@f1,\@f2);	
+
 	my ($ss_count,$ss_percent1,$ss_percent2,$scov_sum1,$scov_sum2,$ssamples,$nssamples1,$nssamples2) = determine_shared_samples($f1[$SAMPLES_COL],$f2[$SAMPLES_COL],$f1[$SAMPLES_COV_COL],$f2[$SAMPLES_COV_COL]);
 	my $annotated_info = join("\t",($f1[$L_ANNOTATED_COL],$f1[$R_ANNOTATED_COL],$f2[$L_ANNOTATED_COL],$f2[$R_ANNOTATED_COL]));
 	my ($scov_avg1,$scov_avg2) = (sprintf("%.3f",$scov_sum1/$f1[$SAMPLES_COV_SUM_COL]),sprintf("%.3f",$scov_sum2/$f2[$SAMPLES_COV_SUM_COL]));
@@ -131,7 +137,26 @@ sub process_splice_pairs
 
 	print "$gene\t$fully_annotated\t$ss_count\t".$f1[$SAMPLES_COUNT_COL]."\t".$f2[$SAMPLES_COUNT_COL]."\t$ss_percent1\t$ss_percent2\t$scov_sum1\t$scov_sum2\t$f1[$SAMPLES_COV_SUM_COL]\t$f2[$SAMPLES_COV_SUM_COL]\t$scov_avg1\t$scov_avg2\t$tissues_shared\t$tissues1\t$tissues2\t$annotated_info\t$ssamples\t$nssamples1\t$nssamples2\n";
 }
-		
+	
+sub create_JIR_query_file
+{
+	my $g = shift;
+	my $f1=shift;
+	my $f2=shift;
+
+	my ($chrom,$s1,$e1) = ($f1->[$CHROM_COL],$f1->[$START_COL],$f1->[$END_COL]);
+	my ($chrom2,$s2,$e2) = ($f2->[$CHROM_COL],$f2->[$START_COL],$f2->[$END_COL]);
+	my ($s11,$e22) = ($s1,$e2);
+
+	open(OUT,">jir_hg38/$g.tsv");
+	print OUT "region\texact\tthresholds\tgroup\n";
+	print OUT "$chrom:$s1-$e1\t1\t\tgroupB\n";	
+	print OUT "$chrom:$s2-$e2\t1\t\tgroupB\n";	
+	print OUT "$chrom:$s11-$e22\t1\tannotated=1\tgroupA\n";
+	close(OUT);
+}
+
+
 sub determine_shared_samples
 {
 	my $samples1 = shift;
