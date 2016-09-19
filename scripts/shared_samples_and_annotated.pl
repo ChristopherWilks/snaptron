@@ -22,6 +22,12 @@ main();
 
 sub main
 {
+	my $top_info_h = "total_coverage\ttotal_cov_avg\ttotal_cov_median";
+	my $shared_info_h = "all_shared_samples_count\tall_shared_samples_cov_avg\tall_shared_cov_median";
+	my $annotated_info_h = "annotations\tannotations_left_left\tannotations_left_right\tannotations_right_left\tannotations_right_right";
+
+	print "gene\texon_length\tfully_annotated\t$shared_info_h\t$top_info_h\tshared_samples_count\tleft_samples_count\tright_samples_count\tleft_shared_samples_ratio\tright_shared_samples_ratio\tshared_samples_cov_sum_left\tshared_samples_cov_sum_right\tsamples_cov_sum_left\tsamples_cov_sum_right\tshared_samples_cov_avg_left\tshared_samples_cov_avg_right\ttissues_shared\ttissues_left\ttissues_right\t$annotated_info_h\tshared_samples\tnon_shared_samples_left\tnon_shared_samples_right\n";
+
 	my $strand_map = load_strands();
 	my @files = `ls $dir/*.1.tsv`;
 	chomp(@files);
@@ -95,38 +101,36 @@ sub process_splice_pairs
 	my @s2=stat("$dir/$second");
 	return if($s1[7] == 0 || $s2[7] == 0);
 
-	open(IN1,"<$dir/$first");
-	open(IN2,"<$dir/$second");
-
 	#grab top (by samples_count) hit for both flanking splices and look at shared sample membership
 	my $g = $gene;
 	$g=~s/_\d$//;
 	my $strand = $strand_map->{$g};
-	my @f1;
-	while(my $line1=<IN1>)
-	{
-		chomp($line1);
-		@f1 = split(/\t/,$line1);
-		last if($f1[$STRAND_COL] eq $strand);
-	}
-	my @f2;
-	while(my $line2=<IN2>)
-	{
-		chomp($line2);
-		@f2 = split(/\t/,$line2);
-		last if($f2[$STRAND_COL] eq $strand);
-	}
-	close(IN1);
-	close(IN2);
-	die "ERROR\t$gene\tno strand matching junctions for both flanks, exiting\n" if(scalar @f1 == 0 || scalar @f2 == 0);
+
+	my %all_samples1;
+	my ($start1,$end1,$f1) = process_junction("$dir/$first",\%all_samples1,$strand,$END_COL);
+	my %all_samples2;
+	my ($start2,$end2,$f2) = process_junction("$dir/$second",\%all_samples2,$strand,$START_COL);
+	die "ERROR\t$gene\tno strand matching junctions for both flanks, exiting\n" if(scalar !($f1) || scalar !($f2));
 	
+	my @f1 = @$f1;
+	my @f2 = @$f2;
+
+	my $all_shared_samples_count = 0;
+	my @all_shared_samples_covs;
+	map { if($all_samples2{$_}) { $all_shared_samples_count++; push(@all_shared_samples_covs, ($all_samples2{$_} + $all_samples1{$_}));}} keys %all_samples1;
+	my ($all_shared_samples_cov_avg, $all_shared_samples_cov_median) = average_and_median_sample_coverage(\@all_shared_samples_covs);
+
+
+	my $intron_length1 = ($end1-$start1)+1;
+	my $intron_length2 = ($end2-$start2)+1;
+	my $exon_length = ($start2-1)-($end1+1)+1;
 	my $fully_annotated = 0;
 	$fully_annotated = 1 if((length($f1[$ANNOTATED_COL]) > 1 || $f1[$ANNOTATED_COL] == 1) && (length($f2[$ANNOTATED_COL]) > 1 || $f2[$ANNOTATED_COL] == 1));
 
 	#get coordinates for JIR calculation
-	create_JIR_query_file($gene,\@f1,\@f2);	
+	#create_JIR_query_file($gene,\@f1,\@f2);	
 
-	my ($ss_count,$ss_percent1,$ss_percent2,$scov_sum1,$scov_sum2,$ssamples,$nssamples1,$nssamples2) = determine_shared_samples($f1[$SAMPLES_COL],$f2[$SAMPLES_COL],$f1[$SAMPLES_COV_COL],$f2[$SAMPLES_COV_COL]);
+	my ($ss_count,$ss_percent1,$ss_percent2,$total_cov,$cov_avg,$cov_median,$scov_sum1,$scov_sum2,$ssamples,$nssamples1,$nssamples2) = determine_shared_samples($f1[$SAMPLES_COL],$f2[$SAMPLES_COL],$f1[$SAMPLES_COV_COL],$f2[$SAMPLES_COV_COL]);
 	my $annotated_info = join("\t",($f1[$L_ANNOTATED_COL],$f1[$R_ANNOTATED_COL],$f2[$L_ANNOTATED_COL],$f2[$R_ANNOTATED_COL]));
 	my ($scov_avg1,$scov_avg2) = (sprintf("%.3f",$scov_sum1/$f1[$SAMPLES_COV_SUM_COL]),sprintf("%.3f",$scov_sum2/$f2[$SAMPLES_COV_SUM_COL]));
 
@@ -135,9 +139,50 @@ sub process_splice_pairs
 	my $tissues1 = get_tissues($nssamples1,$f1[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues);
 	my $tissues2 = get_tissues($nssamples2,$f2[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues);
 
-	print "$gene\t$fully_annotated\t$ss_count\t".$f1[$SAMPLES_COUNT_COL]."\t".$f2[$SAMPLES_COUNT_COL]."\t$ss_percent1\t$ss_percent2\t$scov_sum1\t$scov_sum2\t$f1[$SAMPLES_COV_SUM_COL]\t$f2[$SAMPLES_COV_SUM_COL]\t$scov_avg1\t$scov_avg2\t$tissues_shared\t$tissues1\t$tissues2\t$annotated_info\t$ssamples\t$nssamples1\t$nssamples2\n";
+
+	my $top_info = join("\t",($total_cov,$cov_avg,$cov_median));
+	my $shared_info = join("\t",($all_shared_samples_count,$all_shared_samples_cov_avg,$all_shared_samples_cov_median));
+
+	print "$gene\t$exon_length\t$intron_length1\t$intron_length2\t$fully_annotated\t$shared_info\t$top_info\t$ss_count\t".$f1[$SAMPLES_COUNT_COL]."\t".$f2[$SAMPLES_COUNT_COL]."\t$ss_percent1\t$ss_percent2\t$scov_sum1\t$scov_sum2\t$f1[$SAMPLES_COV_SUM_COL]\t$f2[$SAMPLES_COV_SUM_COL]\t$scov_avg1\t$scov_avg2\t$tissues_shared\t$tissues1\t$tissues2\t$annotated_info\t$ssamples\t$nssamples1\t$nssamples2\n";
+
+	#print "$gene\t$fully_annotated\t$ss_count\t".$f1[$SAMPLES_COUNT_COL]."\t".$f2[$SAMPLES_COUNT_COL]."\t$ss_percent1\t$ss_percent2\t$scov_sum1\t$scov_sum2\t$f1[$SAMPLES_COV_SUM_COL]\t$f2[$SAMPLES_COV_SUM_COL]\t$scov_avg1\t$scov_avg2\t$tissues_shared\t$tissues1\t$tissues2\t$annotated_info\t$ssamples\t$nssamples1\t$nssamples2\n";
 }
-	
+
+sub process_junction
+{
+	my $file = shift;
+	my $samplesH = shift;
+	my $strand = shift;
+	my $coord_col = shift;
+
+	open(IN1,"<$file");
+	my @f1;
+	my ($start,$end);
+	while(my $line1=<IN1>)
+	{
+		chomp($line1);
+		my @f1_ = split(/\t/,$line1);
+		if($f1_[$STRAND_COL] eq $strand)
+		{
+			#$coord = $f1_[$coord_col];
+			
+			my @samples = split(/,/,$f1_[$SAMPLES_COL]);
+			my @covs = split(/,/,$f1_[$SAMPLES_COV_COL]);
+			my $i=0;
+			map { $samplesH->{$_}=$covs[$i++]; } @samples;
+			if(scalar @f1 == 0)
+			{
+				($start,$end) = ($f1_[$START_COL],$f1_[$END_COL]);
+				@f1 = split(/\t/,$line1);
+			}
+		}
+	}
+	close(IN1);
+	return ($start,$end,\@f1);
+}
+
+
+
 sub create_JIR_query_file
 {
 	my $g = shift;
@@ -181,6 +226,8 @@ sub determine_shared_samples
 	my $count2 = scalar (keys %s2);
 
 	my @shared;
+	my @shared_covs;
+	my $total_cov=0;
 	for my $k (keys %s1)
 	{
 		if($s2{$k}>=1)
@@ -188,10 +235,29 @@ sub determine_shared_samples
 			push(@shared,$k);
 			$scov_sum1+=$covs1[$s1{$k}-1];
 			$scov_sum2+=$covs2[$s2{$k}-1];
+			my $cov = $covs1[$s1{$k}-1] + $covs2[$s2{$k}-1];
+			push(@shared_covs,$cov);
+			$total_cov+=$cov;
 			delete $s1{$k};
 			delete $s2{$k};
 		}
 	}
+	my ($avg_cov, $median_cov) = average_and_median_sample_coverage(\@shared_covs);
 	my $count = scalar @shared;
-	return ($count, sprintf("%.3f",$count/$count1), sprintf("%.3f",$count/$count2), $scov_sum1, $scov_sum2, join(",",(sort {$a<=>$b} @shared)), join(",",(sort {$a<=>$b} keys %s1)), join(",",(sort {$a<=>$b} keys %s2)));
+	return ($count, sprintf("%.3f",$count/$count1), sprintf("%.3f",$count/$count2), $total_cov, $avg_cov, $median_cov, $scov_sum1, $scov_sum2, join(",",(sort {$a<=>$b} @shared)), join(",",(sort {$a<=>$b} keys %s1)), join(",",(sort {$a<=>$b} keys %s2)));
+}
+
+sub average_and_median_sample_coverage
+{
+	my $shared_covs = shift;
+
+	my @shared_covs = @$shared_covs;
+	return (-1,-1) if(scalar @shared_covs == 0);
+	my @t = sort {$a <=> $b} @shared_covs;
+	my $avg_cov=0;
+	map {$avg_cov+=$_;} @shared_covs;
+	$avg_cov = $avg_cov/(scalar @shared_covs);
+	my $median_idx = int((scalar @t)/2);
+	my $median_cov = ($median_idx != (scalar @t)/2?$t[$median_idx]:(($t[$median_idx]+$t[$median_idx-1])/2));
+	return (sprintf("%.3f",$avg_cov), $median_cov);
 }
