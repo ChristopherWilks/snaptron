@@ -18,13 +18,14 @@ my $SAMPLES_COV_SUM_COL=15;
 my $dir = shift;
 my $strand_file = shift;
 my $get_tissues = shift;
+my $create_jir = shift;
 
 main();
 
 sub main
 {
 	my $top_info_h = "total_coverage\ttotal_cov_avg\ttotal_cov_median";
-	my $shared_info_h = "all_shared_samples_count\tall_shared_samples_cov_sum\tall_shared_samples_cov_avg\tall_shared_cov_median";
+	my $shared_info_h = "all_shared_samples_count\tall_shared_samples_cov_sum\tall_shared_samples_cov_min_sum\tall_shared_samples_cov_avg\tall_shared_cov_median";
 	my $annotated_info_h = "annotations_left_left\tannotations_left_right\tannotations_right_left\tannotations_right_right";
 	my $additional_info_h = "JIR	groupA_count	groupB_count	validated_by_RTPCR	validated_by_resequencing";
 
@@ -94,6 +95,14 @@ sub load_strand_and_JIR_and_validations
 	return \%h;
 }
 
+sub min
+{
+	my $value1=shift;
+	my $value2=shift;
+
+	return ($value1>$value2?$value2:$value1);
+}
+
 sub process_splice_pairs
 {
 	my $gene = shift;
@@ -123,9 +132,12 @@ sub process_splice_pairs
 
 	my $all_shared_samples_count = 0;
 	my @all_shared_samples_covs;
-	map { if($all_samples2{$_}) { $all_shared_samples_count++; push(@all_shared_samples_covs, ($all_samples2{$_} + $all_samples1{$_}));}} keys %all_samples1;
+	my @all_shared_samples_covs_mins;
+	map { if($all_samples2{$_}) { $all_shared_samples_count++; push(@all_shared_samples_covs, ($all_samples2{$_} * $all_samples1{$_})); push(@all_shared_samples_covs_mins, min($all_samples2{$_}, $all_samples1{$_}));}} keys %all_samples1;
 	my $all_shared_samples_cov_sum=0;
+	my $all_shared_samples_cov_min_sum=0;
 	map { $all_shared_samples_cov_sum+=$_; } @all_shared_samples_covs;
+	map { $all_shared_samples_cov_min_sum+=$_; } @all_shared_samples_covs_mins;
 	my ($all_shared_samples_cov_avg, $all_shared_samples_cov_median) = average_and_median_sample_coverage(\@all_shared_samples_covs);
 
 
@@ -136,7 +148,7 @@ sub process_splice_pairs
 	$fully_annotated = 1 if((length($f1[$ANNOTATED_COL]) > 1 || $f1[$ANNOTATED_COL] == 1) && (length($f2[$ANNOTATED_COL]) > 1 || $f2[$ANNOTATED_COL] == 1));
 
 	#get coordinates for JIR calculation
-	create_JIR_query_file($gene,$j1,$j2);	
+	create_JIR_query_file($gene,$j1,$j2) if($get_tissues >= 2 || $create_jir);
 
 	#print "$gene ".$f1[$SAMPLES_COL]." ".$f2[$SAMPLES_COL]."\n";
 	my ($ss_count,$ss_percent1,$ss_percent2,$total_cov,$cov_avg,$cov_median,$scov_sum1,$scov_sum2,$ssamples,$nssamples1,$nssamples2) = determine_shared_samples($f1[$SAMPLES_COL],$f2[$SAMPLES_COL],$f1[$SAMPLES_COV_COL],$f2[$SAMPLES_COV_COL]);
@@ -144,13 +156,13 @@ sub process_splice_pairs
 	my ($scov_avg1,$scov_avg2) = (sprintf("%.3f",$scov_sum1/$f1[$SAMPLES_COV_SUM_COL]),sprintf("%.3f",$scov_sum2/$f2[$SAMPLES_COV_SUM_COL]));
 
 	#if requested (only for GTEx) get the tissues for all shared samples
-	my ($tissues_shared,$num_tissues,$max_tissues_ratio) = get_tissues($ssamples,$ss_count) if($get_tissues);
-	my ($tissues1) = get_tissues($nssamples1,$f1[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues);
-	my ($tissues2) = get_tissues($nssamples2,$f2[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues);
+	my ($tissues_shared,$num_tissues,$max_tissues_ratio) = get_tissues($ssamples,$ss_count) if($get_tissues==1);
+	my ($tissues1) = get_tissues($nssamples1,$f1[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues==1);
+	my ($tissues2) = get_tissues($nssamples2,$f2[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues==1);
 
 
 	my $top_info = join("\t",($total_cov,$cov_avg,$cov_median));
-	my $shared_info = join("\t",($all_shared_samples_count,$all_shared_samples_cov_sum,$all_shared_samples_cov_avg,$all_shared_samples_cov_median));
+	my $shared_info = join("\t",($all_shared_samples_count,$all_shared_samples_cov_sum,$all_shared_samples_cov_min_sum,$all_shared_samples_cov_avg,$all_shared_samples_cov_median));
 
 	print "$gene\t$exon_length\t$intron_length1\t$intron_length2\t$num_jxs1\t$num_jxs2\t$fully_annotated\t$shared_info\t$top_info\t$ss_count\t".$f1[$SAMPLES_COUNT_COL]."\t".$f2[$SAMPLES_COUNT_COL]."\t$ss_percent1\t$ss_percent2\t$scov_sum1\t$scov_sum2\t$f1[$SAMPLES_COV_SUM_COL]\t$f2[$SAMPLES_COV_SUM_COL]\t$scov_avg1\t$scov_avg2\t$num_tissues\t$max_tissues_ratio\t$jir_and_validations\t$tissues_shared\t$tissues1\t$tissues2\t$annotated_info\t$ssamples\t$nssamples1\t$nssamples2\n";
 
@@ -182,7 +194,10 @@ sub process_junctions
 			my @samples = split(/,/,$f1_[$SAMPLES_COL]);
 			my @covs = split(/,/,$f1_[$SAMPLES_COV_COL]);
 			my $i=0;
-			map { $samplesH->{$_}=$covs[$i++]; } @samples;
+			#slight change sum over all coverage values across all junctions which share this splice 
+			#AND have a compatible strand
+			map { $samplesH->{$_}+=$covs[$i++]; } @samples;
+			#only grab the top sample count junction that is compatible
 			if(scalar @f1 == 0)
 			{
 				($start,$end) = ($f1_[$START_COL],$f1_[$END_COL]);
