@@ -2,6 +2,7 @@
 use strict;
 #produces summary info per exon (2 flanking JXs) including list of shared samples between flanking splice sites
 
+my $MAX_INT=(2**32)-1;
 my $CHROM_COL=2;
 my $START_COL=3;
 my $END_COL=4;
@@ -23,12 +24,13 @@ main();
 sub main
 {
 	my $top_info_h = "total_coverage\ttotal_cov_avg\ttotal_cov_median";
-	my $shared_info_h = "all_shared_samples_count\tall_shared_samples_cov_avg\tall_shared_cov_median";
-	my $annotated_info_h = "annotations\tannotations_left_left\tannotations_left_right\tannotations_right_left\tannotations_right_right";
+	my $shared_info_h = "all_shared_samples_count\tall_shared_samples_cov_sum\tall_shared_samples_cov_avg\tall_shared_cov_median";
+	my $annotated_info_h = "annotations_left_left\tannotations_left_right\tannotations_right_left\tannotations_right_right";
+	my $additional_info_h = "JIR	groupA_count	groupB_count	validated_by_RTPCR	validated_by_resequencing";
 
-	print "gene\texon_length\tfully_annotated\t$shared_info_h\t$top_info_h\tshared_samples_count\tleft_samples_count\tright_samples_count\tleft_shared_samples_ratio\tright_shared_samples_ratio\tshared_samples_cov_sum_left\tshared_samples_cov_sum_right\tsamples_cov_sum_left\tsamples_cov_sum_right\tshared_samples_cov_avg_left\tshared_samples_cov_avg_right\ttissues_shared\ttissues_left\ttissues_right\t$annotated_info_h\tshared_samples\tnon_shared_samples_left\tnon_shared_samples_right\n";
+	print "gene\texon_length\tleft_intron_length\tright_intron_length\tnum_junctions1\tnum_junctions2\tfully_annotated\t$shared_info_h\t$top_info_h\tshared_samples_count\tleft_samples_count\tright_samples_count\tleft_shared_samples_ratio\tright_shared_samples_ratio\tshared_samples_cov_sum_left\tshared_samples_cov_sum_right\tsamples_cov_sum_left\tsamples_cov_sum_right\tshared_samples_cov_avg_left\tshared_samples_cov_avg_right\tnum_tissues\tmax_tissues_ratio\t$additional_info_h\ttissues_shared\ttissues_left\ttissues_right\t$annotated_info_h\tshared_samples\tnon_shared_samples_left\tnon_shared_samples_right\n";
 
-	my $strand_map = load_strands();
+	my $strand_map = load_strand_and_JIR_and_validations();
 	my @files = `ls $dir/*.1.tsv`;
 	chomp(@files);
 	for my $f (@files)
@@ -67,24 +69,26 @@ sub get_tissues
 	}
 	close(INP);
 	my $tissue_counts="";
-	map { $tissue_counts.=",".$_.":".$tissues{$_}.",".sprintf("%.3f",$tissues{$_}/$sample_count); } sort { $tissues{$b} <=> $tissues{$a} } keys %tissues;
+	my $max_tissues_ratio;
+	map { $tissue_counts.=",".$_.":".$tissues{$_}.",".sprintf("%.3f",$tissues{$_}/$sample_count); $max_tissues_ratio = sprintf("%.3f",$tissues{$_}/$sample_count) if(!$max_tissues_ratio); } sort { $tissues{$b} <=> $tissues{$a} } keys %tissues;
 	$tissue_counts=~s/^,//;
-	return $tissue_counts;
+	return ($tissue_counts,scalar keys %tissues,$max_tissues_ratio);
 }
 		
 
-sub load_strands
+sub load_strand_and_JIR_and_validations
 {
 	open(IN,"<$strand_file");
 	my %h;
 	while(my $line=<IN>)
 	{
 		chomp($line);
-		my ($g,$coords) = split(/\t/,$line);
+		my ($g,$coords,$jir,$groupA_count,$groupB_count,$vRTPCR,$vResequenceing) = split(/\t/,$line);
+		$jir = sprintf("%.3f",$jir);
 		$g=~s/"//g;
 		my ($chrom,$coord,$strand)=split(/:/,$coords);
-		die "ERROR\t$g\tdifferent strands for same gene\n" if($h{$g} && $h{$g} ne $strand);
-		$h{$g}=$strand;
+		die "ERROR\t$g\tdifferent strands for same gene\n" if($h{$g} && $h{$g}->[0] ne $strand);
+		$h{$g}=[$strand,"$jir\t$groupA_count\t$groupB_count\t$vRTPCR\t$vResequenceing"];
 	}
 	close(IN);
 	return \%h;
@@ -104,13 +108,15 @@ sub process_splice_pairs
 	#grab top (by samples_count) hit for both flanking splices and look at shared sample membership
 	my $g = $gene;
 	$g=~s/_\d$//;
-	my $strand = $strand_map->{$g};
+	next if(!$strand_map->{$g});
+	my ($strand,$jir_and_validations) = @{$strand_map->{$g}};
 
 	my %all_samples1;
-	my ($start1,$end1,$f1) = process_junction("$dir/$first",\%all_samples1,$strand,$END_COL);
+	my ($start1,$end1,$num_jxs1,$f1,$j1) = process_junctions("$dir/$first",\%all_samples1,$strand,$L_ANNOTATED_COL);
 	my %all_samples2;
-	my ($start2,$end2,$f2) = process_junction("$dir/$second",\%all_samples2,$strand,$START_COL);
-	die "ERROR\t$gene\tno strand matching junctions for both flanks, exiting\n" if(scalar !($f1) || scalar !($f2));
+	my ($start2,$end2,$num_jxs2,$f2,$j2) = process_junctions("$dir/$second",\%all_samples2,$strand,$R_ANNOTATED_COL);
+	#die "ERROR\t$gene\tno strand matching junctions for both flanks, exiting\n" if(scalar !($f1) || scalar !($f2));
+	die "ERROR\t$gene\tno strand matching junctions for both flanks, exiting\n" if(scalar @$f1 == 0 || scalar @$f2 == 0);
 	
 	my @f1 = @$f1;
 	my @f2 = @$f2;
@@ -118,6 +124,8 @@ sub process_splice_pairs
 	my $all_shared_samples_count = 0;
 	my @all_shared_samples_covs;
 	map { if($all_samples2{$_}) { $all_shared_samples_count++; push(@all_shared_samples_covs, ($all_samples2{$_} + $all_samples1{$_}));}} keys %all_samples1;
+	my $all_shared_samples_cov_sum=0;
+	map { $all_shared_samples_cov_sum+=$_; } @all_shared_samples_covs;
 	my ($all_shared_samples_cov_avg, $all_shared_samples_cov_median) = average_and_median_sample_coverage(\@all_shared_samples_covs);
 
 
@@ -128,43 +136,48 @@ sub process_splice_pairs
 	$fully_annotated = 1 if((length($f1[$ANNOTATED_COL]) > 1 || $f1[$ANNOTATED_COL] == 1) && (length($f2[$ANNOTATED_COL]) > 1 || $f2[$ANNOTATED_COL] == 1));
 
 	#get coordinates for JIR calculation
-	#create_JIR_query_file($gene,\@f1,\@f2);	
+	create_JIR_query_file($gene,$j1,$j2);	
 
+	#print "$gene ".$f1[$SAMPLES_COL]." ".$f2[$SAMPLES_COL]."\n";
 	my ($ss_count,$ss_percent1,$ss_percent2,$total_cov,$cov_avg,$cov_median,$scov_sum1,$scov_sum2,$ssamples,$nssamples1,$nssamples2) = determine_shared_samples($f1[$SAMPLES_COL],$f2[$SAMPLES_COL],$f1[$SAMPLES_COV_COL],$f2[$SAMPLES_COV_COL]);
 	my $annotated_info = join("\t",($f1[$L_ANNOTATED_COL],$f1[$R_ANNOTATED_COL],$f2[$L_ANNOTATED_COL],$f2[$R_ANNOTATED_COL]));
 	my ($scov_avg1,$scov_avg2) = (sprintf("%.3f",$scov_sum1/$f1[$SAMPLES_COV_SUM_COL]),sprintf("%.3f",$scov_sum2/$f2[$SAMPLES_COV_SUM_COL]));
 
 	#if requested (only for GTEx) get the tissues for all shared samples
-	my $tissues_shared = get_tissues($ssamples,$ss_count) if($get_tissues);
-	my $tissues1 = get_tissues($nssamples1,$f1[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues);
-	my $tissues2 = get_tissues($nssamples2,$f2[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues);
+	my ($tissues_shared,$num_tissues,$max_tissues_ratio) = get_tissues($ssamples,$ss_count) if($get_tissues);
+	my ($tissues1) = get_tissues($nssamples1,$f1[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues);
+	my ($tissues2) = get_tissues($nssamples2,$f2[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues);
 
 
 	my $top_info = join("\t",($total_cov,$cov_avg,$cov_median));
-	my $shared_info = join("\t",($all_shared_samples_count,$all_shared_samples_cov_avg,$all_shared_samples_cov_median));
+	my $shared_info = join("\t",($all_shared_samples_count,$all_shared_samples_cov_sum,$all_shared_samples_cov_avg,$all_shared_samples_cov_median));
 
-	print "$gene\t$exon_length\t$intron_length1\t$intron_length2\t$fully_annotated\t$shared_info\t$top_info\t$ss_count\t".$f1[$SAMPLES_COUNT_COL]."\t".$f2[$SAMPLES_COUNT_COL]."\t$ss_percent1\t$ss_percent2\t$scov_sum1\t$scov_sum2\t$f1[$SAMPLES_COV_SUM_COL]\t$f2[$SAMPLES_COV_SUM_COL]\t$scov_avg1\t$scov_avg2\t$tissues_shared\t$tissues1\t$tissues2\t$annotated_info\t$ssamples\t$nssamples1\t$nssamples2\n";
+	print "$gene\t$exon_length\t$intron_length1\t$intron_length2\t$num_jxs1\t$num_jxs2\t$fully_annotated\t$shared_info\t$top_info\t$ss_count\t".$f1[$SAMPLES_COUNT_COL]."\t".$f2[$SAMPLES_COUNT_COL]."\t$ss_percent1\t$ss_percent2\t$scov_sum1\t$scov_sum2\t$f1[$SAMPLES_COV_SUM_COL]\t$f2[$SAMPLES_COV_SUM_COL]\t$scov_avg1\t$scov_avg2\t$num_tissues\t$max_tissues_ratio\t$jir_and_validations\t$tissues_shared\t$tissues1\t$tissues2\t$annotated_info\t$ssamples\t$nssamples1\t$nssamples2\n";
 
 	#print "$gene\t$fully_annotated\t$ss_count\t".$f1[$SAMPLES_COUNT_COL]."\t".$f2[$SAMPLES_COUNT_COL]."\t$ss_percent1\t$ss_percent2\t$scov_sum1\t$scov_sum2\t$f1[$SAMPLES_COV_SUM_COL]\t$f2[$SAMPLES_COV_SUM_COL]\t$scov_avg1\t$scov_avg2\t$tissues_shared\t$tissues1\t$tissues2\t$annotated_info\t$ssamples\t$nssamples1\t$nssamples2\n";
 }
 
-sub process_junction
+sub process_junctions
 {
 	my $file = shift;
 	my $samplesH = shift;
 	my $strand = shift;
-	my $coord_col = shift;
+	my $annot_col = shift;
 
 	open(IN1,"<$file");
 	my @f1;
+	my @jir;
+	my $jir_intron_length=$MAX_INT;
+
 	my ($start,$end);
+	my $num_jxs = 0;
 	while(my $line1=<IN1>)
 	{
 		chomp($line1);
 		my @f1_ = split(/\t/,$line1);
 		if($f1_[$STRAND_COL] eq $strand)
 		{
-			#$coord = $f1_[$coord_col];
+			$num_jxs++;
 			
 			my @samples = split(/,/,$f1_[$SAMPLES_COL]);
 			my @covs = split(/,/,$f1_[$SAMPLES_COV_COL]);
@@ -175,10 +188,17 @@ sub process_junction
 				($start,$end) = ($f1_[$START_COL],$f1_[$END_COL]);
 				@f1 = split(/\t/,$line1);
 			}
+			#determine if this is the flanking junction to use for the JIR
+			my $intron_length = ($f1_[$END_COL]-$f1_[$START_COL])+1;
+			if($f1_[$annot_col] ne "0" && $intron_length < $jir_intron_length)
+			{
+				@jir = @f1_;
+				$jir_intron_length = $intron_length;
+			}
 		}
 	}
 	close(IN1);
-	return ($start,$end,\@f1);
+	return ($start,$end,$num_jxs,\@f1,\@jir);
 }
 
 
@@ -188,6 +208,16 @@ sub create_JIR_query_file
 	my $g = shift;
 	my $f1=shift;
 	my $f2=shift;
+
+	return if(scalar @$f1 == 0 || scalar @$f2 == 0);
+
+	my $shared_samples_count = 0;
+	my %samples1;
+	map { $samples1{$_}=1; } split(/,/,$f1->[$SAMPLES_COL]);
+	map { $shared_samples_count++ if($samples1{$_}); } split(/,/,$f2->[$SAMPLES_COL]);
+
+	#the check for at least one co-occurring sample in both flanking introns for the JIR
+	return if($shared_samples_count == 0);
 
 	my ($chrom,$s1,$e1) = ($f1->[$CHROM_COL],$f1->[$START_COL],$f1->[$END_COL]);
 	my ($chrom2,$s2,$e2) = ($f2->[$CHROM_COL],$f2->[$START_COL],$f2->[$END_COL]);
