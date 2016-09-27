@@ -71,8 +71,8 @@ sub get_tissues
 	close(INP);
 	my $tissue_counts="";
 	my $max_tissues_ratio;
-	map { $tissue_counts.=",".$_.":".$tissues{$_}.",".sprintf("%.3f",$tissues{$_}/$sample_count); $max_tissues_ratio = sprintf("%.3f",$tissues{$_}/$sample_count) if(!$max_tissues_ratio); } sort { $tissues{$b} <=> $tissues{$a} } keys %tissues;
-	$tissue_counts=~s/^,//;
+	map { $tissue_counts.=";".$_.":".$tissues{$_}.",".sprintf("%.3f",$tissues{$_}/$sample_count); $max_tissues_ratio = sprintf("%.3f",$tissues{$_}/$sample_count) if(!$max_tissues_ratio); } sort { $tissues{$b} <=> $tissues{$a} } keys %tissues;
+	$tissue_counts=~s/^;//;
 	return ($tissue_counts,scalar keys %tissues,$max_tissues_ratio);
 }
 		
