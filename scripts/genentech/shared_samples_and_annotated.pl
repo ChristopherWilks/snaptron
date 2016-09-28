@@ -29,7 +29,7 @@ sub main
 	my $annotated_info_h = "annotations_left_left\tannotations_left_right\tannotations_right_left\tannotations_right_right";
 	my $additional_info_h = "JIR	groupA_count	groupB_count	validated_by_RTPCR	validated_by_resequencing";
 
-	print "gene\texon_length\tleft_intron_length\tright_intron_length\tnum_junctions1\tnum_junctions2\tfully_annotated\t$shared_info_h\t$top_info_h\tshared_samples_count\tleft_samples_count\tright_samples_count\tleft_shared_samples_ratio\tright_shared_samples_ratio\tshared_samples_cov_sum_left\tshared_samples_cov_sum_right\tsamples_cov_sum_left\tsamples_cov_sum_right\tshared_samples_cov_avg_left\tshared_samples_cov_avg_right\tnum_tissues\tmax_tissues_ratio\t$additional_info_h\ttissues_shared\ttissues_left\ttissues_right\t$annotated_info_h\tshared_samples\tnon_shared_samples_left\tnon_shared_samples_right\n";
+	print "gene\texon_length\tleft_intron_length\tright_intron_length\tnum_junctions1\tnum_junctions2\tfully_annotated\t$shared_info_h\t$top_info_h\tshared_samples_count\tleft_samples_count\tright_samples_count\tleft_shared_samples_ratio\tright_shared_samples_ratio\tshared_samples_cov_sum_left\tshared_samples_cov_sum_right\tsamples_cov_sum_left\tsamples_cov_sum_right\tshared_samples_cov_avg_left\tshared_samples_cov_avg_right\tnum_tissues\tmax_tissues_ratio\t$additional_info_h\ttissues_shared_covs\ttissues_shared\ttissues_left\ttissues_right\t$annotated_info_h\tshared_samples\tnon_shared_samples_left\tnon_shared_samples_right\n";
 
 	my $strand_map = load_strand_and_JIR_and_validations();
 	my @files = `ls $dir/*.1.tsv`;
@@ -49,6 +49,7 @@ sub get_tissues
 {
 	my $sample_ids = shift;
 	my $sample_count = shift;
+	my $shared_min_covs = shift;
 
 	return "" if($sample_count == 0);
 
@@ -57,6 +58,7 @@ sub get_tissues
 	$sample_ids='"'.$sample_ids.'"';
 	
 	my %tissues;
+	my %tissues_covs;
 	open(OUT1,">log");
 	print OUT1 "[$sample_ids]";
 	close(OUT1);
@@ -66,14 +68,19 @@ sub get_tissues
 		chomp($row);
 		next if($row =~ /intropolis/);
 		my ($rail_id,$tumor_type,$tissue) = split(/\t/,$row);
+		$tissues_covs{"$tumor_type-$tissue"}+=$shared_min_covs->{$rail_id};
 		$tissues{"$tumor_type-$tissue"}++;
 	}
 	close(INP);
 	my $tissue_counts="";
+	my $tissue_cov="";
 	my $max_tissues_ratio;
 	map { $tissue_counts.=";".$_.":".$tissues{$_}.",".sprintf("%.3f",$tissues{$_}/$sample_count); $max_tissues_ratio = sprintf("%.3f",$tissues{$_}/$sample_count) if(!$max_tissues_ratio); } sort { $tissues{$b} <=> $tissues{$a} } keys %tissues;
+
+	map { $tissue_cov.=";".$_.":".$tissues_covs{$_}; } sort { $tissues_covs{$b} <=> $tissues_covs{$a} } keys %tissues_covs;
 	$tissue_counts=~s/^;//;
-	return ($tissue_counts,scalar keys %tissues,$max_tissues_ratio);
+	$tissue_cov=~s/^;//;
+	return ($tissue_counts,scalar keys %tissues,$max_tissues_ratio,$tissue_cov);
 }
 		
 
@@ -151,12 +158,12 @@ sub process_splice_pairs
 	create_JIR_query_file($gene,$j1,$j2) if($get_tissues >= 2 || $create_jir);
 
 	#print "$gene ".$f1[$SAMPLES_COL]." ".$f2[$SAMPLES_COL]."\n";
-	my ($ss_count,$ss_percent1,$ss_percent2,$total_cov,$cov_avg,$cov_median,$scov_sum1,$scov_sum2,$ssamples,$nssamples1,$nssamples2) = determine_shared_samples($f1[$SAMPLES_COL],$f2[$SAMPLES_COL],$f1[$SAMPLES_COV_COL],$f2[$SAMPLES_COV_COL]);
+	my ($ss_count,$shared_min_covs,$ss_percent1,$ss_percent2,$total_cov,$cov_avg,$cov_median,$scov_sum1,$scov_sum2,$ssamples,$nssamples1,$nssamples2) = determine_shared_samples($f1[$SAMPLES_COL],$f2[$SAMPLES_COL],$f1[$SAMPLES_COV_COL],$f2[$SAMPLES_COV_COL]);
 	my $annotated_info = join("\t",($f1[$L_ANNOTATED_COL],$f1[$R_ANNOTATED_COL],$f2[$L_ANNOTATED_COL],$f2[$R_ANNOTATED_COL]));
 	my ($scov_avg1,$scov_avg2) = (sprintf("%.3f",$scov_sum1/$f1[$SAMPLES_COV_SUM_COL]),sprintf("%.3f",$scov_sum2/$f2[$SAMPLES_COV_SUM_COL]));
 
 	#if requested (only for GTEx) get the tissues for all shared samples
-	my ($tissues_shared,$num_tissues,$max_tissues_ratio) = get_tissues($ssamples,$ss_count) if($get_tissues==1);
+	my ($tissues_shared,$num_tissues,$max_tissues_ratio,$tissues_shared_cov) = get_tissues($ssamples,$ss_count,$shared_min_covs) if($get_tissues==1);
 	my ($tissues1) = get_tissues($nssamples1,$f1[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues==1);
 	my ($tissues2) = get_tissues($nssamples2,$f2[$SAMPLES_COUNT_COL]-$ss_count) if($get_tissues==1);
 
@@ -164,7 +171,7 @@ sub process_splice_pairs
 	my $top_info = join("\t",($total_cov,$cov_avg,$cov_median));
 	my $shared_info = join("\t",($all_shared_samples_count,$all_shared_samples_cov_sum,$all_shared_samples_cov_min_sum,$all_shared_samples_cov_avg,$all_shared_samples_cov_median));
 
-	print "$gene\t$exon_length\t$intron_length1\t$intron_length2\t$num_jxs1\t$num_jxs2\t$fully_annotated\t$shared_info\t$top_info\t$ss_count\t".$f1[$SAMPLES_COUNT_COL]."\t".$f2[$SAMPLES_COUNT_COL]."\t$ss_percent1\t$ss_percent2\t$scov_sum1\t$scov_sum2\t$f1[$SAMPLES_COV_SUM_COL]\t$f2[$SAMPLES_COV_SUM_COL]\t$scov_avg1\t$scov_avg2\t$num_tissues\t$max_tissues_ratio\t$jir_and_validations\t$tissues_shared\t$tissues1\t$tissues2\t$annotated_info\t$ssamples\t$nssamples1\t$nssamples2\n";
+	print "$gene\t$exon_length\t$intron_length1\t$intron_length2\t$num_jxs1\t$num_jxs2\t$fully_annotated\t$shared_info\t$top_info\t$ss_count\t".$f1[$SAMPLES_COUNT_COL]."\t".$f2[$SAMPLES_COUNT_COL]."\t$ss_percent1\t$ss_percent2\t$scov_sum1\t$scov_sum2\t$f1[$SAMPLES_COV_SUM_COL]\t$f2[$SAMPLES_COV_SUM_COL]\t$scov_avg1\t$scov_avg2\t$num_tissues\t$max_tissues_ratio\t$jir_and_validations\t$tissues_shared_cov\t$tissues_shared\t$tissues1\t$tissues2\t$annotated_info\t$ssamples\t$nssamples1\t$nssamples2\n";
 
 	#print "$gene\t$fully_annotated\t$ss_count\t".$f1[$SAMPLES_COUNT_COL]."\t".$f2[$SAMPLES_COUNT_COL]."\t$ss_percent1\t$ss_percent2\t$scov_sum1\t$scov_sum2\t$f1[$SAMPLES_COV_SUM_COL]\t$f2[$SAMPLES_COV_SUM_COL]\t$scov_avg1\t$scov_avg2\t$tissues_shared\t$tissues1\t$tissues2\t$annotated_info\t$ssamples\t$nssamples1\t$nssamples2\n";
 }
@@ -272,6 +279,7 @@ sub determine_shared_samples
 
 	my @shared;
 	my @shared_covs;
+	my %shared_min_covs;
 	my $total_cov=0;
 	for my $k (keys %s1)
 	{
@@ -281,7 +289,9 @@ sub determine_shared_samples
 			$scov_sum1+=$covs1[$s1{$k}-1];
 			$scov_sum2+=$covs2[$s2{$k}-1];
 			my $cov = $covs1[$s1{$k}-1] + $covs2[$s2{$k}-1];
+			my $cov2 = ($covs1[$s1{$k}-1]<$covs2[$s2{$k}-1]?$covs1[$s1{$k}-1]:$covs2[$s2{$k}-1]);
 			push(@shared_covs,$cov);
+			$shared_min_covs{$k}=$cov2;
 			$total_cov+=$cov;
 			delete $s1{$k};
 			delete $s2{$k};
@@ -289,7 +299,7 @@ sub determine_shared_samples
 	}
 	my ($avg_cov, $median_cov) = average_and_median_sample_coverage(\@shared_covs);
 	my $count = scalar @shared;
-	return ($count, sprintf("%.3f",$count/$count1), sprintf("%.3f",$count/$count2), $total_cov, $avg_cov, $median_cov, $scov_sum1, $scov_sum2, join(",",(sort {$a<=>$b} @shared)), join(",",(sort {$a<=>$b} keys %s1)), join(",",(sort {$a<=>$b} keys %s2)));
+	return ($count, \%shared_min_covs, sprintf("%.3f",$count/$count1), sprintf("%.3f",$count/$count2), $total_cov, $avg_cov, $median_cov, $scov_sum1, $scov_sum2, join(",",(sort {$a<=>$b} @shared)), join(",",(sort {$a<=>$b} keys %s1)), join(",",(sort {$a<=>$b} keys %s2)));
 }
 
 sub average_and_median_sample_coverage
