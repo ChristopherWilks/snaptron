@@ -46,9 +46,9 @@ UCSC_URL='2'
 WITHIN_START=1
 WITHIN_END=2
 
-RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains within exact result_count return_format score_by post original_input_string coordinate_string debug')
+RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains within exact result_count return_format score_by post original_input_string coordinate_string sample_fields debug')
 
-default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="DataSource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, within=0, exact=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', debug=True)
+default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="DataSource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, within=0, exact=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', sample_fields=[], debug=True)
 
 sconn = sqlite3.connect(snapconf.SNAPTRON_SQLITE_DB)
 snc = sconn.cursor()
@@ -414,7 +414,7 @@ def process_post_params(input_,region_args=default_region_args):
     or_samples = []
     or_ids = []
     for clause in js:
-        (intervals,ranges,samples,ids) = parse_json_query(clause,region_args=ra)
+        (intervals,ranges,samples,ids,ra) = parse_json_query(clause,region_args=ra)
         or_intervals.append(intervals)
         or_ranges.append(ranges)
         or_samples.append(samples)
@@ -450,6 +450,8 @@ def parse_json_query(clause,region_args=default_region_args):
                 #allow more than one snaptron id, but convert to a ',' separated list
                 if field == 'ids':
                     fmap[field].extend(clause[submitted_fname])
+                elif field == 'sample_fields':
+                    fmap[field].append(clause[submitted_fname])
                 #otherwise only grab the first one (no nested OR)
                 else:
                     fmap[field].append(clause.get(submitted_fname)[0])
@@ -468,8 +470,11 @@ def parse_json_query(clause,region_args=default_region_args):
     idqs = []
     if 'ids' in fmap:
         idqs=fmap['ids']
+    if 'sample_fields' in fmap:
+        fields = fmap['sample_fields']
+        ra=ra._replace(sample_fields=fields[0].split(','))
     rangeqs = {'rfilter':fmap['rfilter']}
-    return (intervalqs,rangeqs,sampleqs,idqs)
+    return (intervalqs,rangeqs,sampleqs,idqs,ra)
 
 
 def query_ids(idq,snaptron_ids):
@@ -553,7 +558,7 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
     #if we have any sample related queries, do them to get snaptron_id filter set
     #NOTE we are NOT currently support sample-id querying
     if len(sampleq) >= 1:
-        snaptron_ids = snample.query_samples(sampleq,sample_map,snaptron_ids)
+        snaptron_ids = snample.query_samples(sampleq,sample_map,snaptron_ids,ra)
 
     #end result here is that we have a list of snaptron_ids to filter by
     #or if no snaptron_ids were found we're done, in keeping with the strict AND policy (currently)

@@ -57,6 +57,10 @@ echo "4" > expected_wc
 curl --data 'fields=[{"ids":["0","5","11"]}]' http://$HOST:$PORT/$PATH_/samples 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
+echo "3" > expected_wc
+curl --data 'fields=[{"ids":["0","5","11"],"sample_fields":"0,1,11"}]' http://$HOST:$PORT/$PATH_/samples 2>/dev/null | grep "SRA" | grep "SRR" | wc -l > test_wc
+diff test_wc expected_wc
+
 #echo "3" > expected_wc
 #curl "http://$HOST:$PORT/$PATH_/analysis?ids_a=4&ids_b=5,6&compute=jir&ratio=cov&order=T:5" 2>/dev/null | wc -l > test_wc
 #diff test_wc expected_wc
