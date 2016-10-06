@@ -72,7 +72,7 @@ def search_samples_lucene(sample_map,sampleq,sample_set,ra,stream_sample_metadat
     if DEBUG_MODE: 
         sys.stderr.write("Found %d document(s) that matched query '%s':\n" % (hits.totalHits, sampleq))
     if stream_sample_metadata:
-        sys.stdout.write("DataSource:Type\t%s\n" % (snapconf.SAMPLE_HEADER))
+        sys.stdout.write("DataSource:Type\tLucene TF-IDF Score\t%s\n" % (snapconf.SAMPLE_HEADER))
     for hit in hits.scoreDocs:
         doc = searcher.doc(hit.doc)
         sid = doc.get("intropolis_sample_id_i")
@@ -81,7 +81,7 @@ def search_samples_lucene(sample_map,sampleq,sample_set,ra,stream_sample_metadat
             sample_set.add(sid)
         #stream back the full sample metadata record from the in-memory dictionary
         if stream_sample_metadata:
-            sys.stdout.write("%s:S\t%s\n" % (snapconf.DATA_SOURCE,sample_map[sid]))
+            sys.stdout.write("%s:S\t%s\t%s\n" % (snapconf.DATA_SOURCE,str(hit.score),sample_map[sid]))
 
 #when not querying against Lucene
 def stream_samples(sample_set,sample_map,ra):
