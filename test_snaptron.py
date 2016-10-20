@@ -40,7 +40,7 @@ gc = snannotation.GeneCoords()
 #shortcuts for snaptron methods used in tests
 tc = snaptron.run_tabix
 rqp = snaptron.range_query_parser
-srl = snaptron.search_ranges_sqlite3
+srl = snaptron.run_sqlite3
 sbi = snaptron.search_introns_by_ids
 sbg = snaptron.search_by_gene_name
 
@@ -236,12 +236,11 @@ class TestQueryCalls(unittest.TestCase):
         i = 2
         r = 5
         queries = self.process_query('rfilter=%s,%s' % (RQs_flat[r],RQs_flat[r+1]))
-        #queries = self.process_query('rfilter=samples_count:10000,coverage_avg>20')
         rq = queries['rq']
         snaptron_ids = set()
-        (iids,sids) = srl(rq,snaptron_ids,stream_back=False)
+        ra = snaptron.default_region_args._replace(save_introns=True)
+        (iids,sids) = srl(None,rq,snaptron_ids,region_args=ra)
         self.assertEqual(iids, EXPECTED_IIDS[str(RQs_flat[r])+str(RQs_flat[r+1])])
-        #self.assertEqual(iids, set([1900915,17229066,14511883,18158500,19434757]))
     
     def test_interval_with_range_query_contains(self):
         q = 0

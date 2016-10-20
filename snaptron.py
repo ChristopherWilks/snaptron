@@ -14,6 +14,7 @@ import json
 import gzip
 
 import sqlite3
+#from pysqlite2 import dbapi2 as sqlite3
 
 import lucene
 from java.io import File
@@ -127,7 +128,7 @@ def stream_intron(fout,line,fields,region_args=default_region_args):
         fields = line.split('\t')
     newline = line
     if len(REQ_FIELDS) > 0:
-       newline = "\t".join([fields[x] for x in REQ_FIELDS]) + "\n"
+       newline = "\t".join([str(fields[x]) for x in REQ_FIELDS]) + "\n"
     if not ra.prefix:
         fout.write("%s" % (newline))
     else:
@@ -195,23 +196,48 @@ def run_tabix(qargs,region_args=default_region_args,additional_cmd=""):
         raise RuntimeError("%s %s %s returned non-0 exit code\n" % (snapconf.TABIX,ra.tabix_db_file,qargs))
     return (ids_found,samples_set)
 
+def sqlite3_interval_query_parse(qargs,where,arguments,ra):
+    if qargs is None:
+        return (None,None,None)
+    m = snapconf.TABIX_PATTERN.search(qargs)
+    chrom = m.group(1)
+    start = m.group(2)
+    end = m.group(3)
+    where_="chrom=? AND end>=? AND start<=?"
+    if ra.contains:
+        where_="chrom=? AND start>=? AND end<=?"
+    where.append(where_)
+    start = int(start)
+    end = int(end)
+    arguments.append(chrom) 
+    arguments.append(start) 
+    arguments.append(end) 
+    return (chrom,start,end)
+
 def sqlite3_range_query_parse(rquery,where,arguments):
-    query_string = rquery['rfilter'][0]
-    queries_ = query_string.split(snapconf.RANGE_QUERY_DELIMITER)
-    for query_tuple in queries_:
-        m=snapconf.RANGE_QUERY_FIELD_PATTERN.search(query_tuple)
-        (col,op_,val)=re.split(snapconf.RANGE_QUERY_OPS,query_tuple)
-        if not m or not col or col not in snapconf.LUCENE_TYPES:
-            continue
-        op=m.group(1)
-        op=op.replace(':','=')
-        if op not in snapconf.operators_old:
-            sys.stderr.write("bad operator %s in range query,exiting\n" % (str(op)))
-            sys.exit(-1)
-        where.append("%s %s ?" % (col,op))
-        #only need ptype ("python type") for this version of parser
-        (ltype,ptype,qtype) = snapconf.LUCENE_TYPES[col]
-        arguments.append(ptype(val))
+    for query_string in rquery['rfilter']:
+    #query_string = rquery['rfilter'][0]
+        queries_ = query_string.split(snapconf.RANGE_QUERY_DELIMITER)
+        for query_tuple in queries_:
+            m=snapconf.RANGE_QUERY_FIELD_PATTERN.search(query_tuple)
+            (col,op_,val)=re.split(snapconf.RANGE_QUERY_OPS,query_tuple)
+            if not m or not col or col not in snapconf.LUCENE_TYPES:
+                continue
+            op=m.group(1)
+            op=op.replace(':','=')
+            if op not in snapconf.operators_old:
+                sys.stderr.write("bad operator %s in range query,exiting\n" % (str(op)))
+                sys.exit(-1)
+            if col == 'annotated':
+                val = str(val)
+                #special casing for the annotated field since it's a mix of integer and string
+                if (len(val) > 1 or val == '1'):
+                    val = '0'
+                    op='!='
+            where.append("%s %s ?" % (col,op))
+            #only need ptype ("python type") for this version of parser
+            (ltype,ptype,qtype) = snapconf.LUCENE_TYPES[col]
+            arguments.append(ptype(val))
     return where
 
 def lucene_range_query_parse(query_string):
@@ -255,25 +281,63 @@ def lucene_range_query_parse(query_string):
 
 #if snaptron_ids is passed in with one or more snaptron ids, than filtering by snaptron id is inferred
 #and save_introns is assumed to be False
-def search_ranges_sqlite3(rangeq,snaptron_ids,stream_back=True):
+def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=default_region_args):
+    ra = region_args
     arguments = []
     where = []
-    #UPDATE try filtering by set first then use it as a sqljoin
-    #if len(snaptron_ids) > 0:
-    #    where.add("snaptron_id in (%s)" % (','.join(["?" for x in snaptron_ids])))
-    #    arguments = [int(id_) for id_ in snaptron_ids]
+    (chrom,start,end) = sqlite3_interval_query_parse(intervalq,where,arguments,ra)
+    ids_found = set()
+    samples_set = set()
+    #this trumps whatever stream_back instructions we were given
+    if ra.result_count:
+        ra = ra._replace(stream_back=False)
+        ra = ra._replace(save_introns=True)
     sqlite3_range_query_parse(rangeq,where,arguments)
+    filter_by_introns = (ra.intron_filter != None and len(ra.intron_filter) > 0)
+    filter_by_samples = (ra.sample_filter != None and len(ra.sample_filter) > 0)
     select = "SELECT * from intron WHERE %s" % (' AND '.join(where))
-    sys.stderr.write("%s\n" % select)
+    if ra.debug:
+        pass
+        #sys.stderr.write("%s\n" % select)
+        #print(select)
+        #print(arguments)
+    (header_method,streamer_method) = return_formats[ra.return_format]
+    header_method(sys.stdout,region_args=ra,interval=intervalq)
+    #exit early as we only want the ucsc_url
+    if ra.return_format == UCSC_URL:
+        return (set(),set())
+    
     results = snc.execute(select,arguments)
-    sids = set()
     for result in results:
-        snaptron_id = result[0]
-        if stream_back and (not snaptron_ids or len(snaptron_ids) == 0 or snaptron_id in snaptron_ids):
-            stream_intron(sys.stdout,"%s\n" % ("\t".join(str(x) for x in result)),result)
-        else:
-            sids.add(str(snaptron_id))
-    return (sids,set())
+        snaptron_id = str(result[snapconf.INTRON_ID_COL])
+        lstart = int(result[ra.region_start_col])
+        lend = int(result[ra.region_end_col])
+        #first attempt to filter by violation of containment (if in effect)
+        if ra.exact and (lstart != start or lend != end):
+            continue
+        #2nd attempt to filter by violation of containment (if in effect)
+        if ra.contains and (lstart < start or lend > end):
+            continue
+        #third attempt to filter by violation of within one end or the other (if in effect)
+        if (ra.within == WITHIN_START and lstart < start) or (ra.within == WITHIN_END and lend > end):
+            continue
+        #extra check here (not in run_tabix(...)) but similar to searching via lucene
+        if filter_by_introns and snaptron_id not in ra.intron_filter and snaptron_id not in snaptron_ids:
+            continue
+        #combine these two so we only have to split sample <= 1 times
+        if filter_by_samples or ra.save_samples:
+            samples = set(result[snapconf.SAMPLE_IDS_COL].split(","))
+            if filter_by_samples:
+                have_samples = sample_filter.intersection(samples)
+                if len(have_samples) == 0:
+                    continue
+            if ra.save_samples:
+                samples_set.update(samples)
+        if ra.stream_back:
+            streamer_method(sys.stdout,"%s\n" % "\t".join(str(x) for x in result),result,region_args=ra)
+        if ra.save_introns:
+            ids_found.add(snaptron_id)
+    return (ids_found,samples_set)
 
 #based on the example code at
 #http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
@@ -393,6 +457,7 @@ def search_by_gene_name(gc,geneq,rquery,intron_filters=None,save_introns=False,p
             (st,en) = coord_tuple
             #(iids_,sids_) = run_tabix("%s:%d-%d" % (chrom,st,en),rquery,snapconf.TABIX_INTERVAL_DB,intron_filters=intron_filters,print_header=print_header,save_introns=save_introns)
             ra = region_args._replace(range_filters=rquery,intron_filter=intron_filters,print_header=print_header,save_introns=save_introns)
+            #TODO replace this with an if:else to run sqlite3
             (iids_,sids_) = run_tabix("%s:%d-%d" % (chrom,st,en),region_args=ra)
             print_header = False
             if save_introns:
@@ -500,9 +565,13 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
         ids = None
         sids = None
         if snapconf.INTERVAL_PATTERN.search(interval):
-           #(ids,sids) = run_tabix(interval,rquery,snapconf.TABIX_INTERVAL_DB,intron_filters=snaptron_ids,debug=DEBUG_MODE,print_header=print_header,save_introns=filtering)
-           ra = region_args._replace(range_filters=rquery,intron_filter=snaptron_ids,print_header=print_header,save_introns=filtering,debug=DEBUG_MODE)
-           (ids,sids) = run_tabix(interval,region_args=ra)
+            ra = region_args._replace(range_filters=rquery,intron_filter=snaptron_ids,print_header=print_header,save_introns=filtering,debug=DEBUG_MODE)
+            #if we have JUST an interval do tabix (faster) otherwise run against slqite
+            if rangeq is None or len(rangeq) < 1 or len(rangeq['rfilter']) < 1:
+                (ids,sids) = run_tabix(interval,region_args=ra)
+            else:
+                #(ids,sids) = search_sqlite3(interval,rangeq,region_args=ra,stream_back=not ra.result_count)
+                (ids,sids) = run_sqlite3(interval,rangeq,set(),region_args=ra)
         else:
            (ids,sids) = search_by_gene_name(gc,interval,rquery,intron_filters=snaptron_ids,print_header=print_header,region_args=region_args)
         print_header = False
@@ -585,7 +654,7 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
     elif len(rangeq) >= 1:
         #run_tabix(first_rquery,rquery,first_tdb,filter_set=snaptron_ids,sample_set=sample_set,debug=DEBUG_MODE_)
         #(found_snaptron_ids,found_sample_ids) = search_ranges_lucene(rangeq,snaptron_ids,stream_back=True,filtering=RESULT_COUNT)
-        (found_snaptron_ids,found_sample_ids) = search_ranges_sqlite3(rangeq,snaptron_ids,stream_back=not ra.result_count)
+        (found_snaptron_ids,found_sample_ids) = run_sqlite3(None,rangeq,snaptron_ids,region_args=ra)
     
     if ra.result_count:
         sys.stdout.write("%d\n" % (len(found_snaptron_ids)))
