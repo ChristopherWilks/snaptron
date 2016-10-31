@@ -27,7 +27,7 @@ SRAv1:
 SRAv2
   http://stingray.cs.jhu.edu:8443
 
-Caveat emptor, these instances are provided as examples only, at this time.  While they serve real data and may prove useful for investigations, they are not guaranteed to be stable/performant in anyway.
+Caveat emptor, these instances are provided as examples only for the time being.  While they serve real data and may prove useful for investigations, they are not guaranteed to be stable/performant in any way.
 
 Quickstart
 ----------
@@ -41,6 +41,8 @@ The above command uses cURL to query the Snaptron web service for all junctions 
 Gene symbols (exact HGNC gene symbols) can also be used instead of chromosome coordinates: ::
 
   curl "http://stingray.cs.jhu.edu:8090/srav1/snaptron?regions=CD99&rfilter=samples_count:20"
+
+If the gene symbol maps to multiple genomic regions they will all be returned by the Snaptron web services rather than Snaptron attempting to decide which region is being requested.
 
 A Snaptron query is a set of predicates logically AND'ed together from three different query types, each with their own format. Table 1 displays the four different query types.  The three main query types are: region, range over a summary statistics column (.range.), a freetext/field search of the associated sample metadata (.metadata.), and an exact ID retrieval for both exon-exon junctions (Snaptron assigned IDs) and samples (Intropolis-assigned IDs).
 
