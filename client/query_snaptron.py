@@ -194,7 +194,8 @@ def download_sample_metadata(args):
     sample_records = {}
     gfout = None
     if clsnapconf.CACHE_SAMPLE_METADTA:
-        cache_file = os.path.join(args.tmpdir,"snaptron_sample_metadata_cache.tsv.gz")
+        parts = clsnapconf.SERVICE_URL.split('/')
+        cache_file = os.path.join(args.tmpdir,"snaptron_sample_metadata_cache.%s.tsv.gz" % parts[-1])
         if os.path.exists(cache_file):
             with gzip.open(cache_file,"r") as gfin:
                 for line in gfin:
@@ -257,7 +258,7 @@ def main(args):
     (count_function, summary_function) = compute_functions[args.function]
     #process original queries
     results = process_queries(args, query_params_per_region, groups, endpoint, function=count_function, local=args.local)
-    print "results length %d\n" % len(results['samples'])
+    #print "results length %d" % len(results['samples'])
     #we have to do a double process if doing a breakpoint query since we get the coordinates
     #in the first query round and then query them in the second (here)
     if endpoint == 'breakpoint':
