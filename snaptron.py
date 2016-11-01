@@ -37,6 +37,8 @@ import snaputil
 import snample
 import snannotation
 
+FORCE_SQLITE=False
+
 #return formats:
 TSV='0'
 UCSC_BED='1'
@@ -297,10 +299,9 @@ def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=default_region_args):
     filter_by_samples = (ra.sample_filter != None and len(ra.sample_filter) > 0)
     select = "SELECT * from intron WHERE %s" % (' AND '.join(where))
     if ra.debug:
-        pass
-        #sys.stderr.write("%s\n" % select)
-        #print(select)
-        #print(arguments)
+        sys.stderr.write("%s\n" % select)
+        print(select)
+        print(arguments)
     (header_method,streamer_method) = return_formats[ra.return_format]
     header_method(sys.stdout,region_args=ra,interval=intervalq)
     #exit early as we only want the ucsc_url
@@ -567,7 +568,7 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
         if snapconf.INTERVAL_PATTERN.search(interval):
             ra = region_args._replace(range_filters=rquery,intron_filter=snaptron_ids,print_header=print_header,save_introns=filtering,debug=DEBUG_MODE)
             #if we have JUST an interval do tabix (faster) otherwise run against slqite
-            if rangeq is None or len(rangeq) < 1 or len(rangeq['rfilter']) < 1:
+            if not FORCE_SQLITE and (rangeq is None or len(rangeq) < 1 or len(rangeq['rfilter']) < 1):
                 (ids,sids) = run_tabix(interval,region_args=ra)
             else:
                 #(ids,sids) = search_sqlite3(interval,rangeq,region_args=ra,stream_back=not ra.result_count)
@@ -671,8 +672,11 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
 def main():
     input_ = sys.argv[1]
     DEBUG_MODE_=DEBUG_MODE
+    global FORCE_SQLITE
     if len(sys.argv) > 2:
        DEBUG_MODE_=True
+    if len(sys.argv) > 3:
+       FORCE_SQLITE=True
     (intervalq,rangeq,idq) = (None,None,None)
     sampleq = []
     #(intervalq,rangeq,sampleq,idq) = ([],[],[],[])
