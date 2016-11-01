@@ -12,6 +12,7 @@ import clsnapconf
 from SnaptronIteratorHTTP import SnaptronIteratorHTTP
 from SnaptronIteratorLocal import SnaptronIteratorLocal
 
+GTEX_TISSUE_COL=65
 
 fmap = {'thresholds':'rfilter','filters':'sfilter','region':'regions'}
 breakpoint_patt = re.compile(r'(^[^:]+-[^:]+$)|(^COSF\d+$)|(^\d+$)')
@@ -176,19 +177,47 @@ def filter_exons(args, results, group_list, sample_records):
                     if dist >= clsnapconf.MIN_EXON_SIZE and (rlen1 is None or (dist >= int(rlen1) and dist <= int(rlen2))):
                         sys.stdout.write("exon\t%s\t%s\t%d\t%d\t%d\n" % (",".join(end_ids),",".join(start_ids),end+1,coord2-1,dist))
 
-
+TISSUE_SPECIFICITY_FUNC='ts'
 def count_sample_coverage_per_group(args, results, record, group):
     sample_stats = results['samples']
     fields = record.split('\t')
     samples = fields[clsnapconf.SAMPLE_IDS_COL].split(',')
     sample_covs = fields[clsnapconf.SAMPLE_IDS_COL+1].split(',')
+    start_value = 0
+    if args.function == TISSUE_SPECIFICITY_FUNC:
+        start_value = sys.maxint
+    if group not in results['shared']:
+        results['shared'][group] = {}
     for (i,sample_id) in enumerate(samples):
+        #this can happen with GTEx
+        if int(sample_covs[i]) == 0:
+            continue
+        #if we're doing tissue spec. then make sure we get shared samples, otherwise skip
+        if args.function == TISSUE_SPECIFICITY_FUNC and group in results['groups_seen']:
+            if sample_id not in sample_stats:
+                continue
+            else:
+                results['shared'][group][sample_id]=1
         if sample_id not in sample_stats:
             sample_stats[sample_id]={}
         if group not in sample_stats[sample_id]:
-            sample_stats[sample_id][group]=0
-        sample_stats[sample_id][group]+=int(sample_covs[i])
+            sample_stats[sample_id][group]=start_value
+        if args.function != TISSUE_SPECIFICITY_FUNC:
+            sample_stats[sample_id][group]+=int(sample_covs[i])
+        else:
+            sample_stats[sample_id][group]=min(sample_stats[sample_id][group],int(sample_covs[i]))
 
+def tissue_specificity(args, results, group_list, sample_records):
+    sample_stats = results['samples']
+    sys.stdout.write("group\tsample_id\tshared_coverage\ttissue\n")
+    for group in group_list:
+        if len(results['shared'][group]) == 0:
+            sys.stderr.write("No shared samples between splice junctions for %s\n" % (group))
+        for sample_id in results['shared'][group]:
+           scov = sample_stats[sample_id][group]
+           sfields = sample_records[sample_id].split("\t")
+           tissue = sfields[GTEX_TISSUE_COL]
+           sys.stdout.write("%s\t%s\t%d\t%s\n" % (group,sample_id,int(scov),tissue))
 
 def download_sample_metadata(args):
     sample_records = {}
@@ -219,25 +248,27 @@ def download_sample_metadata(args):
 
 iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
 def process_queries(args, query_params_per_region, groups, endpoint, function=None, local=False):
-    results = {'samples':{},'queries':[],'exons':{'start':{},'end':{}}} 
+    results = {'samples':{},'queries':[],'exons':{'start':{},'end':{}}}
+    if args.function == TISSUE_SPECIFICITY_FUNC:
+        results['groups_seen']=set()
+        results['shared']={}
     for (group_idx, query_param_string) in enumerate(query_params_per_region):
-        #sIT = SnaptronIteratorHTTP(query_param_string, endpoint)
         sIT = iterator_map[local](query_param_string, endpoint)
+        group = None
+        if group_idx < len(groups):
+            group = groups[group_idx]
         #assume we get a header in this case and don't count it against the args.limit
         counter = -1
         if args.noheader:
             counter = 0
         for record in sIT:
             if function is not None:
-                group = None
-                if group_idx < len(groups):
-                    group = groups[group_idx]
                 function(args, results, record, group)
             elif endpoint == 'breakpoint':
-                (region, contains, group) = record.split('\t')
+                (region, contains, group_) = record.split('\t')
                 if region == 'region':
                     continue
-                (query, _) = parse_query_argument({'region':region,'contains':contains,'group':group}, ['region', 'contains', 'group'], groups, header=False)
+                (query, _) = parse_query_argument({'region':region,'contains':contains,'group':group_}, ['region', 'contains', 'group'], groups, header=False)
                 results['queries'].append("&".join(query))
             else:
                 counter += 1
@@ -247,10 +278,12 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
                 if len(groups) > 0 and len(groups[group_idx]) > 0:
                     group_label = "%s\t" % (groups[group_idx])
                 sys.stdout.write("%s%s\n" % (group_label, record))
+        if group is not None:
+            results['groups_seen'].add(group)
     return results
 
 
-compute_functions={'jir':(count_sample_coverage_per_group,junction_inclusion_ratio),'jirbp':(count_sample_coverage_per_group,junction_inclusion_ratio_bp),'exon':(track_exons,filter_exons),None:(None,None)}
+compute_functions={'jir':(count_sample_coverage_per_group,junction_inclusion_ratio),'jirbp':(count_sample_coverage_per_group,junction_inclusion_ratio_bp),'exon':(track_exons,filter_exons),None:(None,None),TISSUE_SPECIFICITY_FUNC:(count_sample_coverage_per_group,tissue_specificity)}
 def main(args):
     #parse original set of queries
     (query_params_per_region, groups, endpoint) = parse_query_params(args)
@@ -275,7 +308,6 @@ def main(args):
         map(lambda x: group_list.add(x), groups)
         group_list = sorted(group_list)
         summary_function(args,results,group_list,sample_records)
-
 
 
 if __name__ == '__main__':
