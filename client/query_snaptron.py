@@ -186,7 +186,7 @@ def count_sample_coverage_per_group(args, results, record, group):
     start_value = 0
     if args.function == TISSUE_SPECIFICITY_FUNC:
         start_value = sys.maxint
-    if group not in results['shared']:
+    if 'shared' in results and group not in results['shared']:
         results['shared'][group] = {}
     for (i,sample_id) in enumerate(samples):
         #this can happen with GTEx
@@ -278,7 +278,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
                 if len(groups) > 0 and len(groups[group_idx]) > 0:
                     group_label = "%s\t" % (groups[group_idx])
                 sys.stdout.write("%s%s\n" % (group_label, record))
-        if group is not None:
+        if group is not None and 'groups_seen' in results:
             results['groups_seen'].add(group)
     return results
 
@@ -335,7 +335,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     if args.region is None and args.thresholds is None and args.filters is None and args.query_file is None:
-        sys.stderr.write("no discernible arguments passed in, exiting\n")
+        sys.stderr.write("Error: no discernible arguments passed in, exiting\n")
         parser.print_help()
+        sys.exit(-1)
+    if args.function == TISSUE_SPECIFICITY_FUNC and 'gtex' not in clsnapconf.SERVICE_URL:
+        sys.stderr.write("Error: attempting to do tissue specificity (ts) on a non-GTEx Snaptron instance. Please change the SERVICE_URL setting in clsnapconf.py file to be the GTEx Snaptron instance before running this function; exiting\n")
         sys.exit(-1)
     main(args)
