@@ -18,19 +18,10 @@ import sqlite3
 
 import lucene
 from java.io import File
-from org.apache.lucene.analysis.standard import StandardAnalyzer
-from org.apache.lucene.document import Document, Field
+from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.search import IndexSearcher
 from org.apache.lucene.search import BooleanQuery
-from org.apache.lucene.search import TermQuery
-from org.apache.lucene.search import NumericRangeQuery
 from org.apache.lucene.index import IndexReader
-from org.apache.lucene.index import Term
-from org.apache.lucene.queryparser.classic import QueryParser
-from org.apache.lucene.queryparser.classic import MultiFieldQueryParser
-from org.apache.lucene.search import BooleanClause
-from org.apache.lucene.store import SimpleFSDirectory
-from org.apache.lucene.util import Version
 
 import snapconf
 import snaputil
@@ -61,8 +52,6 @@ DEBUG_MODE=True
 REQ_FIELDS = []
 
 #setup lucene reader for range related searches
-lucene.initVM()
-analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
 rreader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_RANGE_DB)))
 rsearcher = IndexSearcher(rreader)
 

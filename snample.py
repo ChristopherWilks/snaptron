@@ -15,16 +15,8 @@ import gzip
 
 import lucene
 from java.io import File
-from org.apache.lucene.analysis.standard import StandardAnalyzer
-from org.apache.lucene.analysis.core import WhitespaceAnalyzer
-from org.apache.lucene.document import Document, Field
 from org.apache.lucene.search import IndexSearcher
-from org.apache.lucene.search import BooleanQuery
-from org.apache.lucene.search import TermQuery
-from org.apache.lucene.search import NumericRangeQuery
 from org.apache.lucene.index import IndexReader
-from org.apache.lucene.index import Term
-from org.apache.lucene.queryparser.classic import QueryParser
 from org.apache.lucene.queryparser.classic import MultiFieldQueryParser
 from org.apache.lucene.search import BooleanClause
 from org.apache.lucene.store import SimpleFSDirectory
@@ -44,10 +36,6 @@ sc = sconn.cursor()
 
 DEBUG_MODE=False
 
-#setup lucene reader for sample related searches
-lucene.initVM()
-analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
-analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
 reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_SAMPLE_DB)))
 searcher = IndexSearcher(reader)
 
@@ -93,9 +81,8 @@ def search_samples_sqlite(sample_map,sampleq,sample_set,stream_sample_metadata=F
 #http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
 def search_samples_lucene(sample_map,sampleq,sample_set,ra,stream_sample_metadata=False):
     (fields,queries,booleans) = lucene_sample_query_parse(sampleq)
-    #query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, analyzer)
-    query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, analyzer_ws)
-    #query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, ['human AND adult AND brain'], ['description_t'], [BooleanClause.Occur.MUST], analyzer)
+    query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, snapconf.LUCENE_ANALYZER)
+    #query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, analyzer_ws)
     hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
     if DEBUG_MODE: 
         sys.stderr.write("Found %d document(s) that matched query '%s':\n" % (hits.totalHits, sampleq))
@@ -103,13 +90,14 @@ def search_samples_lucene(sample_map,sampleq,sample_set,ra,stream_sample_metadat
         sys.stdout.write("DataSource:Type\tLucene TF-IDF Score\t%s\n" % (snapconf.SAMPLE_HEADER))
     for hit in hits.scoreDocs:
         doc = searcher.doc(hit.doc)
-        sid = doc.get("intropolis_sample_id_i")
+        sid = doc.get(snapconf.SAMPLE_ID_FIELD_NAME)
         #track the sample ids if asked to
-        if sample_set != None and len(sid) >= 1:
-            sample_set.add(sid)
-        #stream back the full sample metadata record from the in-memory dictionary
-        if stream_sample_metadata:
-            sys.stdout.write("%s:S\t%s\t%s\n" % (snapconf.DATA_SOURCE,str(hit.score),sample_map[sid]))
+        if sid != None and len(sid) >= 1:
+            if sample_set != None:
+                sample_set.add(sid)
+            #stream back the full sample metadata record from the in-memory dictionary
+            if stream_sample_metadata:
+                sys.stdout.write("%s:S\t%s\t%s\n" % (snapconf.DATA_SOURCE,str(hit.score),sample_map[sid]))
 
 #when not querying against Lucene
 def stream_samples(sample_set,sample_map,ra):
