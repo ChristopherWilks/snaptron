@@ -1,18 +1,27 @@
 #!/usr/bin/env python
 import os
 import cPickle
+import gzip
 
-def load_cpickle_file(filepath):
+def load_cpickle_file(filepath, compressed=False):
     ds = None
     if os.path.exists(filepath):
-        with open(filepath,"rb") as f:
-            ds=cPickle.load(f)
+        if compressed:
+            with gzip.GzipFile(filepath,"rb") as f:
+                ds=cPickle.load(f)
+        else: 
+            with open(filepath,"rb") as f:
+                ds=cPickle.load(f)
     return ds
 
-def store_cpickle_file(filepath,ds):
+def store_cpickle_file(filepath, ds, compress=False):
     if not os.path.exists(filepath):
-        with open(filepath,"wb") as f:
-            cPickle.dump(ds,f,cPickle.HIGHEST_PROTOCOL)
+        if compress:
+            with gzip.GzipFile(filepath,"wb") as f:
+                cPickle.dump(ds,f,cPickle.HIGHEST_PROTOCOL)
+        else:
+            with open(filepath,"wb") as f:
+                cPickle.dump(ds,f,cPickle.HIGHEST_PROTOCOL)
         return True
     return False
 
