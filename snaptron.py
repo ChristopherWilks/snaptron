@@ -430,7 +430,7 @@ def range_query_parser(rangeq,snaptron_ids):
             snaptron_ids.update(set(val.split('-')))
             continue
         (ltype,ptype,qtype) = snapconf.LUCENE_TYPES[col]
-        if op != '=' and ptype == str:
+        if op != ':' and ptype == str:
             sys.stderr.write("operator must be '=' for type string comparison in range query (it was %s), exiting\n" % (str(op)))
             sys.exit(-1)
         if not rquery:
