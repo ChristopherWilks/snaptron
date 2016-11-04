@@ -186,18 +186,20 @@ def count_sample_coverage_per_group(args, results, record, group):
     start_value = 0
     if args.function == TISSUE_SPECIFICITY_FUNC:
         start_value = sys.maxint
+    #track samples shared across the flanking junctions here
     if 'shared' in results and group not in results['shared']:
-        results['shared'][group] = {}
+        results['shared'][group] = set()
     for (i,sample_id) in enumerate(samples):
         #this can happen with GTEx
         if int(sample_covs[i]) == 0:
             continue
         #if we're doing tissue spec. then make sure we get shared samples, otherwise skip
         if args.function == TISSUE_SPECIFICITY_FUNC and group in results['groups_seen']:
+            #haven't seen this sample before, so must not be shared
             if sample_id not in sample_stats:
                 continue
             else:
-                results['shared'][group][sample_id]=1
+                results['shared'][group].add(sample_id)
         if sample_id not in sample_stats:
             sample_stats[sample_id]={}
         if group not in sample_stats[sample_id]:
@@ -205,19 +207,24 @@ def count_sample_coverage_per_group(args, results, record, group):
         if args.function != TISSUE_SPECIFICITY_FUNC:
             sample_stats[sample_id][group]+=int(sample_covs[i])
         else:
-            sample_stats[sample_id][group]=min(sample_stats[sample_id][group],int(sample_covs[i]))
+            #initially we used coverage of just those shared samples, but now we just do present or not
+            #sample_stats[sample_id][group]=min(sample_stats[sample_id][group],int(sample_covs[i]))
+            sample_stats[sample_id][group]=1
 
 def tissue_specificity(args, results, group_list, sample_records):
     sample_stats = results['samples']
-    sys.stdout.write("group\tsample_id\tshared_coverage\ttissue\n")
+    sys.stdout.write("group\tsample_id\tshared\ttissue\n")
     for group in group_list:
         if len(results['shared'][group]) == 0:
             sys.stderr.write("No shared samples between splice junctions for %s\n" % (group))
-        for sample_id in results['shared'][group]:
-           scov = sample_stats[sample_id][group]
-           sfields = sample_records[sample_id].split("\t")
-           tissue = sfields[GTEX_TISSUE_COL]
-           sys.stdout.write("%s\t%s\t%d\t%s\n" % (group,sample_id,int(scov),tissue))
+        #for sample_id in results['shared'][group]:
+        for sample_id in sample_records.keys():
+            present = 0
+            if sample_id in sample_stats and group in sample_stats[sample_id]:
+                present = sample_stats[sample_id][group]
+            sfields = sample_records[sample_id].split("\t")
+            tissue = sfields[GTEX_TISSUE_COL]
+            sys.stdout.write("%s\t%s\t%d\t%s\n" % (group, sample_id, present, tissue))
 
 def download_sample_metadata(args):
     sample_records = {}
@@ -231,6 +238,7 @@ def download_sample_metadata(args):
                     line = line.rstrip()
                     fields = line.split('\t')
                     sample_records[fields[0]]=line
+            del sample_records['']
             return sample_records
         else:
             gfout = gzip.open(cache_file,"w")
@@ -244,6 +252,7 @@ def download_sample_metadata(args):
             gfout.write("%s\n" % (line))
     if gfout is not None:
         gfout.close()
+    del sample_records['']
     return sample_records
 
 iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
