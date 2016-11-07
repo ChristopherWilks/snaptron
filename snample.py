@@ -26,8 +26,8 @@ import snapconf
 import snaputil
 import snaptron
 
-#import sqlite3
-from pysqlite2 import dbapi2 as sqlite3
+import sqlite3
+#from pysqlite2 import dbapi2 as sqlite3
 sconn = sqlite3.connect(snapconf.SAMPLE_SQLITE_DB)
 from pysqlite2 import dbapi2 as sqlite3_fts
 #sconn2 = sqlite3_fts.connect(snapconf.SAMPLE_FTS_SQLITE_DB)
