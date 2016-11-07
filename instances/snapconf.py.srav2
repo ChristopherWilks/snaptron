@@ -3,10 +3,19 @@ import operator
 import re
 
 import lucene
-from org.apache.lucene.index import IndexReader
+from org.apache.lucene.analysis.standard import StandardAnalyzer
+from org.apache.lucene.analysis.core import WhitespaceAnalyzer
+from org.apache.lucene.document import Field, IntField, FloatField, StringField, TextField
 from org.apache.lucene.index import Term
 from org.apache.lucene.search import NumericRangeQuery
-from org.apache.lucene.document import Document, Field, IntField, FloatField, StringField, TextField, StoredField
+from org.apache.lucene.util import Version
+
+#setup lucene reader for sample related searches
+lucene.initVM()
+#use this for GTEx sample metadata
+analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
+#use this for SRAvX sample metadata
+analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
 
 #####fields that need to be changed for a different instance
 DATA_SOURCE='SRAv2'
@@ -36,6 +45,8 @@ REFSEQ_ANNOTATION='refFlat.hg38.txt.sorted'
 CANONICAL_ANNOTATION='hg38.ucsc_known_canonical.tsv'
 SAMPLE_MD_FILE="%s/illumina_sra_for_human_ids.v2.tsv" % (TABIX_DB_PATH)
 COSMIC_FUSION_FILE="%s/CosmicFusionExport.tsv.gz" % (TABIX_DB_PATH)
+SAMPLE_ID_FIELD_NAME='intropolis_sample_id_i'
+LUCENE_ANALYZER=analyzer_ws
 #####END of fields that need to be changed for a different instance
 
 
