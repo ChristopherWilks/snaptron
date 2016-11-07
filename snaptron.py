@@ -288,9 +288,7 @@ def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=default_region_args):
     filter_by_samples = (ra.sample_filter != None and len(ra.sample_filter) > 0)
     select = "SELECT * from intron WHERE %s" % (' AND '.join(where))
     if ra.debug:
-        sys.stderr.write("%s\n" % select)
-        print(select)
-        print(arguments)
+        sys.stderr.write("%s\t%s\n" % (select,arguments))
     (header_method,streamer_method) = return_formats[ra.return_format]
     header_method(sys.stdout,region_args=ra,interval=intervalq)
     #exit early as we only want the ucsc_url
