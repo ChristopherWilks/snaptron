@@ -196,7 +196,7 @@ def count_sample_coverage_per_group(args, results, record, group):
         #if we're doing tissue spec. then make sure we get shared samples, otherwise skip
         if args.function == TISSUE_SPECIFICITY_FUNC and group in results['groups_seen']:
             #haven't seen this sample before, so must not be shared
-            if sample_id not in sample_stats:
+            if sample_id not in sample_stats or group not in sample_stats[sample_id]:
                 continue
             else:
                 results['shared'][group].add(sample_id)
@@ -220,7 +220,8 @@ def tissue_specificity(args, results, group_list, sample_records):
         #for sample_id in results['shared'][group]:
         for sample_id in sample_records.keys():
             present = 0
-            if sample_id in sample_stats and group in sample_stats[sample_id]:
+            #if sample_id in sample_stats and group in sample_stats[sample_id]:
+            if sample_id in results['shared'][group]:
                 present = sample_stats[sample_id][group]
             sfields = sample_records[sample_id].split("\t")
             tissue = sfields[GTEX_TISSUE_COL]
