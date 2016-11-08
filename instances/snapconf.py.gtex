@@ -50,6 +50,8 @@ SAMPLE_MD_FILE="%s/gtex_pheno_table.w_ids.tsv" % (TABIX_DB_PATH)
 COSMIC_FUSION_FILE="%s/CosmicFusionExport.tsv.gz" % (TABIX_DB_PATH)
 SAMPLE_ID_FIELD_NAME='rail_id'
 LUCENE_ANALYZER=analyzer
+PACKED_SAMPLE_IDS_PATH='/data3/snaptron/gtex_sample_ids_full'
+MAX_SNAPTRON_ID=29160541
 #####END of fields that need to be changed for a different instance
 
 
