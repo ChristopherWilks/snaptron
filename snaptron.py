@@ -295,8 +295,16 @@ def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=default_region_args):
     if ra.return_format == UCSC_URL:
         return (set(),set())
     
-    results = snc.execute(select,arguments)
-    for result in results:
+    query_ = select
+    for (i,arg_) in enumerate(arguments):
+        arg_ = str(arg_)
+        if re.compile('chr').search(arg_):
+            query_ = re.sub('\?',"\'%s\'" % arg_,query_,count=1)
+        else:
+            query_ = re.sub('\?',arg_,query_,count=1)
+    sqlitep = subprocess.Popen("sqlite3 %s \"%s\"" % (snapconf.SNAPTRON_SQLITE_DB,query_),stdout=subprocess.PIPE,shell=True)
+    for line in sqlitep.stdout:
+        result = line.rstrip().split('|')
         snaptron_id = str(result[snapconf.INTRON_ID_COL])
         lstart = int(result[ra.region_start_col])
         lend = int(result[ra.region_end_col])
