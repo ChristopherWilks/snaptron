@@ -157,6 +157,20 @@ def sample_ids2intron_ids(sample_ids):
         found_snaptron_ids.remove('')
     return found_snaptron_ids
 
+def sample_ids2intron_ids_packed(sample_ids):
+    snaptron_ids_final = None
+    for sample_id in sample_ids:
+        snaptron_ids = snaputil.load_cpickle_file("%s/%s.pkl" % (snapconf.PACKED_SAMPLE_IDS_PATH, str(sample_id)), compressed=False)
+        #in a few cases we may not have a mapping for a specific sample_id
+        if snaptron_ids is None:
+            continue
+        if snaptron_ids_final is None:
+            snaptron_ids_final = snaptron_ids
+        else:
+            snaptron_ids_final = snaptron_ids_final | snaptron_ids
+    snaptron_ids_final_set = set()
+    [snaptron_ids_final_set.add(str(i)) for (i,x) in enumerate(snaptron_ids_final) if x]
+    return snaptron_ids_final_set
 
 #this does the reverse: given a set of sample ids,
 #return all the introns associated with each sample
