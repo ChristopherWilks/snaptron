@@ -215,7 +215,7 @@ def tissue_specificity(args, results, group_list, sample_records):
     sample_stats = results['samples']
     sys.stdout.write("group\tsample_id\tshared\ttissue\n")
     for group in group_list:
-        if len(results['shared'][group]) == 0:
+        if group not in results['shared'] or len(results['shared'][group]) == 0:
             sys.stderr.write("No shared samples between splice junctions for %s\n" % (group))
         #for sample_id in results['shared'][group]:
         for sample_id in sample_records.keys():
