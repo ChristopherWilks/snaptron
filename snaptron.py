@@ -297,12 +297,15 @@ def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=default_region_args):
         return (set(),set())
     
     query_ = select
+    chr_patt = re.compile('(chr)|[+-]')
     for (i,arg_) in enumerate(arguments):
         arg_ = str(arg_)
-        if re.compile('chr').search(arg_):
+        if chr_patt.search(arg_):
             query_ = re.sub('\?',"\'%s\'" % arg_,query_,count=1)
         else:
             query_ = re.sub('\?',arg_,query_,count=1)
+    if ra.debug:
+        sys.stderr.write("sqlite query:%s\n" % (query_))
     sqlitep = subprocess.Popen("sqlite3 %s \"%s\"" % (snapconf.SNAPTRON_SQLITE_DB,query_),stdout=subprocess.PIPE,shell=True)
     for line in sqlitep.stdout:
         result = line.rstrip().split('|')
