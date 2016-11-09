@@ -144,20 +144,20 @@ def load_sample_metadata(file_):
     snaputil.store_cpickle_file("%s.pkl" % (file_),fmd)
     return fmd
 
-def sample_ids2intron_ids(sample_ids):
+def sample_ids2intron_ids_from_db(sample_ids):
     select = 'SELECT snaptron_ids FROM by_sample_id WHERE sample_id in'
     found_snaptron_ids = set()
     results = snaputil.retrieve_from_db_by_ids(sc,select,sample_ids)
-    ids = [x[0] for x in results]
-    #for snaptron_ids in results:
-    #    found_snaptron_ids.update(set(snaptron_ids[0].split(',')))
-    s1=','.join(ids)
-    found_snaptron_ids.update(s1.split(','))
+    #ids = [x[0] for x in results]
+    for snaptron_ids in results:
+        found_snaptron_ids.update(set(snaptron_ids[0].split(',')))
+    #s1=','.join(ids)
+    #found_snaptron_ids.update(s1.split(','))
     if '' in found_snaptron_ids:
         found_snaptron_ids.remove('')
     return found_snaptron_ids
 
-def sample_ids2intron_ids_packed(sample_ids):
+def sample_ids2intron_ids_from_bit_vector(sample_ids):
     snaptron_ids_final = None
     for sample_id in sample_ids:
         snaptron_ids = snaputil.load_cpickle_file("%s/%s.pkl" % (snapconf.PACKED_SAMPLE_IDS_PATH, str(sample_id)), compressed=False)
@@ -174,11 +174,13 @@ def sample_ids2intron_ids_packed(sample_ids):
 
 #this does the reverse: given a set of sample ids,
 #return all the introns associated with each sample
-#UPDATE: BROKEN needs to be re-written using TABIX sample2intron ids
-#UPDATE2: tabix vesion too slow (and slightly broken), need to try sqlite3
 def intron_ids_from_samples(sample_ids,snaptron_ids,rquery,filtering=False):
     start = time.time()
-    #(found_snaptron_ids,sample_ids) = snaptron_new.search_introns_by_ids(sample_ids,rquery,tabix_db=snapconf.TABIX_DBS['sample_id'],filtering=filtering)
+    sample_ids2intron_ids = sample_ids2intron_ids_from_db
+    #GTEx has a much denser set of snaptron_ids (junctions) per sample_id than SRAv2
+    #bit vectors work better with the denser mapping
+    if snapconf.DATA_SOURCE == 'GTEx':
+        sample_ids2intron_ids = sample_ids2intron_ids_from_bit_vector
     found_snaptron_ids = sample_ids2intron_ids(sample_ids)
     end = time.time()
     taken=end-start
