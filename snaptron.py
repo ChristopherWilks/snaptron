@@ -140,7 +140,7 @@ def run_tabix(qargs,region_args=snaputil.default_region_args,additional_cmd=""):
         return (set(),set())
     if len(additional_cmd) > 0:
         additional_cmd = " | %s" % (additional_cmd)
-    tabixp = subprocess.Popen("%s %s %s | cut -f %d- %s" % (snapconf.TABIX,ra.tabix_db_file,qargs,ra.cut_start_col,additional_cmd),stdout=subprocess.PIPE,shell=True,bufsize=0)
+    tabixp = subprocess.Popen("%s %s %s | cut -f %d- %s" % (snapconf.TABIX,ra.tabix_db_file,qargs,ra.cut_start_col,additional_cmd),stdout=subprocess.PIPE,shell=True,bufsize=-1)
     for line in tabixp.stdout:
         fields=line.rstrip().split("\t")
         lstart = int(fields[ra.region_start_col])
