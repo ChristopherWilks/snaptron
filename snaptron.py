@@ -5,7 +5,6 @@ import os
 import subprocess
 import re
 import shlex
-from collections import namedtuple
 import urllib
 import urllib2
 import time
@@ -16,45 +15,36 @@ import gzip
 import sqlite3
 #from pysqlite2 import dbapi2 as sqlite3
 
-import lucene
-from java.io import File
-from org.apache.lucene.store import SimpleFSDirectory
-from org.apache.lucene.search import IndexSearcher
-from org.apache.lucene.search import BooleanQuery
-from org.apache.lucene.index import IndexReader
+#import lucene
+#from java.io import File
+#from org.apache.lucene.store import SimpleFSDirectory
+#from org.apache.lucene.search import IndexSearcher
+#from org.apache.lucene.search import BooleanQuery
+#from org.apache.lucene.index import IndexReader
 
 import snapconf
 import snaputil
 import snample
-import snannotation
 
 FORCE_SQLITE=False
 FORCE_TABIX=False
 
-#return formats:
-TSV='0'
-UCSC_BED='1'
-UCSC_URL='2'
 
 #to force the overlap to have either the start within the interval or the end
 #useful for avoiding overlaps which only contain the query interval
 WITHIN_START=1
 WITHIN_END=2
 
-RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains within exact result_count return_format score_by post original_input_string coordinate_string sample_fields debug')
 
-default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="DataSource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, within=0, exact=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', sample_fields=[], debug=True)
 
 sconn = sqlite3.connect(snapconf.SNAPTRON_SQLITE_DB)
 snc = sconn.cursor()
 
 DEBUG_MODE=True
 
-REQ_FIELDS = []
-
 #setup lucene reader for range related searches
-rreader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_RANGE_DB)))
-rsearcher = IndexSearcher(rreader)
+#rreader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_RANGE_DB)))
+#rsearcher = IndexSearcher(rreader)
 
 def filter_by_ranges(fields,rquerys):
     skip=False
@@ -79,12 +69,12 @@ def filter_by_ranges(fields,rquerys):
                 break
     return skip
 
-def ucsc_format_header(fout,region_args=default_region_args,interval=None):
+def ucsc_format_header(fout,region_args=snaputil.default_region_args,interval=None):
     header = ["browser position %s" % (interval)]
     header.append("track name=\"Snaptron\" visibility=2 description=\"Snaptron Exported Splice Junctions\" color=100,50,0 useScore=1\n")
     fout.write("\n".join(header))
 
-def ucsc_format_intron(fout,line,fields,region_args=default_region_args):
+def ucsc_format_intron(fout,line,fields,region_args=snaputil.default_region_args):
     ra = region_args
     new_line = list(fields[1:4])
     new_line.extend(["junc",fields[snapconf.INTRON_HEADER_FIELDS_MAP[ra.score_by]],fields[snapconf.STRAND_COL]])
@@ -92,7 +82,7 @@ def ucsc_format_intron(fout,line,fields,region_args=default_region_args):
     new_line[snapconf.INTERVAL_START_COL-1] = str(int(new_line[snapconf.INTERVAL_START_COL-1]) - 1)
     fout.write("%s\n" % ("\t".join([str(x) for x in new_line])))
 
-def ucsc_url(fout,region_args=default_region_args,interval=None):
+def ucsc_url(fout,region_args=snaputil.default_region_args,interval=None):
     #change return_format=2 to =1 to actually return the introns in UCSC BED format
     input_str = re.sub("return_format=2","return_format=1",region_args.original_input_string)
     encoded_input_string = urllib.quote(re.sub(r'regions=[^&]+',"regions=%s" % (interval),input_str))
@@ -101,12 +91,12 @@ def ucsc_url(fout,region_args=default_region_args,interval=None):
         fout.write("DataSource:Type\tcoordinate_string\tURL\n")
     fout.write("%s:U\t%s\t%s\n" % (snapconf.DATA_SOURCE,interval,ucsc_url))
 
-def stream_header(fout,region_args=default_region_args,interval=None):
+def stream_header(fout,region_args=snaputil.default_region_args,interval=None):
     ra = region_args
     custom_header = ra.header
     #if the user asks for specific fields they only get those fields, no data source
-    if len(REQ_FIELDS) > 0:
-        custom_header = "DataSource:Type\t%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
+    if len(snaputil.REQ_FIELDS) > 0:
+        custom_header = "DataSource:Type\t%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(snaputil.REQ_FIELDS)]))
         ra = ra._replace(prefix=None)
     if ra.stream_back and ra.print_header:
         if not ra.result_count:
@@ -114,20 +104,20 @@ def stream_header(fout,region_args=default_region_args,interval=None):
     if ra.stream_back and ra.print_header and ra.post:
         fout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
 
-def stream_intron(fout,line,fields,region_args=default_region_args):
+def stream_intron(fout,line,fields,region_args=snaputil.default_region_args):
     ra = region_args
     if len(fields) == 0:
         fields = line.split('\t')
     newline = line
-    if len(REQ_FIELDS) > 0:
-       newline = "\t".join([str(fields[x]) for x in REQ_FIELDS]) + "\n"
+    if len(snaputil.REQ_FIELDS) > 0:
+       newline = "\t".join([str(fields[x]) for x in snaputil.REQ_FIELDS]) + "\n"
     if not ra.prefix:
         fout.write("%s" % (newline))
     else:
         fout.write("%s\t%s" % (ra.prefix,newline))
 
-return_formats={TSV:(stream_header,stream_intron),UCSC_BED:(ucsc_format_header,ucsc_format_intron),UCSC_URL:(ucsc_url,None)}
-def run_tabix(qargs,region_args=default_region_args,additional_cmd=""):
+return_formats={snapconf.TSV:(stream_header,stream_intron),snapconf.UCSC_BED:(ucsc_format_header,ucsc_format_intron),snapconf.UCSC_URL:(ucsc_url,None)}
+def run_tabix(qargs,region_args=snaputil.default_region_args,additional_cmd=""):
     ra = region_args
     m = snapconf.TABIX_PATTERN.search(qargs)
     start = int(m.group(2))
@@ -146,11 +136,11 @@ def run_tabix(qargs,region_args=default_region_args,additional_cmd=""):
     (header_method,streamer_method) = return_formats[ra.return_format]
     header_method(sys.stdout,region_args=ra,interval=qargs)
     #exit early as we only want the ucsc_url
-    if ra.return_format == UCSC_URL:
+    if ra.return_format == snapconf.UCSC_URL:
         return (set(),set())
     if len(additional_cmd) > 0:
         additional_cmd = " | %s" % (additional_cmd)
-    tabixp = subprocess.Popen("%s %s %s | cut -f %d- %s" % (snapconf.TABIX,ra.tabix_db_file,qargs,ra.cut_start_col,additional_cmd),stdout=subprocess.PIPE,shell=True)
+    tabixp = subprocess.Popen("%s %s %s | cut -f %d- %s" % (snapconf.TABIX,ra.tabix_db_file,qargs,ra.cut_start_col,additional_cmd),stdout=subprocess.PIPE,shell=True,bufsize=0)
     for line in tabixp.stdout:
         fields=line.rstrip().split("\t")
         lstart = int(fields[ra.region_start_col])
@@ -273,7 +263,7 @@ def lucene_range_query_parse(query_string):
 
 #if snaptron_ids is passed in with one or more snaptron ids, than filtering by snaptron id is inferred
 #and save_introns is assumed to be False
-def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=default_region_args):
+def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=snaputil.default_region_args):
     ra = region_args
     arguments = []
     where = []
@@ -293,7 +283,7 @@ def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=default_region_args):
     (header_method,streamer_method) = return_formats[ra.return_format]
     header_method(sys.stdout,region_args=ra,interval=intervalq)
     #exit early as we only want the ucsc_url
-    if ra.return_format == UCSC_URL:
+    if ra.return_format == snapconf.UCSC_URL:
         return (set(),set())
     
     query_ = select
@@ -362,7 +352,7 @@ def search_ranges_lucene(rangeq,snaptron_ids,stream_back=False,filtering=False):
             sids.add(sid)
     return (sids,set())
            
-def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],filtering=False,region_args=default_region_args):
+def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],filtering=False,region_args=snaputil.default_region_args):
     ra = region_args
     tabix_db = ra.tabix_db_file
     select = 'SELECT * from intron WHERE snaptron_id in'
@@ -374,7 +364,7 @@ def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],
     (header_method,streamer_method) = return_formats[ra.return_format]
     header_method(sys.stdout,region_args=ra,interval=ra.coordinate_string)
     #exit early as we only want the ucsc_url
-    if ra.return_format == UCSC_URL:
+    if ra.return_format == snapconf.UCSC_URL:
         return (set(),set())
     for intron in results:
         found_snaptron_ids.update(set([str(intron[0])])) 
@@ -411,7 +401,7 @@ def search_introns_by_ids_old(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_i
         if DEBUG_MODE:
             sys.stderr.write("query %s\n" % (query))
         #(retrieved_ids,sample_ids) = run_tabix(query,rquery,tabix_db,intron_filters=ids,save_introns=filtering,print_header=print_header,cut_start_col=snapconf.ID_START_COL,debug=DEBUG_MODE)
-        ra = default_region_args._replace(region_filters=rquery,tabix_db_file=tabix_db,intron_filter=ids,save_introns=filtering,print_header=print_header,cut_start=snapconf.ID_START_COL,debug=DEBUG_MODE)
+        ra = snaputil.default_region_args._replace(region_filters=rquery,tabix_db_file=tabix_db,intron_filter=ids,save_introns=filtering,print_header=print_header,cut_start=snapconf.ID_START_COL,debug=DEBUG_MODE)
         (retrieved_ids,sample_ids) = run_tabix(query,region_args=ra)
         if filtering:
             found_snaptron_ids.update(retrieved_ids)
@@ -449,7 +439,7 @@ def range_query_parser(rangeq,snaptron_ids):
         rquery[col]=(snapconf.operators[op],val)
     return rquery
 
-def search_by_gene_name(gc,geneq,rquery,intron_filters=None,save_introns=False,print_header=True,region_args=default_region_args):
+def search_by_gene_name(gc,geneq,rquery,intron_filters=None,save_introns=False,print_header=True,region_args=snaputil.default_region_args):
     iids = set()
     sids = set()
     for (chrom,coord_tuples) in gc.gene2coords(geneq):
@@ -466,82 +456,6 @@ def search_by_gene_name(gc,geneq,rquery,intron_filters=None,save_introns=False,p
     return (iids,sids)
 
                   
-def process_post_params(input_,region_args=default_region_args):
-    '''takes the more extensible JSON from a POST and converts it into a basic query assuming only 1 value per distinct argument'''
-    jstring = list(input_)
-    jstring = ''.join(jstring)
-    js = json.loads(jstring)
-    #for now assume only one OR clause (so no ORing)
-    #clause = js[0]
-    ra=region_args._replace(post=True,original_input_string=input_)
-    or_intervals = []
-    or_ranges = []
-    or_samples = []
-    or_ids = []
-    for clause in js:
-        (intervals,ranges,samples,ids,ra) = parse_json_query(clause,region_args=ra)
-        or_intervals.append(intervals)
-        or_ranges.append(ranges)
-        or_samples.append(samples)
-        or_ids.append(ids)
-    return (or_intervals,or_ranges,or_samples,or_ids,ra)
-
-def parse_json_query(clause,region_args=default_region_args):
-    sys.stderr.write("clause %s\n"  % (clause))
-    ra = region_args
-    #legacy_remap = {'gene':'genes','interval':'intervals','metadata_keyword':'metadata_keywords'}
-    legacy_remap = {}
-    fields={}
-    fmap={'rfilter':[]}
-    for field in snapconf.JSON_FIELDS:
-        legacy_fieldname = field
-        if field in legacy_remap:
-            legacy_fieldname = legacy_remap[field]
-        if field in clause or legacy_fieldname in clause:
-            submitted_fname = field
-            if legacy_fieldname in clause:
-                submitted_fname = legacy_fieldname
-            if field not in fields:
-                fields[field]=[]
-            #adds array of values to a new entry in this field's array
-            fields[field].append(clause[submitted_fname])
-            #hack to support legacy query format (temporary), we're only assuming one val per array
-            if field not in snapconf.RANGE_FIELDS:
-                #adjust to map intervals and genes to same array
-                if field == 'genes':
-                    field = 'intervals'
-                if field not in fmap:
-                    fmap[field]=[]
-                #allow more than one snaptron id, but convert to a ',' separated list
-                if field == 'ids':
-                    fmap[field].extend(clause[submitted_fname])
-                elif field == 'sample_fields':
-                    fmap[field].append(clause[submitted_fname])
-                #otherwise only grab the first one (no nested OR)
-                else:
-                    fmap[field].append(clause.get(submitted_fname)[0])
-            else:
-                #for now we just return one range filter (no nested OR)
-                rmap = clause.get(submitted_fname)[0]
-                fmap['rfilter'].append("%s%s%s" % (field,rmap['op'],rmap['val']))
-    #for now we just return one interval/gene (no nested OR)
-    intervalqs=[]
-    if 'intervals' in fmap:
-        intervalqs = [fmap['intervals'][0]]
-    #for now we just return one keyword (no nested OR)
-    sampleqs = []
-    if 'metadata_keywords' in fmap:
-        sampleqs = fmap['metadata_keywords'][0]
-    idqs = []
-    if 'ids' in fmap:
-        idqs=fmap['ids']
-    if 'sample_fields' in fmap:
-        fields = fmap['sample_fields']
-        ra=ra._replace(sample_fields=fields[0].split(','))
-    rangeqs = {'rfilter':fmap['rfilter']}
-    return (intervalqs,rangeqs,sampleqs,idqs,ra)
-
-
 def query_ids(idq,snaptron_ids):
     #(id_type,first_id) = idq[0].split(':')
     #idq[0] = first_id
@@ -554,13 +468,13 @@ def query_ids(idq,snaptron_ids):
     #    snample.intron_ids_from_samples(sample_ids,snaptron_ids)
 
 
-def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=default_region_args):
+def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=snaputil.default_region_args):
     rquery = range_query_parser(rangeq,snaptron_ids)
     #intervals/genes are OR'd, but all ranges are ANDed together with each interval/gene search
     print_header = region_args.print_header
     snaptron_ids_returned = set()
     sample_ids_returned = set()
-    gc = snannotation.GeneCoords()
+    gc = snaputil.GeneCoords()
     for interval in intervalq:
         ids = None
         sids = None
@@ -581,40 +495,32 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
     return (snaptron_ids_returned,sample_ids_returned)
 
 
-def process_params(input_,region_args=default_region_args):
-    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','within':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1'}
-    params_ = input_.split('&')
-    for param_ in params_:
-        (key,val) = param_.split("=")
-        if key not in params:
-            sys.stderr.write("unknown parameter %s, exiting\n" % key)
-            sys.exit(-1)
-        if key == 'regions' or key == 'ids':
-            subparams = val.split(',')
-            for subparam in subparams:
-                params[key].append(subparam)
-        elif key == 'fields':
-            fields = val.split(',')
-            for field in fields:
-                if field == 'rc':
-                    #only provide the total count of results
-                    params['result_count'] = True
-                    continue
-                REQ_FIELDS.append(snapconf.INTRON_HEADER_FIELDS_MAP[field])
-        elif key == 'rfilter':
-            #url decode the rfilters:
-            val = urllib.unquote(val)
-            params[key].append(val) 
+def query_gene_regions(intervalq,contains=False,within=0,exact=False,limit=20):
+    print_header = True
+    ra = snaputil.default_region_args._replace(tabix_db_file=snapconf.TABIX_GENE_INTERVAL_DB,range_filters=None,save_introns=False,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G",cut_start_col=1,region_start_col=snapconf.GENE_START_COL,region_end_col=snapconf.GENE_END_COL,contains=contains,within=within,exact=exact,debug=DEBUG_MODE)
+    gc = snaputil.GeneCoords()
+    limit_filter = 'perl -ne \'chomp; @f=split(/\\t/,$_); @f1=split(/;/,$f[8]); $boost=0; $boost=100000 if($f1[1]!~/"NA"/); @f2=split(/,/,$f1[2]); $s1=$f1[2]; $f[5]=(scalar @f2)+$boost; print "".(join("\\t",@f))."\\n";\' | sort -t"	" -k6,6nr'
+    additional_cmd = ""
+    if limit > 0:
+        sys.stderr.write("limit_filter %s\n" % (limit_filter))
+        additional_cmd = "%s | head -%d" % (limit_filter,limit)
+    for interval in intervalq:
+        if snapconf.INTERVAL_PATTERN.search(interval):
+           (ids,sids) = snaptron.run_tabix(interval,region_args=ra)
         else:
-            if isinstance(params[key], list):
-                params[key].append(val) 
-            else:
-                params[key]=val
-    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),within=(int(params['within'])),exact=bool(int(params['exact'])),score_by=params['score_by'],print_header=bool(int(params['header'])),return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'])
-    return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'],ra)
+            intervals = gc.gene2coords(interval)
+            sys.stderr.write("# of gene intervals: %d\n" % (len(intervals)))
+            #if given a gene name, first convert to coordinates and then search tabix
+            for (chrom,coord_tuples) in intervals:
+                sys.stderr.write("# of gene intervals in chrom %s: %d\n" % (chrom,len(coord_tuples)))
+                for coord_tuple in coord_tuples:
+                    (st,en) = coord_tuple
+                    (ids_,sids_) = run_tabix("%s:%d-%d" % (chrom,st,en),region_args=ra,additional_cmd=additional_cmd)
+                    if ra.print_header:
+                        ra=ra._replace(print_header=False)
 
 
-def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default_region_args):
+def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=snaputil.default_region_args):
     #first we build filter-by-snaptron_id list based either (or all) on passed ids directly
     #and/or what's dervied from the sample query and/or what sample ids were passed in as well
     #NOTE this is the only place where we have OR logic, i.e. the set of snaptron_ids passed in
@@ -687,16 +593,16 @@ def main():
     if DEBUG_MODE_:
         sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
     #make copy of the region_args tuple
-    ra = default_region_args
+    ra = snaputil.default_region_args
     if '[' in input_:
-        (or_intervals,or_ranges,or_samples,or_ids,ra) = process_post_params(input_)
+        (or_intervals,or_ranges,or_samples,or_ids,ra) = snaputil.process_post_params(input_)
         #(intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
         for idx in (xrange(0,len(or_intervals))):
             run_toplevel_AND_query(or_intervals[idx],or_ranges[idx],or_samples[idx],or_ids[idx],sample_map=sample_map,ra=ra)
             ra=ra._replace(print_header=False)
     #update support simple '&' CGI format
     else:
-        (intervalq,idq,rangeq,sampleq,ra) = process_params(input_)
+        (intervalq,idq,rangeq,sampleq,ra) = snaputil.process_params(input_)
         run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=sample_map,ra=ra)
 
 

@@ -3,19 +3,20 @@ export PORT=1556
 export HOST=localhost
 export PATH_=''
 
-source python/bin/activate
+#source python/bin/activate
+source pypy/bin/activate
 
 if [ -z $1 ] ; then
-    python test_snaptron.py
+    pypy test_snaptron.py
 fi
 
 #system tests (roundtrip)
 echo "25" > expected_wc
-python ./snaptron.py 'regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000' 2> /dev/null | wc -l > test_wc
+pypy ./snaptron.py 'regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000' 2> /dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "91" > expected_wc
-python ./sdensity.py "regions=chr2:1-100000&bigwig_db=snps1k" 2> /dev/null | wc -l > test_wc
+pypy ./sdensity.py "regions=chr2:1-100000&bigwig_db=snps1k" 2> /dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "25" > expected_wc

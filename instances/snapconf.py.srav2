@@ -2,20 +2,20 @@
 import operator
 import re
 
-import lucene
-from org.apache.lucene.analysis.standard import StandardAnalyzer
-from org.apache.lucene.analysis.core import WhitespaceAnalyzer
-from org.apache.lucene.document import Field, IntField, FloatField, StringField, TextField
-from org.apache.lucene.index import Term
-from org.apache.lucene.search import NumericRangeQuery
-from org.apache.lucene.util import Version
+#import lucene
+#from org.apache.lucene.analysis.standard import StandardAnalyzer
+#from org.apache.lucene.analysis.core import WhitespaceAnalyzer
+#from org.apache.lucene.document import Field, IntField, FloatField, StringField, TextField
+#from org.apache.lucene.index import Term
+#from org.apache.lucene.search import NumericRangeQuery
+#from org.apache.lucene.util import Version
 
 #setup lucene reader for sample related searches
-lucene.initVM()
+#lucene.initVM()
 #use this for GTEx sample metadata
-analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
+#analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
 #use this for SRAvX sample metadata
-analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
+#analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
 
 #####fields that need to be changed for a different instance
 DATA_SOURCE='SRAv2'
@@ -25,7 +25,7 @@ SERVER_STRING='http://stingray.cs.jhu.edu:8090/srav2/'
 HG='hg38'
 BIGWIG2WIG="bigWigToWig"
 ROOT_DIR='./'
-PYTHON_PATH="python"
+PYTHON_PATH="pypy/bin/pypy"
 TABIX="tabix"
 #tabix related
 TABIX_DB_PATH='./data'
@@ -46,7 +46,7 @@ CANONICAL_ANNOTATION='hg38.ucsc_known_canonical.tsv'
 SAMPLE_MD_FILE="%s/illumina_sra_for_human_ids.v2.tsv" % (TABIX_DB_PATH)
 COSMIC_FUSION_FILE="%s/CosmicFusionExport.tsv.gz" % (TABIX_DB_PATH)
 SAMPLE_ID_FIELD_NAME='intropolis_sample_id_i'
-LUCENE_ANALYZER=analyzer_ws
+#LUCENE_ANALYZER=analyzer_ws
 PACKED_SAMPLE_IDS_PATH='/data3/snaptron/srav2_sample_ids_full'
 MAX_SNAPTRON_ID=81063662
 #####END of fields that need to be changed for a different instance
@@ -72,9 +72,14 @@ RANGE_PATTERN = re.compile(r'^[0-9a-zA-Z_\-]+:\d+-\d+$')
 #cant have anything else in the data path or its probably a security issue
 READ_SIZE_PATTERN = re.compile(r'^\d+$')
 
-TERM = Term
-NIR = NumericRangeQuery.newIntRange
-NFR = NumericRangeQuery.newFloatRange
+#return formats:
+TSV='0'
+UCSC_BED='1'
+UCSC_URL='2'
+
+#TERM = Term
+#NIR = NumericRangeQuery.newIntRange
+#NFR = NumericRangeQuery.newFloatRange
 
 operators_old={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
 operators={'>:':operator.ge,'<:':operator.le,'>':operator.gt,'<':operator.lt,':':operator.eq,'!:':operator.ne}
@@ -106,7 +111,9 @@ LUCENE_MAX_RANGE_HITS=100000000
 #set much larger than the total # of samples we expect to have
 LUCENE_MAX_SAMPLE_HITS=1000000
 
-LUCENE_TYPES={'snaptron_id':[IntField,int,NIR],'strand':[StringField,str,TERM],'annotated':[IntField,int,NIR],'left_motif':[StringField,str,TERM],'right_motif':[StringField,str,TERM],'left_annotated':[TextField,str,TERM],'right_annotated':[TextField,str,TERM],'length':[IntField,int,NIR],'samples_count':[IntField,int,NIR],'coverage_sum':[IntField,int,NIR],'coverage_avg':[FloatField,float,NFR],'coverage_median':[FloatField,float,NFR],'source_dataset_id':[IntField,int,NIR],'coverage_avg2':[FloatField,float,NFR],'coverage_median2':[FloatField,float,NFR]}
+#substitute types when lucene is turned off
+LUCENE_TYPES={'snaptron_id':[None,int,None],'strand':[None,str,None],'annotated':[None,int,None],'left_motif':[None,str,None],'right_motif':[None,str,None],'left_annotated':[None,str,None],'right_annotated':[None,str,None],'length':[None,int,None],'samples_count':[None,int,None],'coverage_sum':[None,int,None],'coverage_avg':[None,float,None],'coverage_median':[None,float,None],'source_dataset_id':[None,int,None],'coverage_avg2':[None,float,None],'coverage_median2':[None,float,None]}
+#LUCENE_TYPES={'snaptron_id':[IntField,int,NIR],'strand':[StringField,str,TERM],'annotated':[IntField,int,NIR],'left_motif':[StringField,str,TERM],'right_motif':[StringField,str,TERM],'left_annotated':[TextField,str,TERM],'right_annotated':[TextField,str,TERM],'length':[IntField,int,NIR],'samples_count':[IntField,int,NIR],'coverage_sum':[IntField,int,NIR],'coverage_avg':[FloatField,float,NFR],'coverage_median':[FloatField,float,NFR],'source_dataset_id':[IntField,int,NIR],'coverage_avg2':[FloatField,float,NFR],'coverage_median2':[FloatField,float,NFR]}
 
 
 RANGE_QUERY_DELIMITER=','

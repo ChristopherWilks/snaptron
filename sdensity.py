@@ -7,8 +7,8 @@ out of a requested BigWig file and return in wig (text) format
 import sys
 import os
 import subprocess
+import snaputil
 import snapconf
-import snannotation
 
 bigwig_dir = snapconf.TABIX_DB_PATH
 bigwig_dbs = {'snps':"%s/%s" % (bigwig_dir,'snpdensity_hg19_by100b.bw'),'snps1k':"%s/%s" % (bigwig_dir,'snpdensity_hg19_byKB.bw')}
@@ -49,7 +49,7 @@ def query_density_regions(intervalq,bigwig_db_name,print_header=True):
         exit(-1)
     #ra = snaptron.default_region_args._replace(tabix_db_file=snapconf.TABIX_GENE_INTERVAL_DB,range_filters=None,save_introns=False,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G",cut_start_col=1,region_start_col=snapconf.GENE_START_COL,region_end_col=snapconf.GENE_END_COL,contains=contains,debug=DEBUG_MODE)
     #need to use wigtools to slice out region
-    gc = snannotation.GeneCoords()
+    gc = snaputil.GeneCoords()
     for interval in intervalq:
         if snapconf.INTERVAL_PATTERN.search(interval):
            (ids,sids) = stream_bigwig_range(interval,bigwig_db,print_header)

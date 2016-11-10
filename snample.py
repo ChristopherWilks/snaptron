@@ -13,31 +13,31 @@ import time
 import gzip
 
 
-import lucene
-from java.io import File
-from org.apache.lucene.search import IndexSearcher
-from org.apache.lucene.index import IndexReader
-from org.apache.lucene.queryparser.classic import MultiFieldQueryParser
-from org.apache.lucene.search import BooleanClause
-from org.apache.lucene.store import SimpleFSDirectory
-from org.apache.lucene.util import Version
+
+#import lucene
+#from java.io import File
+#from org.apache.lucene.search import IndexSearcher
+#from org.apache.lucene.index import IndexReader
+#from org.apache.lucene.queryparser.classic import MultiFieldQueryParser
+#from org.apache.lucene.search import BooleanClause
+#from org.apache.lucene.store import SimpleFSDirectory
+#from org.apache.lucene.util import Version
 
 import snapconf
 import snaputil
-import snaptron
 
 import sqlite3
 #from pysqlite2 import dbapi2 as sqlite3
 sconn = sqlite3.connect(snapconf.SAMPLE_SQLITE_DB)
-from pysqlite2 import dbapi2 as sqlite3_fts
+#from pysqlite2 import dbapi2 as sqlite3_fts
 #sconn2 = sqlite3_fts.connect(snapconf.SAMPLE_FTS_SQLITE_DB)
 sc = sconn.cursor()
 #sc2 = sconn2.cursor()
 
 DEBUG_MODE=False
 
-reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_SAMPLE_DB)))
-searcher = IndexSearcher(reader)
+#reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_SAMPLE_DB)))
+#searcher = IndexSearcher(reader)
 
 def lucene_sample_query_parse(sampleq):
     fields = []
@@ -216,10 +216,10 @@ def main():
     if len(sys.argv) > 2:
        DEBUG_MODE=True
     (intervalq,rangeq,sampleq,idq) = (None,None,None,None)
-    ra = snaptron.default_region_args
+    ra = snaputil.default_region_args
     sys.stderr.write("INPUT_ %s\n" % input_)
     if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
-        (or_intervals,or_ranges,or_samples,or_ids,ra) = snaptron.process_post_params(input_)
+        (or_intervals,or_ranges,or_samples,or_ids,ra) = snaputil.process_post_params(input_)
         (intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
     else:
         #just stream back the whole sample metadata file
@@ -232,7 +232,7 @@ def main():
             subp.wait()
             return 
         #update support simple '&' CGI format
-        (intervalq,idq,rangeq,sampleq,ra) = snaptron.process_params(input_)
+        (intervalq,idq,rangeq,sampleq,ra) = snaputil.process_params(input_)
     #only care about sampleq
     if len(intervalq) > 0 or len(rangeq['rfilter']) > 0 or snapconf.SNAPTRON_ID_PATT.search(input_):
         sys.stderr.write("bad input asking for intervals and/or ranges, only take sample queries and/or sample ids, exiting\n")

@@ -40,7 +40,7 @@ def setUpModule():
 def tearDownModule():
     pass
 
-gc = snannotation.GeneCoords()
+gc = snaputil.GeneCoords()
 #shortcuts for snaptron methods used in tests
 tc = snaptron.run_tabix
 rqp = snaptron.range_query_parser
@@ -49,8 +49,8 @@ sbi = snaptron.search_introns_by_ids
 sbg = snaptron.search_by_gene_name
 
 #pjq = snaptron.parse_json_query
-pjq = snaptron.process_post_params
-pp = snaptron.process_params
+pjq = snaputil.process_post_params
+pp = snaputil.process_params
 
 qr = snaptron.query_regions
 qi = snaptron.query_ids
@@ -75,7 +75,7 @@ class TestTabixCalls(unittest.TestCase):
     def itc(self,interval_query,range_query=None,filter_set=None,sample_set=None,filtering=False):
         '''wrap the normal run_tabix/search_by_gene_name call to hardcode defaults for interval/gene name querying'''
         if snapconf.INTERVAL_PATTERN.search(interval_query):
-            ra = snaptron.default_region_args._replace(range_filters=range_query,tabix_db_file=tdbs['chromosome'],intron_filter=filter_set,sample_filter=sample_set,save_introns=filtering) 
+            ra = snaputil.default_region_args._replace(range_filters=range_query,tabix_db_file=tdbs['chromosome'],intron_filter=filter_set,sample_filter=sample_set,save_introns=filtering) 
             return tc(interval_query,region_args=ra)
         return sbg(gc,interval_query,range_query,intron_filters=filter_set,save_introns=filtering) 
     
@@ -123,16 +123,16 @@ class TestTabixCalls(unittest.TestCase):
         '''make sure we're getting a correct header'''
         sout = StringIO()
 
-        snaptron.REQ_FIELDS=[]
-        snaptron.stream_header(sout,region_args=snaptron.default_region_args)
+        snaputil.REQ_FIELDS=[]
+        snaptron.stream_header(sout,region_args=snaputil.default_region_args)
         hfields = sout.getvalue().split("\n")[0].rstrip().split("\t")
         self.assertEqual(len(hfields),len(snapconf.INTRON_HEADER_FIELDS)+1)
 
         req_field = 'snaptron_id'
-        snaptron.REQ_FIELDS=[snapconf.INTRON_HEADER_FIELDS_MAP[req_field]]
+        snaputil.REQ_FIELDS=[snapconf.INTRON_HEADER_FIELDS_MAP[req_field]]
 
         sout = StringIO()
-        snaptron.stream_header(sout,region_args=snaptron.default_region_args)
+        snaptron.stream_header(sout,region_args=snaputil.default_region_args)
         header = sout.getvalue().split("\n")[0].rstrip()
         self.assertEqual(header,'DataSource:Type\t%s' % (req_field))
 
@@ -243,7 +243,7 @@ class TestQueryCalls(unittest.TestCase):
         #queries = self.process_query('rfilter=samples_count:10000,coverage_avg>20')
         rq = queries['rq']
         snaptron_ids = set()
-        ra = snaptron.default_region_args._replace(save_introns=True)
+        ra = snaputil.default_region_args._replace(save_introns=True)
         #(iids,sids) = srl(rq,snaptron_ids,stream_back=False)
         (iids,sids) = srl(None,rq,snaptron_ids,region_args=ra)
         self.assertEqual(iids, EXPECTED_IIDS[str(RQs_flat[r])+str(RQs_flat[r+1])])
