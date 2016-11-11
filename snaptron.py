@@ -150,7 +150,7 @@ def run_tabix(qargs,region_args=default_region_args,additional_cmd=""):
         return (set(),set())
     if len(additional_cmd) > 0:
         additional_cmd = " | %s" % (additional_cmd)
-    tabixp = subprocess.Popen("%s %s %s | cut -f %d- %s" % (snapconf.TABIX,ra.tabix_db_file,qargs,ra.cut_start_col,additional_cmd),stdout=subprocess.PIPE,shell=True)
+    tabixp = subprocess.Popen("%s %s %s | cut -f %d- %s" % (snapconf.TABIX,ra.tabix_db_file,qargs,ra.cut_start_col,additional_cmd),stdout=subprocess.PIPE,shell=True,bufsize=-1)
     for line in tabixp.stdout:
         fields=line.rstrip().split("\t")
         lstart = int(fields[ra.region_start_col])
@@ -208,7 +208,6 @@ def sqlite3_interval_query_parse(qargs,where,arguments,ra):
 
 def sqlite3_range_query_parse(rquery,where,arguments):
     for query_string in rquery['rfilter']:
-    #query_string = rquery['rfilter'][0]
         queries_ = query_string.split(snapconf.RANGE_QUERY_DELIMITER)
         for query_tuple in queries_:
             m=snapconf.RANGE_QUERY_FIELD_PATTERN.search(query_tuple)
@@ -229,6 +228,9 @@ def sqlite3_range_query_parse(rquery,where,arguments):
             where.append("%s %s ?" % (col,op))
             #only need ptype ("python type") for this version of parser
             (ltype,ptype,qtype) = snapconf.LUCENE_TYPES[col]
+            #do some input cleansing to avoid injection attacks
+            val = val.replace("'","")
+            val = val.replace('"','')
             arguments.append(ptype(val))
     return where
 
@@ -306,7 +308,7 @@ def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=default_region_args):
             query_ = re.sub('\?',arg_,query_,count=1)
     if ra.debug:
         sys.stderr.write("sqlite query:%s\n" % (query_))
-    sqlitep = subprocess.Popen("sqlite3 %s \"%s\"" % (snapconf.SNAPTRON_SQLITE_DB,query_),stdout=subprocess.PIPE,shell=True)
+    sqlitep = subprocess.Popen(["sqlite3", snapconf.SNAPTRON_SQLITE_DB, query_], stdout=subprocess.PIPE, shell=False, bufsize=-1)
     for line in sqlitep.stdout:
         result = line.rstrip().split('|')
         snaptron_id = str(result[snapconf.INTRON_ID_COL])
