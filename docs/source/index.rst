@@ -19,13 +19,19 @@ Christopher Wilks, Phani Gaddipati, Abhinav Nellore, Ben Langmead
 SnaptronUI
 ----------
 
-As an example of a downstream interface that can be built on top of the Snaptron web service interface there is the SnaptronUI for which there are two instances, one for SRAv1 (~21,000 samples) and a second for SRAv2 (~49,000 samples):
+As an example of a downstream interface that can be built on top of the Snaptron web service interface there is the SnaptronUI for which there are several instances for various datasets:
 
-SRAv1:
-  http://stingray.cs.jhu.edu:8100
+TCGA (~11K samples, ~36M junctions):
+  http://snaptron.cs.jhu.edu:8090
 
-SRAv2
-  http://stingray.cs.jhu.edu:8443
+GTEx (~10K samples, ~30M junctions):
+  http://snaptron.cs.jhu.edu:8000
+
+SRAv2 (~50K samples, ~81M junctions):
+  http://snaptron.cs.jhu.edu:8443
+
+SRAv1 (~21K samples, ~42M junctions):
+  http://snaptron.cs.jhu.edu:8100
 
 Caveat emptor, these instances are provided as examples only for the time being.  While they serve real data and may prove useful for investigations, they are not guaranteed to be stable/performant in any way.
 
@@ -34,13 +40,13 @@ Quickstart
 
 First, we will present an example query and then break it down to allow the impatient users to get on with their research and skip the longer explanation of the details: ::
 
-  curl "http://stingray.cs.jhu.edu:8090/srav1/snaptron?regions=chr6:1-514015&rfilter=samples_count:100"
+  curl "http://snaptron.cs.jhu.edu/srav1/snaptron?regions=chr6:1-514015&rfilter=samples_count:100"
 
 The above command uses cURL to query the Snaptron web service for all junctions that overlap the coordinate range of ``1-514015`` on chromosome 6 and that have 1 or more reads coverage in exactly 100 samples (for CGI parsing reasons the .:. is used instead of .=. as a range operator).  The return format is a TAB delimited text stream of junction records, one per line including a header as the first line to explain the columns returned.
 
 Gene symbols (exact HGNC gene symbols) can also be used instead of chromosome coordinates: ::
 
-  curl "http://stingray.cs.jhu.edu:8090/srav1/snaptron?regions=CD99&rfilter=samples_count:20"
+  curl "http://snaptron.cs.jhu.edu/srav1/snaptron?regions=CD99&rfilter=samples_count:20"
 
 If the gene symbol maps to multiple genomic regions they will all be returned by the Snaptron web services rather than Snaptron attempting to decide which region is being requested.
 
@@ -48,13 +54,19 @@ A Snaptron query is a set of predicates logically AND'ed together from three dif
 
 A snaptron query may contain only one of the three types of queries or may contain all three, or some combination of two types.  In the example above the region and range query types are present as ``chr6:1-514015`` for the region type and ``samples_count:100`` for the range type.
 
-There are currently (8/25/2016) two different Snaptron instances:
+There are currently (11/16/2016) four Snaptron instances indexing different data sources:
 
-- SRAv1: ~42 million junctions from ~21 thousand public samples from the Sequence Read Archive using HG19 reference:
-http://stingray.cs.jhu.edu:8090/srav1/snaptron
+- TCGA: ~36 million junctions from ~11 thousand public samples from the TCGA consortium sequences using HG38 reference:
+http://snaptron.cs.jhu.edu/tcga/
+
+- GTEx: ~30 million junctions from ~10 thousand public samples from the GTEx consortium sequences using HG38 reference:
+http://snaptron.cs.jhu.edu/gtex/
 
 - SRAv2: ~81 million junctions from ~49 thousand public samples from the Sequence Read Archive using HG38 reference:
-http://stingray.cs.jhu.edu:8090/srav2/snaptron
+http://snaptron.cs.jhu.edu/srav2/
+
+- SRAv1 (legacy, replaced by SRAv2): ~42 million junctions from ~21 thousand public samples from the Sequence Read Archive using HG19 reference:
+http://snaptron.cs.jhu.edu/srav1/
 
 
 Table 1. Query Types
@@ -175,15 +187,15 @@ Table 6. Complete list of Snaptron Fields In Return Format
 +-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+------------------------+
 | 7           | strand                  | Single Character                     | Orientation of intron (Watson or Crick)                                                                       | ``+`` or ``-``         |
 +-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+------------------------+
-| 8**         | annotated               | Boolean Integer                      | If both ends of the intron are annotated as *a* splice site in some annotation                                | 1 or 0                 |
+| 8           | annotated               | Boolean Integer                      | If both ends of the intron are annotated as *a* splice site in some annotation                                | 1 or 0                 |
 +-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+------------------------+
 | 9           | left_motif              | String                               | Splice site sequence bases at the left end of the intron                                                      | GT                     |
 +-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+------------------------+
 | 10          | right_motif             | String                               | Splice site sequence bases at the right end of the intron                                                     | AG                     |
 +-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+------------------------+
-| 11**        | left_annotated          | String                               | If the left end splice site is annotated or not and which annotations it appears in (maybe more than once)    | aC19,cG19,cG38:1;0     |
+| 11          | left_annotated          | String                               | If the left end splice site is annotated or not and which annotations it appears in (maybe more than once)    | aC19,cG19,cG38:1;0     |
 +-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+------------------------+
-| 12**        | right_annotated         | String                               | If the right end splice site is in an annotated or not, same as left_annotated                                | aC19,cG19,cG38:1;0     |
+| 12          | right_annotated         | String                               | If the right end splice site is in an annotated or not, same as left_annotated                                | aC19,cG19,cG38:1;0     |
 +-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+------------------------+
 | 13          | samples                 | Comma separated list of Integers IDs | The list of samples which had one or more reads covering the intron(?). IDs are from the IntropolisDB.        | 5,10,14                |
 +-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+------------------------+
@@ -195,9 +207,6 @@ Table 6. Complete list of Snaptron Fields In Return Format
 +-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+------------------------+
 | 19          | source_dataset_id       | Integer                              | Snaptron ID for the original dataset used (SRA, GTEx, TCGA)                                                   | SRAv1=0,SRAv2=1,GTEx=2 |
 +-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+------------------------+
-
-\*\*These fields are not present in the GTEx version of the Snaptron webservice at this time.  They are not queryable in the SRA version.
-
 
 * :ref:`genindex`
 * :ref:`modindex`
