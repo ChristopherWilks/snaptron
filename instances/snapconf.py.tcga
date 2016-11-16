@@ -1,0 +1,157 @@
+#!/usr/bin/env python2.7
+import operator
+import re
+
+import lucene
+from org.apache.lucene.analysis.standard import StandardAnalyzer
+from org.apache.lucene.analysis.core import WhitespaceAnalyzer
+from org.apache.lucene.document import Field, IntField, FloatField, StringField, TextField
+from org.apache.lucene.index import Term
+from org.apache.lucene.search import NumericRangeQuery
+from org.apache.lucene.util import Version
+
+#setup lucene reader for sample related searches
+lucene.initVM()
+#use this for GTEx sample metadata
+analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
+#use this for SRAvX sample metadata
+analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
+
+#####fields that need to be changed for a different instance
+DATA_SOURCE='TCGA'
+IP='127.0.0.1'
+PORT=1558
+SERVER_STRING='http://stingray.cs.jhu.edu:8090/tcga/'
+HG='hg38'
+BIGWIG2WIG="bigWigToWig"
+ROOT_DIR='./'
+PYTHON_PATH="python"
+TABIX="tabix"
+#tabix related
+TABIX_DB_PATH='./data'
+TABIX_GENE_INTERVAL_DB='gensemrefg.hg38_annotations.gtf.sorted.gz'
+TABIX_INTERVAL_DB='first_pass_tcga_junctions.tsv.gz.hg38.bgzip'
+TABIX_IDS_DB='by_id.gz'
+ID_START_COL=2
+CUT_START_COL=1
+#sqlite3 dbs
+SAMPLE_SQLITE_DB="%s/by_sample_ids.sqlite" % (TABIX_DB_PATH)
+SNAPTRON_SQLITE_DB="%s/tcga_junctions_hg38.sqlite3" % (TABIX_DB_PATH)
+#Lucene dbs
+LUCENE_RANGE_DB="%s/lucene_ranges_v1/" % (TABIX_DB_PATH)
+LUCENE_SAMPLE_DB="%s/lucene_tcga/" % (TABIX_DB_PATH)
+#gene annotation related flat files
+REFSEQ_ANNOTATION='refFlat.hg38.txt.sorted'
+CANONICAL_ANNOTATION='hg38.ucsc_known_canonical.tsv'
+SAMPLE_MD_FILE="%s/samples.tsv" % (TABIX_DB_PATH)
+COSMIC_FUSION_FILE="%s/CosmicFusionExport.tsv.gz" % (TABIX_DB_PATH)
+SAMPLE_ID_FIELD_NAME='rail_id'
+LUCENE_ANALYZER=analyzer
+PACKED_SAMPLE_IDS_PATH='/data3/snaptron/tcga_sample_ids_full'
+MAX_SNAPTRON_ID=29160541
+#####END of fields that need to be changed for a different instance
+
+
+#basic paths to everything (one day replace with inferred directory)
+#used only by snaptron_server
+#mostly used by snaptronws.py
+SNAPTRON_APP = "%s/snaptron.py" % (ROOT_DIR)
+SAMPLES_APP = "%s/snample.py" % (ROOT_DIR)
+ANNOTATIONS_APP = "%s/snannotation.py" % (ROOT_DIR)
+DENSITY_APP = "%s/sdensity.py" % (ROOT_DIR)
+BREAKPOINT_APP = "%s/sbreakpoint.py" % (ROOT_DIR)
+#size for the OS buffer on the input pipe reading from samtools output
+CMD_BUFFER_SIZE = -1
+#a low max for what we want to pass to samtools for start/end coordinates, otherwise samtools will return everything
+MAX_COORDINATE_DIGITS = 11
+#size of samtools read,can impact performance in a major way
+READ_SIZE = 16777216
+#for test read much smaller chunks
+#READ_SIZE=32
+RANGE_PATTERN = re.compile(r'^[0-9a-zA-Z_\-]+:\d+-\d+$')
+#cant have anything else in the data path or its probably a security issue
+READ_SIZE_PATTERN = re.compile(r'^\d+$')
+
+TERM = Term
+NIR = NumericRangeQuery.newIntRange
+NFR = NumericRangeQuery.newFloatRange
+
+operators_old={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
+operators={'>:':operator.ge,'<:':operator.le,'>':operator.gt,'<':operator.lt,':':operator.eq,'!:':operator.ne}
+#we overloaded this map to be used for all searchable fields, not just those with TABIX dbs
+#TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':TABIX_IDS_DB,'samples_count':'sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keywords':'','sample_id':'by_sample_id.gz','coverage_sum2':'by_coverage_sum2.gz','coverage_avg2':'by_coverage_avg2.gz'}
+TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'intervals':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':TABIX_IDS_DB,'samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keyword':'','sample_id':'by_sample_id.gz','ids':'','annotated':'','left_annotated':'','right_annotated':'','strand':''}
+RANGE_FIELDS = ['length','samples_count','coverage_sum','coverage_avg','coverage_median','strand']
+JSON_FIELDS=set(['intervals','genes','ids','metadata_keywords','sample_fields'])
+JSON_FIELDS.update(RANGE_FIELDS)
+SAMPLE_IDS_COL=12
+SAMPLE_ID_COL=0
+SAMPLES_COUNT_COL=13
+INTRON_ID_COL=0
+INTERVAL_START_COL=2
+INTERVAL_END_COL=3
+GENE_START_COL=3
+GENE_END_COL=4
+STRAND_COL=5
+
+
+#search by gene constants
+TABIX_PATTERN = re.compile(r'^([chrMXY\d]+):(\d+)-(\d+)$')
+INTERVAL_PATTERN = re.compile(r'^(chr[12]?[0-9XYM]):(\d+)-(\d+)$')
+CHROM_PATTERN = re.compile(r'^chr[12]?[0-9XYM]$')
+SNAPTRON_ID_PATT = re.compile(r'snaptron_id')
+MAX_GENE_PROXIMITY = 10000
+
+#set much larger than the total # of introns we expect to have
+LUCENE_MAX_RANGE_HITS=100000000
+#set much larger than the total # of samples we expect to have
+LUCENE_MAX_SAMPLE_HITS=1000000
+
+LUCENE_TYPES={'snaptron_id':[IntField,int,NIR],'strand':[StringField,str,TERM],'annotated':[IntField,int,NIR],'left_motif':[StringField,str,TERM],'right_motif':[StringField,str,TERM],'left_annotated':[TextField,str,TERM],'right_annotated':[TextField,str,TERM],'length':[IntField,int,NIR],'samples_count':[IntField,int,NIR],'coverage_sum':[IntField,int,NIR],'coverage_avg':[FloatField,float,NFR],'coverage_median':[FloatField,float,NFR],'source_dataset_id':[IntField,int,NIR],'coverage_avg2':[FloatField,float,NFR],'coverage_median2':[FloatField,float,NFR]}
+
+
+RANGE_QUERY_DELIMITER=','
+RANGE_QUERY_OPS='([:><!]+)'
+RANGE_QUERY_FIELD_PATTERN=re.compile(RANGE_QUERY_OPS)
+SAMPLE_QUERY_DELIMITER='==='
+SAMPLE_QUERY_FIELD_DELIMITER=':' #::
+
+#FLOAT_FIELDS=set(['coverage_avg','coverage_median','coverage_avg2'])
+FLOAT_FIELDS=set(['coverage_avg','coverage_median'])
+
+#may have to adjust this parameter for performance (# of tabix calls varies inversely with this number)
+MAX_DISTANCE_BETWEEN_IDS=1000
+#INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
+#SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
+
+#GENE_ANNOTATION_HEADER (GTF)
+GENE_ANNOTATION_HEADER = "DataSource:Type\treference\tannotation_source\tfeature_type\tstart\tend\tscore\tstrand\tunused\tattributes";
+
+
+#setup headers for both the original intron list and the sample metadata list
+#INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated?	left_motif	right_motif	left_annotated?	right_annotated?	samples	read_coverage_by_sample_pass1	read_coverage_by_sample_pass2	samples_count	coverage_sum	coverage_avg	coverage_median	coverage_sum2	coverage_avg2	source_dataset_id'
+INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated	left_motif	right_motif	left_annotated	right_annotated	samples	read_coverage_by_sample	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'
+#INTRON_TYPE_HEADER_MAP={'snaptron_id':int,'chromosome':str,'start':int,'end':int,'length':int,'strand':str,'annotated?':bool,'left_motif':str,'right_motif':str,'left_annotated?':str,'right_annotated?':str,'samples':str,'read_coverage_by_sample_pass1':str,'read_coverage_by_sample_pass2':str,'samples_count':int,'coverage_sum':int,'coverage_avg':float,'coverage_median':float,'source_dataset_id':str,'coverage_sum2':int,'coverage_avg2':float}
+INTRON_TYPE_HEADER_MAP={'snaptron_id':int,'chromosome':str,'start':int,'end':int,'length':int,'strand':str,'annotated':bool,'left_motif':str,'right_motif':str,'left_annotated':str,'right_annotated':str,'samples':str,'read_coverage_by_sample':str,'samples_count':int,'coverage_sum':int,'coverage_avg':float,'coverage_median':float,'source_dataset_id':str}
+
+#SAMPLE_HEADER='intropolis_sample_id_i	Run_s	RailRnaBatchNumber_s	BigWigPath_s	dbGaP_Subject_ID_s	dbGaP_Sample_ID_s	SUBJID_s	SAMPID_s	SAMPLE_USE_s	ReleaseDate_s	LoadDate_s	spots_s	bases_s	spots_with_mates_s	avgLength_s	size_MB_s	AssemblyName_s	download_path_s	Experiment_s	LibraryName_s	LibraryStrategy_s	LibrarySelection_s	LibrarySource_s	LibraryLayout_s	InsertSize_s	InsertDev_s	Platform_s	Model_s	SRAStudy_s	BioProject_s	Study_Pubmed_id_s	ProjectID_s	Sample_s	BioSample_s	SampleType_s	TaxID_s	ScientificName_s	SampleName_s	g1k_pop_code_s	source_s	g1k_analysis_group_s	Subject_ID_s	Sex_s	Disease_s	Tumor_s	Affection_Status_s	Analyte_Type_s	Histological_Type_s	Body_Site_s	CenterName_s	Submission_s	dbgap_study_accession_s	Consent_s	RunHash_s	ReadHash_s	SMATSSCR_s	SMCAT_s	SMCENTER_s	SMMTRLTP_s	SMNOTES_s	SMOMTRLTP_s	SMPTHNTS_s	SMRIN_s	SMSMPSTE_s	SMSTYP_s	SMTS_s	SMTSC_s	SMTSD_s	SMUBRID_s	SMUBRTRM_s	SMTSISCH_s	SMTSPAX_s	SMTSTPTREF_s	SMNABTCH_s	SMNABTCHT_s	SMNABTCHD_s	SMGEBTCH_s	SMGEBTCHD_s	SMGEBTCHT_s	ANALYTE_TYPE_s	SMTORMVE_s	SMFLGRMRK_s	SMAFRZE_s	SMGTC_s	SME2MPRT_s	SMCHMPRS_s	SMNTRART_s	SMNUMGPS_s	SMMAPRT_s	SMEXNCRT_s	SM550NRM_s	SMGNSDTC_s	SMUNMPRT_s	SM350NRM_s	SMRDLGTH_s	SMMNCPB_s	SME1MMRT_s	SMSFLGTH_s	SMESTLBS_s	SMMPPD_s	SMNTERRT_s	SMRRNANM_s	SMRDTTL_s	SMVQCFL_s	SMMNCV_s	SMTRSCPT_s	SMMPPDPR_s	SMCGLGTH_s	SMGAPPCT_s	SMUNPDRD_s	SMNTRNRT_s	SMMPUNRT_s	SMEXPEFF_s	SMMPPDUN_s	SME2MMRT_s	SME2ANTI_s	SMALTALG_s	SME2SNSE_s	SMMFLGTH_s	SME1ANTI_s	SMSPLTRD_s	SMBSMMRT_s	SME1SNSE_s	SME1PCTS_s	SMRRNART_s	SME1MPRT_s	SMNUM5CD_s	SMDPMPRT_s	SME2PCTS_s	COHORT_s	GENDER_s	AGE_s	RACE_s	ETHNCTY_s	HGHT_s	HGHTU_s	WGHT_s	WGHTU_s	BMI_s	INCEXC_s	TRISCH_s	TRISCHD_s	TRCHSTIN_s	TRCHSTIND_s	TRCCLMP_s	TRCCLMPD_s	TRORGNS_s	TRAMP_s	TRCRTMP_s	TRCRTMPU_s	TRCRTMPL_s	TRTPTREF_s	TRVNTSR_s	TRDNISCH_s	DTHPRNINT_s	DTHTPTREF_s	DTHATPSY_s	DTHRFG_s	DTHCERT_s	DTHVNT_s	DTHFUCOD_s	DTHHRDY_s	DTHCOD_s	DTHFUCODDU_s	DTHFUCODD_s	DTHCODDU_s	DTHCODD_s	DTHLUCODDU_s	DTHLUCODD_s	DTHLUCOD_s	DTHMNNR_s	DTHRFGDU_s	DTHRFGD_s	DTHDTRMN_s	DTHPLCE_s	DTHVNTDU_s	DTHVNTD_s	DTHWTNS_s	DTHCLS_s	DTHTYP_s	DTHCAT_s	DTHICD10_s	LBCMVTAB_s	LBEBVGAB_s	LBEBVMAB_s	LBHBCABM_s	LBHBCABT_s	LBHBSAB_s	LBHBSAG_s	LBHCV1NT_s	LBHBHCVAB_s	LBHIV1NT_s	LBHIVAB_s	LBHIVO_s	LBPRRVDRL_s	LBRPR_s	MHABNWBC_s	MHALS_s	MHALZDMT_s	MHALZHMR_s	MHARTHTS_s	MHASCITES_s	MHASTHMA_s	MHBCTINF_s	MHBLDDND_s	MHBLDDNDR_s	MHBLDOCNT_s	MHCANCER5_s	MHCANCERC_s	MHCANCERNM_s	MHCLLULTS_s	MHCLRD_s	MHCOCAINE5_s	MHCOPD_s	MHCOUGHU_s	MHCVD_s	MHDLYSIS_s	MHDMNTIA_s	MHDPRSSN_s	MHDTND72H_s	MHENCEPHA_s	MHEURO5_s	MHFLU_s	MHFNGINF_s	MHFVRU_s	MHGENCMT_s	MHGNRR12M_s	MHHEPBCT_s	MHHEPCCT_s	MHHEROIN_s	MHHGH_s	MHHIVCT_s	MHHIVNT_s	MHHMPHLIA_s	MHHMPHLIAB_s	MHHRTATT_s	MHHRTDIS_s	MHHRTDISB_s	MHHTN_s	MHINFLNE_s	MHIVDRG5_s	MHJAKOB_s	MHLAPTHU_s	MHLUPUS_s	MHLVRDIS_s	MHMENINA_s	MHMS_s	MHMSXWMA_s	MHMSXWMB_s	MHNEPH_s	MHNGHTSWT_s	MHNPHYS4W_s	MHNRTHEUR_s	MHOPNWND_s	MHOPPINF_s	MHORGNTP_s	MHOSTMYLTS_s	MHPLLABS_s	MHPNMIAB_s	MHPNMNIA_s	MHPRCNP_s	MHPRKNSN_s	MHPSBLDCLT_s	MHRA_s	MHRBSANML_s	MHREYES_s	MHRNLFLR_s	MHSARS_s	MHSCHZ_s	MHSCLRDRM_s	MHSDRGABS_s	MHSEPSIS_s	MHSKNSPT_s	MHSMLPXCT_s	MHSMLPXVC_s	MHSRC_s	MHSRCDSS_s	MHSRGHM_s	MHSTD_s	MHSTRDLT_s	MHSUBABSA_s	MHSUBABSB_s	MHSXMDA_s	MHSXMDB_s	MHSYPH12M_s	MHSZRSU_s	MHT1D_s	MHT2D_s	MHTBHX_s	MHTEMPU_s	MHTTCMT_s	MHTTOO12M_s	MHTTOONP_s	MHTXCEXP_s	MHUK8096_s	MHUREMIA_s	MHWKNSSU_s	MHWNVCT_s	MHWNVHX_s	MHWTLSUA_s	MHWTLSUB_s'
+SAMPLE_HEADER='rail_id  uuid'
+
+INTRON_HEADER_FIELDS=INTRON_HEADER.split('\t')
+INTRON_HEADER_FIELDS_MAP={}
+INTRON_TYPE_HEADER_=[]
+for (i,field) in enumerate(INTRON_HEADER_FIELDS):
+   INTRON_HEADER_FIELDS_MAP[field]=i
+   INTRON_TYPE_HEADER_.append(INTRON_TYPE_HEADER_MAP[field].__name__)
+INTRON_TYPE_HEADER = "\t".join(INTRON_TYPE_HEADER_)
+
+SAMPLE_HEADER_FIELDS=SAMPLE_HEADER.split('\t')
+SAMPLE_HEADER_FIELDS_MAP={}
+SAMPLE_HEADER_FIELDS_TYPE_MAP={}
+for (i,field) in enumerate(SAMPLE_HEADER_FIELDS):
+   SAMPLE_HEADER_FIELDS_MAP[field]=i
+   #fields = field.split('_')
+   #t = fields[-1]
+   #field_wo_type = '_'.join(fields[:-1])
+   field_wo_type = field
+   SAMPLE_HEADER_FIELDS_TYPE_MAP[field_wo_type]=field
