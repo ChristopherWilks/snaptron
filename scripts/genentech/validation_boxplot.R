@@ -5,12 +5,12 @@ ms$validated_by_resequencing <- factor(ms$validated_by_resequencing,labels=c('Di
 
 par(mfrow=c(1,2))
 
-boxplot(mg$all_shared_samples_count ~ mg$validated_by_resequencing, main="GTEx", ylab="Intropolis score")
+boxplot(mg$all_shared_samples_count ~ mg$validated_by_resequencing, main="GTEx", ylab="Shared-sample count")
 tg <- wilcox.test(mg$all_shared_samples_count ~ mg$validated_by_resequencing, alternative="less")
-tgp <- paste(c("pval",round(tg$p.value,digits=4)), collapse="")
-text(1.5, 8500, tgp)
+tgp <- paste(c("Wilcox pval",round(tg$p.value,digits=4)), collapse=" ")
+text(1.45, 8500, tgp)
 
-boxplot(ms$all_shared_samples_count ~ ms$validated_by_resequencing, main="SRAv2", ylab="Intropolis score")
+boxplot(ms$all_shared_samples_count ~ ms$validated_by_resequencing, main="SRAv2", ylab="Shared-sample count")
 ts <- wilcox.test(ms$all_shared_samples_count ~ ms$validated_by_resequencing, alternative="less")
-tsp <- paste(c("pval",round(ts$p.value,digits=6)), collapse="")
-text(1.5, 20500, tsp)
+tsp <- paste(c("Wilcox pval",round(ts$p.value,digits=6)), collapse=" ")
+text(1.45, 20500, tsp)
