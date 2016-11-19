@@ -171,7 +171,7 @@ if __name__ == '__main__':
         (annotated_junctions, five_p, three_p) = load_preformatted_annotated_junctions(args.annotations[0]) 
     else:
         (annotated_junctions, five_p, three_p) = load_annotations(args, refs, types) 
-    sys.stderr.write('\t'.join(["snaptron_id","chromosome","start","end","length","strand","annotated?","left_motif","right_motif","left_annotated?","right_annotated?","samples","read_coverage_by_sample","samples_count","coverage_sum","coverage_avg","coverage_median","\n"]))
+    sys.stderr.write('\t'.join(["snaptron_id","chromosome","start","end","length","strand","annotated","left_motif","right_motif","left_annotated","right_annotated","samples","read_coverage_by_sample","samples_count","coverage_sum","coverage_avg","coverage_median","\n"]))
 
     #takes in Abhi's Rail output format (or post-processed rail format)
     snaptron_id = 0
