@@ -58,9 +58,11 @@ def parse_query_params(args):
     groups = []
     with open(args.query_file,"r") as cfin:
         creader = csv.DictReader(cfin,dialect=csv.excel_tab)
+        get_header = args.function is None and not args.noheader
         for (i,record) in enumerate(creader):
-            (query, endpoint) = parse_query_argument(record, creader.fieldnames, groups, header=args.function is None and not args.noheader)
+            (query, endpoint) = parse_query_argument(record, creader.fieldnames, groups, header=get_header)
             queries.append("&".join(query))
+            get_header = False
     #assume the endpoint will be the same for all lines in the file
     return (queries,groups,endpoint)
 
@@ -178,7 +180,11 @@ def filter_exons(args, results, group_list, sample_records):
                         sys.stdout.write("exon\t%s\t%s\t%d\t%d\t%d\n" % (",".join(end_ids),",".join(start_ids),end+1,coord2-1,dist))
 
 TISSUE_SPECIFICITY_FUNC='ts'
-def count_sample_coverage_per_group(args, results, record, group):
+SHARED_SAMPLE_COUNT_FUNC='shared'
+JIR_FUNC='jir'
+TRACK_EXONS_FUNC='exon'
+FUNCTION_TO_TYPE={TRACK_EXONS_FUNC:'not-shared', JIR_FUNC:'not-shared', None:None, TISSUE_SPECIFICITY_FUNC:'shared',SHARED_SAMPLE_COUNT_FUNC:'shared'}
+def count_samples_per_group(args, results, record, group):
     sample_stats = results['samples']
     fields = record.split('\t')
     samples = fields[clsnapconf.SAMPLE_IDS_COL].split(',')
@@ -194,7 +200,7 @@ def count_sample_coverage_per_group(args, results, record, group):
         if int(sample_covs[i]) == 0:
             continue
         #if we're doing tissue spec. then make sure we get shared samples, otherwise skip
-        if args.function == TISSUE_SPECIFICITY_FUNC and group in results['groups_seen']:
+        if FUNCTION_TO_TYPE[args.function] == 'shared' and group in results['groups_seen']:
             #haven't seen this sample before, so must not be shared
             if sample_id not in sample_stats or group not in sample_stats[sample_id]:
                 continue
@@ -204,7 +210,7 @@ def count_sample_coverage_per_group(args, results, record, group):
             sample_stats[sample_id]={}
         if group not in sample_stats[sample_id]:
             sample_stats[sample_id][group]=start_value
-        if args.function != TISSUE_SPECIFICITY_FUNC:
+        if FUNCTION_TO_TYPE[args.function] != TISSUE_SPECIFICITY_FUNC:
             sample_stats[sample_id][group]+=int(sample_covs[i])
         else:
             #initially we used coverage of just those shared samples, but now we just do present or not
@@ -226,6 +232,16 @@ def tissue_specificity(args, results, group_list, sample_records):
             sfields = sample_records[sample_id].split("\t")
             tissue = sfields[GTEX_TISSUE_COL]
             sys.stdout.write("%s\t%s\t%d\t%s\n" % (group, sample_id, present, tissue))
+
+def report_shared_sample_counts(args, results, group_list, sample_records):
+    sys.stdout.write("group\tshared_sample_counts\n")
+    for group in group_list:
+        if group not in results['shared'] or len(results['shared'][group]) == 0:
+            sys.stderr.write("No shared samples between splice junctions for %s\n" % (group))
+            sys.stdout.write("%s\t0\n" % (group))
+            continue
+        count = len(results['shared'][group])
+        sys.stdout.write("%s\t%d\n" % (group, count))
 
 def download_sample_metadata(args):
     sample_records = {}
@@ -259,9 +275,10 @@ def download_sample_metadata(args):
 iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
 def process_queries(args, query_params_per_region, groups, endpoint, function=None, local=False):
     results = {'samples':{},'queries':[],'exons':{'start':{},'end':{}}}
-    if args.function == TISSUE_SPECIFICITY_FUNC:
+    if FUNCTION_TO_TYPE[args.function] == 'shared':
         results['groups_seen']=set()
         results['shared']={}
+    first = True
     for (group_idx, query_param_string) in enumerate(query_params_per_region):
         sIT = iterator_map[local](query_param_string, endpoint)
         group = None
@@ -287,13 +304,16 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
                 group_label = ''
                 if len(groups) > 0 and len(groups[group_idx]) > 0:
                     group_label = "%s\t" % (groups[group_idx])
+                    if not args.noheader and first and counter == 0:
+                        group_label = 'group\t'
                 sys.stdout.write("%s%s\n" % (group_label, record))
         if group is not None and 'groups_seen' in results:
             results['groups_seen'].add(group)
+        first = False
     return results
 
 
-compute_functions={'jir':(count_sample_coverage_per_group,junction_inclusion_ratio),'jirbp':(count_sample_coverage_per_group,junction_inclusion_ratio_bp),'exon':(track_exons,filter_exons),None:(None,None),TISSUE_SPECIFICITY_FUNC:(count_sample_coverage_per_group,tissue_specificity)}
+compute_functions={JIR_FUNC:(count_samples_per_group,junction_inclusion_ratio),'jirbp':(count_samples_per_group,junction_inclusion_ratio_bp),TRACK_EXONS_FUNC:(track_exons,filter_exons),TISSUE_SPECIFICITY_FUNC:(count_samples_per_group,tissue_specificity),SHARED_SAMPLE_COUNT_FUNC:(count_samples_per_group,report_shared_sample_counts),None:(None,None)}
 def main(args):
     #parse original set of queries
     (query_params_per_region, groups, endpoint) = parse_query_params(args)
@@ -312,7 +332,7 @@ def main(args):
     #if either the user wanted the JIR to start with on some coordinate groups OR they asked for a breakpoint, do the JIR now
     if args.function or endpoint == 'breakpoint':
         sample_records = {}
-        if args.function != 'exon':
+        if args.function != TRACK_EXONS_FUNC:
             sample_records = download_sample_metadata(args)
         group_list = set()
         map(lambda x: group_list.add(x), groups)
