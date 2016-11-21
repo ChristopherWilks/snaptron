@@ -38,12 +38,12 @@ UCSC_URL='2'
 
 #to force the overlap to have either the start within the interval or the end
 #useful for avoiding overlaps which only contain the query interval
-WITHIN_START=1
-WITHIN_END=2
+EITHER_START=1
+EITHER_END=2
 
-RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains within exact result_count return_format score_by post original_input_string coordinate_string sample_fields debug')
+RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains either exact result_count return_format score_by post original_input_string coordinate_string sample_fields debug')
 
-default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="DataSource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, within=0, exact=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', sample_fields=[], debug=True)
+default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="DataSource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, either=0, exact=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', sample_fields=[], debug=True)
 
 sconn = sqlite3.connect(snapconf.SNAPTRON_SQLITE_DB)
 snc = sconn.cursor()
@@ -162,7 +162,7 @@ def run_tabix(qargs,region_args=default_region_args,additional_cmd=""):
         if ra.contains and (lstart < start or lend > end):
             continue
         #third attempt to filter by violation of within one end or the other (if in effect)
-        if (ra.within == WITHIN_START and lstart < start) or (ra.within == WITHIN_END and lend > end):
+        if (ra.either == EITHER_START and lstart < start) or (ra.either == EITHER_END and lend > end):
             continue
         #now filter, this order is important (filter first, than save ids/print)
         if filter_by_introns and fields[snapconf.INTRON_ID_COL] not in ra.intron_filter:
@@ -321,7 +321,7 @@ def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=default_region_args):
         if ra.contains and (lstart < start or lend > end):
             continue
         #third attempt to filter by violation of within one end or the other (if in effect)
-        if (ra.within == WITHIN_START and lstart < start) or (ra.within == WITHIN_END and lend > end):
+        if (ra.either == EITHER_START and lstart < start) or (ra.either == EITHER_END and lend > end):
             continue
         #extra check here (not in run_tabix(...)) but similar to searching via lucene
         if filter_by_introns and snaptron_id not in ra.intron_filter and snaptron_id not in snaptron_ids:
@@ -584,7 +584,7 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
 
 
 def process_params(input_,region_args=default_region_args):
-    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','within':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1'}
+    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','either':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1'}
     params_ = input_.split('&')
     for param_ in params_:
         (key,val) = param_.split("=")
@@ -612,7 +612,7 @@ def process_params(input_,region_args=default_region_args):
                 params[key].append(val) 
             else:
                 params[key]=val
-    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),within=(int(params['within'])),exact=bool(int(params['exact'])),score_by=params['score_by'],print_header=bool(int(params['header'])),return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'])
+    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),either=(int(params['either'])),exact=bool(int(params['exact'])),score_by=params['score_by'],print_header=bool(int(params['header'])),return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'])
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'],ra)
 
 
