@@ -260,21 +260,21 @@ class TestQueryCalls(unittest.TestCase):
         #snaptron.RETURN_ONLY_CONTAINED = False
         self.assertEqual(iids, EXPECTED_IIDS[IQs[i]+str(RQs_flat[r])+str(RQs_flat[r+1])])
     
-    def test_interval_with_range_query_within_start(self):
+    def test_interval_with_range_query_either_start(self):
         q = 0
         i = 5
         r = 3
-        queries = self.process_query('regions=%s&rfilter=%s&rfilter=%s&within=1' % (IQs[i],RQs_flat[r],RQs_flat[r+1]))
+        queries = self.process_query('regions=%s&rfilter=%s&rfilter=%s&either=1' % (IQs[i],RQs_flat[r],RQs_flat[r+1]))
         iq = queries['iq'][q]
         rq = queries['rq']
         (iids,sids) = qr([iq],rq,set(),filtering=True,region_args=queries['ra'])
         self.assertEqual(iids, EXPECTED_IIDS[IQs[i]+str(RQs_flat[r])+str(RQs_flat[r+1])])
     
-    def test_interval_with_range_query_not_within_end(self):
+    def test_interval_with_range_query_not_either_end(self):
         q = 0
         i = 4
         r = 3
-        queries = self.process_query('regions=%s&rfilter=%s&rfilter=%s&within=2' % (IQs[i],RQs_flat[r],RQs_flat[r+1]))
+        queries = self.process_query('regions=%s&rfilter=%s&rfilter=%s&either=2' % (IQs[i],RQs_flat[r],RQs_flat[r+1]))
         iq = queries['iq'][q]
         rq = queries['rq']
         (iids,sids) = qr([iq],rq,set(),filtering=True,region_args=queries['ra'])
