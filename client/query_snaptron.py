@@ -237,8 +237,8 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
     sys.stdout.write("group\tshared_sample_counts\n")
     for group in group_list:
         if group not in results['shared'] or len(results['shared'][group]) == 0:
-            sys.stderr.write("No shared samples between splice junctions for %s\n" % (group))
-            sys.stdout.write("%s\t0\n" % (group))
+            sys.stderr.write("No shared samples between splice junctions for %s, skipping\n" % (group))
+            #sys.stdout.write("%s\t0\n" % (group))
             continue
         count = len(results['shared'][group])
         sys.stdout.write("%s\t%d\n" % (group, count))
