@@ -54,19 +54,19 @@ A Snaptron query is a set of predicates logically AND'ed together from three dif
 
 A snaptron query may contain only one of the three types of queries or may contain all three, or some combination of two types.  In the example above the region and range query types are present as ``chr6:1-514015`` for the region type and ``samples_count:100`` for the range type.
 
-There are currently (11/16/2016) four Snaptron instances indexing different data sources:
+There are currently (11/16/2016) four Snaptron instances indexing different data sources (modify the example URL for your own queries):
 
 - TCGA: ~36 million junctions from ~11 thousand public samples from the TCGA consortium sequences using HG38 reference:
-http://snaptron.cs.jhu.edu/tcga/
+http://snaptron.cs.jhu.edu/tcga/snaptron?regions=BRCA1
 
 - GTEx: ~30 million junctions from ~10 thousand public samples from the GTEx consortium sequences using HG38 reference:
-http://snaptron.cs.jhu.edu/gtex/
+http://snaptron.cs.jhu.edu/gtex/snaptron?regions=KCNIP4
 
 - SRAv2: ~81 million junctions from ~49 thousand public samples from the Sequence Read Archive using HG38 reference:
-http://snaptron.cs.jhu.edu/srav2/
+http://snaptron.cs.jhu.edu/srav2/snaptron?regions=ABCD3
 
 - SRAv1 (legacy, replaced by SRAv2): ~42 million junctions from ~21 thousand public samples from the Sequence Read Archive using HG19 reference:
-http://snaptron.cs.jhu.edu/srav1/
+http://snaptron.cs.jhu.edu/srav1/snaptron?regions=KMT2E
 
 
 Table 1. Query Types
