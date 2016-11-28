@@ -120,7 +120,9 @@ def stream_intron(fout,line,fields,region_args=default_region_args):
         fields = line.split('\t')
     newline = line
     if len(REQ_FIELDS) > 0:
-       newline = "\t".join([str(fields[x]) for x in REQ_FIELDS]) + "\n"
+        newline = "\t".join([str(fields[x]) for x in REQ_FIELDS]) + "\n"
+    elif line is None:
+        newline = "\t".join(map(str, fields)) + '\n'
     if not ra.prefix:
         fout.write("%s" % (newline))
     else:
@@ -297,7 +299,6 @@ def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=default_region_args):
     #exit early as we only want the ucsc_url
     if ra.return_format == UCSC_URL:
         return (set(),set())
-    
     query_ = select
     chr_patt = re.compile('(chr)|[+-]')
     for (i,arg_) in enumerate(arguments):
@@ -336,7 +337,7 @@ def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=default_region_args):
             if ra.save_samples:
                 samples_set.update(samples)
         if ra.stream_back:
-            streamer_method(sys.stdout,"%s\n" % "\t".join(str(x) for x in result),result,region_args=ra)
+            streamer_method(sys.stdout,None,result,region_args=ra)
         if ra.save_introns:
             ids_found.add(snaptron_id)
     return (ids_found,samples_set)
@@ -381,7 +382,8 @@ def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],
     for intron in results:
         found_snaptron_ids.update(set([str(intron[0])])) 
         if ra.stream_back:
-            streamer_method(sys.stdout,"%s\n" % "\t".join([str(x) for x in intron]),intron,ra)
+            #streamer_method(sys.stdout,"%s\n" % "\t".join([str(x) for x in intron]),intron,ra)
+            streamer_method(sys.stdout,None,intron,ra)
     return (found_snaptron_ids,set())
 
 
