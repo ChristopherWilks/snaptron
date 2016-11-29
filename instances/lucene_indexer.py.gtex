@@ -93,7 +93,7 @@ if __name__ == "__main__":
                 doc.add(fieldtype(fname, field, Field.Store.YES))  #Field.Store.YES, Field.Index.ANALYZED))
     if n > 0:
         all_fields = ' '.join(all_)
-        doc.add(TextField('all_t', all_fields, Field.Store.NO))
+        doc.add(TextField('all', all_fields, Field.Store.NO))
     writer.addDocument(doc)
   print "Indexed %d lines from stdin (%d docs in index)" % (n, writer.numDocs())
   print "Closing index of %d docs..." % writer.numDocs()
