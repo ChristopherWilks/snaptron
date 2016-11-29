@@ -1,0 +1,108 @@
+#!/usr/bin/env Python2.7
+
+#based on the example code at
+#http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
+
+import sys
+import re
+import lucene
+ 
+from java.io import File
+from org.apache.lucene.analysis.standard import StandardAnalyzer
+from org.apache.lucene.document import Document, Field, IntField, StringField, TextField, FloatField
+from org.apache.lucene.index import IndexWriter, IndexWriterConfig
+from org.apache.lucene.store import SimpleFSDirectory
+from org.apache.lucene.util import Version
+
+LUCENE_TYPES={'i':IntField,'s':StringField,'t':TextField,'f':FloatField,'NA':TextField}
+
+int_patt = re.compile(r'^-?\d+$')
+float_patt = re.compile(r'^-?\d+?\.?\d+$')
+def determine_lucene_type(field):
+    if int_patt.search(field):
+        return 'i'
+    elif float_patt.search(field):
+        return 'f'
+    #default to TextField
+    return 'NA'
+
+def infer_lucene_type(types_map,field):
+    fields_ = field.split('_')
+    typechar = fields_[-1]
+    parse_2nd_line_for_types = False
+    if len(fields_) == 1 or len(fields_[-1]) > 1 or typechar not in set(['t','s','i','f']):
+        #sys.stderr.write("unexpected type char in last character position of header field: %s\n" % (field))
+        #exit(-1) 
+        parse_2nd_line_for_types = True
+        typechar = 'NA'
+    types_map.append([field,LUCENE_TYPES[typechar]])
+    return parse_2nd_line_for_types
+
+float_patt2 = re.compile(r'\tf,')
+def process_pre_inferred_types(types_map,typesF):
+    with open(typesF,"r") as fin:
+        for line in fin:
+            fields = line.rstrip().split('\t')
+            #expected pre-sorted fields based on maximum occurrence
+            #assume if strings are present but not plurality, we'll put null in
+            typechar = fields[1][0]
+            if typechar != 'f' and float_patt2.search(line):
+                types_map.append(["",LUCENE_TYPES['f']])
+            else:
+                types_map.append(["",LUCENE_TYPES[typechar]])
+                  
+ 
+if __name__ == "__main__":
+  types_map = []
+  infer_types = True
+  if len(sys.argv) > 1:
+      typesF = sys.argv[1]
+      process_pre_inferred_types(types_map,typesF) 
+      infer_types = False
+  lucene.initVM()
+  indexDir = SimpleFSDirectory(File("lucene/"))
+  writerConfig = IndexWriterConfig(Version.LUCENE_4_10_1, StandardAnalyzer())
+  writer = IndexWriter(indexDir, writerConfig)
+ 
+  print "%d docs in index" % writer.numDocs()
+  print "Reading lines from sys.stdin..."
+  #header=[]
+  parse_2nd_line_for_types = False
+  #string_patt = re.compile(r'[^\d\.-]+')
+  for n, l in enumerate(sys.stdin):
+    doc = Document()
+    fields = l.rstrip().split("\t")
+    for (idx,field) in enumerate(fields):
+        if n == 0:
+            if infer_types: 
+                parse_2nd_line_for_types |= infer_lucene_type(types_map,field)
+            else:
+                types_map[idx][0] = field
+        elif parse_2nd_line_for_types and n == 1:
+            types_map[idx][1]=LUCENE_TYPES[determine_lucene_type(field)]
+        if n >= 1:
+            (fname,fieldtype) = types_map[idx]
+            sys.stdout.write("%s %s %s %d %d\n" % (fname,fieldtype,field,idx,n))
+            #basically this is complex to handle NA's in numeric fields
+            try:
+                if fieldtype is FloatField:
+                #if not string_patt.search(field):
+                    field = float(field)
+                #else:
+                #    field = None
+                elif fieldtype is IntField:
+                #if not string_patt.search(field):
+                    field = int(field) 
+                #else:
+                #    field = None
+            except ValueError, e:
+                field = None
+            if field:
+                doc.add(fieldtype(fname, field, Field.Store.YES))  #Field.Store.YES, Field.Index.ANALYZED))
+                #doc.add(Field(fieldtype, field, Field.Store.YES, Field.Index.ANALYZED))
+                #doc.add(fieldtype(header[idx][1],field,Field.Store.YES)
+    writer.addDocument(doc)
+  print "Indexed %d lines from stdin (%d docs in index)" % (n, writer.numDocs())
+  print "Closing index of %d docs..." % writer.numDocs()
+  writer.close()
+
