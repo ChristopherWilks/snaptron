@@ -18,7 +18,7 @@ LUCENE_TYPES={'i':IntField,'s':StringField,'t':TextField}
  
 if __name__ == "__main__":
   lucene.initVM()
-  indexDir = SimpleFSDirectory(File("lucene/"))
+  indexDir = SimpleFSDirectory(File("data/lucene_full_v1/"))
   writerConfig = IndexWriterConfig(Version.LUCENE_4_10_1, StandardAnalyzer())
   writer = IndexWriter(indexDir, writerConfig)
  

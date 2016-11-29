@@ -82,8 +82,11 @@ def search_samples_sqlite(sample_map,sampleq,sample_set,stream_sample_metadata=F
 def search_samples_lucene(sample_map,sampleq,sample_set,ra,stream_sample_metadata=False):
     (fields,queries,booleans) = lucene_sample_query_parse(sampleq)
     query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, snapconf.LUCENE_ANALYZER)
-    #query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, analyzer_ws)
     hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
+    #if we get nothing, try with the backup analyzer
+    if hits.totalHits == 0:
+        query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, snapconf.LUCENE_BACKUP_ANALYZER)
+        hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
     if DEBUG_MODE: 
         sys.stderr.write("Found %d document(s) that matched query '%s':\n" % (hits.totalHits, sampleq))
     if stream_sample_metadata:
