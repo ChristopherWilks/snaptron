@@ -31,8 +31,6 @@ def infer_lucene_type(types_map,field):
     typechar = fields_[-1]
     parse_2nd_line_for_types = False
     if len(fields_) == 1 or len(fields_[-1]) > 1 or typechar not in set(['t','s','i','f']):
-        #sys.stderr.write("unexpected type char in last character position of header field: %s\n" % (field))
-        #exit(-1) 
         parse_2nd_line_for_types = True
         typechar = 'NA'
     types_map.append([field,LUCENE_TYPES[typechar]])
@@ -60,15 +58,13 @@ if __name__ == "__main__":
       process_pre_inferred_types(types_map,typesF) 
       infer_types = False
   lucene.initVM()
-  indexDir = SimpleFSDirectory(File("lucene/"))
+  indexDir = SimpleFSDirectory(File("data/lucene_full_gtex/"))
   writerConfig = IndexWriterConfig(Version.LUCENE_4_10_1, StandardAnalyzer())
   writer = IndexWriter(indexDir, writerConfig)
  
   print "%d docs in index" % writer.numDocs()
   print "Reading lines from sys.stdin..."
-  #header=[]
   parse_2nd_line_for_types = False
-  #string_patt = re.compile(r'[^\d\.-]+')
   for n, l in enumerate(sys.stdin):
     doc = Document()
     fields = l.rstrip().split("\t")
@@ -86,21 +82,13 @@ if __name__ == "__main__":
             #basically this is complex to handle NA's in numeric fields
             try:
                 if fieldtype is FloatField:
-                #if not string_patt.search(field):
                     field = float(field)
-                #else:
-                #    field = None
                 elif fieldtype is IntField:
-                #if not string_patt.search(field):
                     field = int(field) 
-                #else:
-                #    field = None
             except ValueError, e:
                 field = None
             if field:
                 doc.add(fieldtype(fname, field, Field.Store.YES))  #Field.Store.YES, Field.Index.ANALYZED))
-                #doc.add(Field(fieldtype, field, Field.Store.YES, Field.Index.ANALYZED))
-                #doc.add(fieldtype(header[idx][1],field,Field.Store.YES)
     writer.addDocument(doc)
   print "Indexed %d lines from stdin (%d docs in index)" % (n, writer.numDocs())
   print "Closing index of %d docs..." % writer.numDocs()
