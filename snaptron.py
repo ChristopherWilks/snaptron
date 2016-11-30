@@ -41,9 +41,9 @@ UCSC_URL='2'
 EITHER_START=1
 EITHER_END=2
 
-RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains either exact result_count return_format score_by post original_input_string coordinate_string sample_fields debug')
+RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains either exact result_count return_format score_by post original_input_string coordinate_string sample_fields separate_proc debug')
 
-default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="DataSource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, either=0, exact=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', sample_fields=[], debug=True)
+default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="DataSource:Type\t%s" % snapconf.INTRON_HEADER, prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, either=0, exact=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', sample_fields=[], separate_proc=False, debug=True)
 
 sconn = sqlite3.connect(snapconf.SNAPTRON_SQLITE_DB)
 snc = sconn.cursor()
@@ -618,7 +618,17 @@ def process_params(input_,region_args=default_region_args):
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'],ra)
 
 
+#cases:
+#1) just interval (one function call)
+#2) interval + range query(s) (one tabix function call + field filter(s))
+#3) one or more range queries (one tabix range function call + field filter(s))
+#4) interval + sample (2 function calls: 1 lucene for sample filter + 1 tabix using snaptron_id filter)
+#5old) sample (1 lucene call -> use interval ids to return all intervals)
+#5) sample (1 lucene call -> use snaptron_ids to do a by_ids search (multiple tabix calls))
+#6) sample + range query(s) (2 function calls: 1 lucene for sample filter + 1 tabix using snaptron_id filter + field filter)
+
 def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default_region_args):
+    
     #first we build filter-by-snaptron_id list based either (or all) on passed ids directly
     #and/or what's dervied from the sample query and/or what sample ids were passed in as well
     #NOTE this is the only place where we have OR logic, i.e. the set of snaptron_ids passed in
@@ -664,14 +674,25 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
         sys.stdout.write("%d\n" % (len(found_snaptron_ids)))
 
 
-#cases:
-#1) just interval (one function call)
-#2) interval + range query(s) (one tabix function call + field filter(s))
-#3) one or more range queries (one tabix range function call + field filter(s))
-#4) interval + sample (2 function calls: 1 lucene for sample filter + 1 tabix using snaptron_id filter)
-#5old) sample (1 lucene call -> use interval ids to return all intervals)
-#5) sample (1 lucene call -> use snaptron_ids to do a by_ids search (multiple tabix calls))
-#6) sample + range query(s) (2 function calls: 1 lucene for sample filter + 1 tabix using snaptron_id filter + field filter)
+def run_snaptron(input_, separate_proc=True):
+    (intervalq,rangeq,idq) = (None,None,None)
+    sampleq = []
+    sys.stderr.write("%s\n" % input_)
+    sample_map = snample.load_sample_metadata(snapconf.SAMPLE_MD_FILE)
+    if DEBUG_MODE_:
+        sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
+    #make copy of the region_args tuple
+    ra = default_region_args._replace(separate_proc=separate_proc)
+    if '[' in input_:
+        (or_intervals,or_ranges,or_samples,or_ids,ra) = process_post_params(input_)
+        for idx in (xrange(0,len(or_intervals))):
+            run_toplevel_AND_query(or_intervals[idx],or_ranges[idx],or_samples[idx],or_ids[idx],sample_map=sample_map,ra=ra)
+            ra=ra._replace(print_header=False)
+    #update support simple '&' CGI format
+    else:
+        (intervalq,idq,rangeq,sampleq,ra) = process_params(input_)
+        run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=sample_map,ra=ra)
+
 def main():
     input_ = sys.argv[1]
     DEBUG_MODE_=DEBUG_MODE
@@ -683,26 +704,7 @@ def main():
        FORCE_SQLITE=True
     if len(sys.argv) == 5:
        FORCE_TABIX=True
-    (intervalq,rangeq,idq) = (None,None,None)
-    sampleq = []
-    #(intervalq,rangeq,sampleq,idq) = ([],[],[],[])
-    sys.stderr.write("%s\n" % input_)
-    sample_map = snample.load_sample_metadata(snapconf.SAMPLE_MD_FILE)
-    if DEBUG_MODE_:
-        sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
-    #make copy of the region_args tuple
-    ra = default_region_args
-    if '[' in input_:
-        (or_intervals,or_ranges,or_samples,or_ids,ra) = process_post_params(input_)
-        #(intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
-        for idx in (xrange(0,len(or_intervals))):
-            run_toplevel_AND_query(or_intervals[idx],or_ranges[idx],or_samples[idx],or_ids[idx],sample_map=sample_map,ra=ra)
-            ra=ra._replace(print_header=False)
-    #update support simple '&' CGI format
-    else:
-        (intervalq,idq,rangeq,sampleq,ra) = process_params(input_)
-        run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=sample_map,ra=ra)
-
+    run_snaptron(input_)
 
 if __name__ == '__main__':
     main()

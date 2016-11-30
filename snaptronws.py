@@ -29,9 +29,7 @@ DEBUG_MODE=True
 logger = logging.getLogger("snaptronws")
 logger.setLevel(logging.INFO)
 lHandler = logging.StreamHandler()
-#sHandler = logging.handlers.SysLogHandler()
 lHandler.setLevel(logging.DEBUG)
-#sHandler.setLevel(logging.DEBUG)
 logger.addHandler(lHandler)
 
 #passes back a stream, either binary or text (its agnostic) in READ_SIZE chunks

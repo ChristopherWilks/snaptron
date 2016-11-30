@@ -18,10 +18,10 @@ analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
 analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
 
 #####fields that need to be changed for a different instance
-DATA_SOURCE='SRAv2'
+DATA_SOURCE='test_SRAv2'
 IP='127.0.0.1'
-PORT=1556
-SERVER_STRING='http://stingray.cs.jhu.edu:8090/srav2/'
+PORT=1559
+SERVER_STRING='http://stingray.cs.jhu.edu:8090/test_SRAv2/'
 HG='hg38'
 BIGWIG2WIG="bigWigToWig"
 ROOT_DIR='./'
