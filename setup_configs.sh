@@ -1,5 +1,6 @@
 #!/bin/bash
 
+ln -s ./snaptron_server ./${1}_snaptron_server
 ln instances/snapconf.py.${1} ./snapconf.py
 ln instances/test_snaptron.py.${1} ./test_snaptron.py
 ln -s instances/tests.sh.${1} ./tests.sh
