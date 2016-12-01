@@ -108,27 +108,30 @@ def stream_header(fout,region_args=default_region_args,interval=None):
     if len(REQ_FIELDS) > 0:
         custom_header = "DataSource:Type\t%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
         ra = ra._replace(prefix=None)
-    if ra.stream_back and ra.print_header:
-        if not ra.result_count:
-            fout.write("%s\n" % (custom_header))
+    header = ""
+    if ra.stream_back and ra.print_header and not ra.result_count:
+            header=custom_header+"\n"
     if ra.stream_back and ra.print_header and ra.post:
-        fout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
+        header+="datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER)
+    return header
 
-def stream_intron(fout,line,fields,region_args=default_region_args):
+def stream_intron(fout,line,fields,header="",region_args=default_region_args):
     ra = region_args
     if len(fields) == 0:
         fields = line.split('\t')
-    newline = line
     if len(REQ_FIELDS) > 0:
         newline = "\t".join([str(fields[x]) for x in REQ_FIELDS]) + "\n"
     elif line is None:
         newline = "\t".join(map(str, fields)) + '\n'
-    if not ra.prefix:
-        fout.write("%s" % (newline))
+    if ra.prefix:
+        newline = "%s\t%s" % (ra.prefix,newline)
+    newline = header + newline
+    if fout is None:
+        return newline
     else:
-        fout.write("%s\t%s" % (ra.prefix,newline))
+        fout.write(newline)
+        
 
-return_formats={TSV:(stream_header,stream_intron),UCSC_BED:(ucsc_format_header,ucsc_format_intron),UCSC_URL:(ucsc_url,None)}
 def run_tabix(qargs,region_args=default_region_args,additional_cmd=""):
     ra = region_args
     m = snapconf.TABIX_PATTERN.search(qargs)
@@ -146,7 +149,8 @@ def run_tabix(qargs,region_args=default_region_args,additional_cmd=""):
     if ra.debug:
         sys.stderr.write("running %s %s %s\n" % (snapconf.TABIX,ra.tabix_db_file,qargs))
     (header_method,streamer_method) = return_formats[ra.return_format]
-    header_method(sys.stdout,region_args=ra,interval=qargs)
+    header = header_method(sys.stdout,region_args=ra,interval=qargs)
+    sys.stdout.write(header)
     #exit early as we only want the ucsc_url
     if ra.return_format == UCSC_URL:
         return (set(),set())
@@ -296,6 +300,7 @@ def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=default_region_args):
         sys.stderr.write("%s\t%s\n" % (select,arguments))
     (header_method,streamer_method) = return_formats[ra.return_format]
     header_method(sys.stdout,region_args=ra,interval=intervalq)
+    sys.stdout.write(header)
     #exit early as we only want the ucsc_url
     if ra.return_format == UCSC_URL:
         return (set(),set())
@@ -341,6 +346,115 @@ def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=default_region_args):
         if ra.save_introns:
             ids_found.add(snaptron_id)
     return (ids_found,samples_set)
+
+return_formats={TSV:(stream_header,stream_intron),UCSC_BED:(ucsc_format_header,ucsc_format_intron),UCSC_URL:(ucsc_url,None)}
+class RunExternalQueryEngine:
+
+    def __init__(self,cmd,qargs,rangeq,snaptron_ids,region_args=default_region_args,additional_cmd=""):
+        self.qargs = qargs
+        self.ra = region_args
+        self.ids_found=set()
+        self.samples_set=set()
+        #this trumps whatever stream_back instructions we were given
+        if self.ra.result_count:
+            self.ra = ra._replace(stream_back=False)
+            self.ra = ra._replace(save_introns=True)
+
+        self.filter_by_introns = (self.ra.intron_filter != None and len(self.ra.intron_filter) > 0)
+        self.filter_by_samples = (self.ra.sample_filter != None and len(self.ra.sample_filter) > 0)
+
+        (header_method,streamer_method) = return_formats[self.ra.return_format]
+        self.header = header_method(sys.stdout,region_args=self.ra,interval=self.qargs)
+        #exit early as we only want the ucsc_url
+        if self.ra.return_format == UCSC_URL:
+            return (set(),set())
+
+        if cmd == snapconf.TABIX:
+            self.delim = '\t'
+            m = snapconf.TABIX_PATTERN.search(self.qargs)
+            self.start = int(m.group(2))
+            self.end = int(m.group(3))
+            self.ra = self.ra._replace(tabix_db_file = "%s/%s" % (snapconf.TABIX_DB_PATH,self.ra.tabix_db_file))
+            if self.ra.debug:
+                sys.stderr.write("running %s %s %s\n" % (cmd,self.ra.tabix_db_file,self.qargs))
+            if len(additional_cmd) > 0:
+                additional_cmd = " | %s" % (additional_cmd)
+            self.full_cmd = "%s %s %s | cut -f %d- %s" % (cmd,self.ra.tabix_db_file,self.qargs,self.ra.cut_start_col,additional_cmd)
+            self.extern_proc = subprocess.Popen(self.full_cmd, stdout=subprocess.PIPE, shell=True, bufsize=-1)
+
+        elif cmd == snapconf.SQLITE:
+            #self.delim = '|'
+            self.delim = '\t'
+            arguments = []
+            where = []
+            (chrom,start,end) = sqlite3_interval_query_parse(self.qargs,where,arguments,self.ra)
+            self.chrom = chrom
+            self.start = start
+            self.end = end
+            sqlite3_range_query_parse(rangeq,where,arguments)
+            select = "SELECT * from intron WHERE %s" % (' AND '.join(where))
+            if self.ra.debug:
+                sys.stderr.write("%s\t%s\n" % (select,sarguments))
+            query_ = select
+            chr_patt = re.compile('(chr)|[+-]')
+            for (i,arg_) in enumerate(arguments):
+                arg_ = str(arg_)
+                if chr_patt.search(arg_):
+                    query_ = re.sub('\?',"\'%s\'" % arg_,query_,count=1)
+                else:
+                    query_ = re.sub('\?',arg_,query_,count=1)
+            self.full_cmd = "%s %s %s" % (cmd,snapconf.SNAPTRON_SQLITE_DB, query_)
+            if self.ra.debug:
+                sys.stderr.write("%s\n" % (self.full_cmd))
+            self.range_filters = None
+            self.extern_proc = subprocess.Popen([cmd, "-separator $'\t'", snapconf.SNAPTRON_SQLITE_DB, query_], stdout=subprocess.PIPE, shell=False, bufsize=-1)
+
+        
+    def __iter__(self):
+        return self
+
+    def next(self):
+        line = self.extern_proc.stdout.readline()
+        fields = line.rstrip().split(self.delim)
+        snaptron_id = str(fields[snapconf.INTRON_ID_COL])
+        lstart = int(fields[self.ra.region_start_col])
+        lend = int(fields[self.ra.region_end_col])
+        #first attempt to filter by violation of containment (if in effect)
+        if self.ra.exact and (lstart != self.start or lend != self.end):
+            continue
+        #2nd attempt to filter by violation of containment (if in effect)
+        if self.ra.contains and (lstart < self.start or lend > self.end):
+            continue
+        #third attempt to filter by violation of within one end or the other (if in effect)
+        if (self.ra.either == EITHER_START and lstart < self.start) or (self.ra.either == EITHER_END and lend > self.end):
+            continue
+        #now filter, this order is important (filter first, than save ids/print)
+        if self.filter_by_introns and snaptron_id not in self.ra.intron_filter and snaptron_id not in snaptron_ids:
+            continue
+        if self.ra.range_filters and self.filter_by_ranges(fields,self.ra.range_filters):
+            continue
+        #combine these two so we only have to split sample <= 1 times
+        if self.filter_by_samples or self.ra.save_samples:
+            samples = set(fields[snapconf.SAMPLE_IDS_COL].split(","))
+            if self.filter_by_samples:
+                have_samples = self.sample_filter.intersection(samples)
+                if len(have_samples) == 0:
+                    continue
+            if self.ra.save_samples:
+                self.sample_set.update(samples)
+        #filter return stream based on range queries (if any)
+        if self.ra.stream_back:
+            return streamer_method(None,line,fields,header=self.header,region_args=self.ra)
+        if self.ra.save_introns:
+            self.ids_found.add(snaptron_id)
+
+    def close(self):
+        exitc=self.extern_proc.wait() 
+        if exitc != 0:
+            raise RuntimeError("%s returned non-0 exit code\n" % (self.full_cmd))
+
+    def get_ids(self):
+        return (self.ids_found,self.samples_set)
 
 #based on the example code at
 #http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
