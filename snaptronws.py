@@ -290,8 +290,13 @@ def process_post(environ, start_response):
 
 def generic_endpoint(environ, start_response, endpoint_app):
     http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}
+    urlpath = environ.get("PATH_INFO",'')
+    logger.info("\nURLPATH %s\n" % urlpath)
     query_string = environ.get('QUERY_STRING')
-   
+    if len(urlpath) > 0:
+        urlpath = urlpath.rstrip(r'/').lstrip(r'/')
+        query_string = "ids=" + urlpath
+
     query = {}
     if len(query_string) == 0:
         try:
