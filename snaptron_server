@@ -168,8 +168,7 @@ def run_server():
     cherrypy.tree.graft(snaptron_service, "/snaptron")
     cherrypy.tree.graft(sample_service, "/samples")
     cherrypy.tree.graft(annotation_service, "/annotations")
-    cherrypy.tree.graft(density_service, "/density")
-    cherrypy.tree.graft(breakpoint_service, "/breakpoint")
+    #cherrypy.tree.graft(density_service, "/density")
 
     #cherrypy.config.update({'server.socket_host': "127.0.0.1", 'server.socket_port': 1555, 'server.thread_pool': 30})
     #cherrypy.config.update({'server.socket_host': "10.1.1.50", 'server.socket_port': 1555, 'server.thread_pool': 30})
