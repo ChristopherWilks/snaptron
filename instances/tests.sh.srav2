@@ -14,9 +14,9 @@ echo "25" > expected_wc
 python ./snaptron.py 'regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000' 2> /dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
-echo "91" > expected_wc
-python ./sdensity.py "regions=chr2:1-100000&bigwig_db=snps1k" 2> /dev/null | wc -l > test_wc
-diff test_wc expected_wc
+#echo "91" > expected_wc
+#python ./sdensity.py "regions=chr2:1-100000&bigwig_db=snps1k" 2> /dev/null | wc -l > test_wc
+#diff test_wc expected_wc
 
 echo "25" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000" 2> /dev/null | wc -l  > test_wc
@@ -61,9 +61,9 @@ echo "34" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/annotations?regions=CD99" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
-echo "91" > expected_wc
-curl "http://$HOST:$PORT/$PATH_/density?regions=chr2:1-100000&bigwig_db=snps1k" 2>/dev/null | wc -l > test_wc
-diff test_wc expected_wc
+#echo "91" > expected_wc
+#curl "http://$HOST:$PORT/$PATH_/density?regions=chr2:1-100000&bigwig_db=snps1k" 2>/dev/null | wc -l > test_wc
+#diff test_wc expected_wc
 
 curl "http://$HOST:$PORT/$PATH_/snaptron?contains=1&regions=chr2:29446395-30142858&rfilter=samples_count>:100&rfilter=annotated:1" 2>/dev/null > test_annot_full.test
 diff test_annot_full.test test_annot_full
