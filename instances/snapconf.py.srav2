@@ -29,25 +29,23 @@ PYTHON_PATH="python"
 TABIX="tabix"
 #tabix related
 TABIX_DB_PATH='./data'
-TABIX_GENE_INTERVAL_DB='gensemrefg.hg38_annotations.gtf.sorted.gz'
-TABIX_INTERVAL_DB='intropolis.v2.hg38.tsv.snaptron2.bgzip'
-#TABIX_INTERVAL_DB='junctions.bgz'
+TABIX_GENE_INTERVAL_DB='all_transcripts.gtf.bgz'
+TABIX_INTERVAL_DB='junctions.bgz'
 ID_START_COL=2
 CUT_START_COL=1
 #sqlite3 dbs
-SAMPLE_SQLITE_DB="%s/by_sample_ids.v2.sqlite3" % (TABIX_DB_PATH)
-SNAPTRON_SQLITE_DB="%s/snaptronV2.sqlite3" % (TABIX_DB_PATH)
+SAMPLE_SQLITE_DB="%s/sample2junction.sqlite" % (TABIX_DB_PATH)
+SNAPTRON_SQLITE_DB="%s/junctions.sqlite" % (TABIX_DB_PATH)
 #Lucene dbs
-LUCENE_SAMPLE_DB="%s/lucene_full_v2/" % (TABIX_DB_PATH)
+LUCENE_SAMPLE_DB="%s/lucene_full/" % (TABIX_DB_PATH)
 #gene annotation related flat files
-REFSEQ_ANNOTATION='refFlat.hg38.txt.sorted'
-CANONICAL_ANNOTATION='hg38.ucsc_known_canonical.tsv'
-SAMPLE_MD_FILE="%s/illumina_sra_for_human_ids.v2.tsv" % (TABIX_DB_PATH)
-#SAMPLE_MD_FILE="%s/samples.tsv" % (TABIX_DB_PATH)
+REFSEQ_ANNOTATION='refseq_transcripts_by_hgvs.tsv'
+CANONICAL_ANNOTATION='ucsc_known_canonical_transcript.tsv'
+SAMPLE_MD_FILE="%s/samples.tsv" % (TABIX_DB_PATH)
 SAMPLE_ID_FIELD_NAME='intropolis_sample_id_i'
 LUCENE_ANALYZER=analyzer_ws
 LUCENE_BACKUP_ANALYZER=analyzer
-PACKED_SAMPLE_IDS_PATH='/data3/snaptron/srav2_sample_ids_full'
+PACKED_SAMPLE_IDS_PATH='%s/sample2junction_packed' % (TABIX_DB_PATH)
 MAX_SNAPTRON_ID=81063662
 #####END of fields that need to be changed for a different instance
 
