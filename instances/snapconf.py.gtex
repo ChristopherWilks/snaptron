@@ -31,14 +31,12 @@ TABIX="tabix"
 TABIX_DB_PATH='./data'
 TABIX_GENE_INTERVAL_DB='gensemrefg.hg38_annotations.gtf.sorted.gz'
 TABIX_INTERVAL_DB='consolidated_gtex_junctions.tsv.snaptron.no_extra.gz'
-TABIX_IDS_DB='by_id.gz'
 ID_START_COL=3
 CUT_START_COL=2
 #sqlite3 dbs
 SAMPLE_SQLITE_DB="%s/by_sample_ids.sqlite3" % (TABIX_DB_PATH)
 SNAPTRON_SQLITE_DB="%s/gtex.sqlite3" % (TABIX_DB_PATH)
 #Lucene dbs
-LUCENE_RANGE_DB="%s/lucene_ranges_v1/" % (TABIX_DB_PATH)
 LUCENE_SAMPLE_DB="%s/lucene_full_gtex/" % (TABIX_DB_PATH)
 #gene annotation related flat files
 REFSEQ_ANNOTATION='refFlat.hg38.txt.sorted'
@@ -80,8 +78,7 @@ NFR = NumericRangeQuery.newFloatRange
 operators_old={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
 operators={'>:':operator.ge,'<:':operator.le,'>':operator.gt,'<':operator.lt,':':operator.eq,'!:':operator.ne}
 #we overloaded this map to be used for all searchable fields, not just those with TABIX dbs
-#TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':TABIX_IDS_DB,'samples_count':'sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keywords':'','sample_id':'by_sample_id.gz','coverage_sum2':'by_coverage_sum2.gz','coverage_avg2':'by_coverage_avg2.gz'}
-TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'intervals':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':TABIX_IDS_DB,'samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keyword':'','sample_id':'by_sample_id.gz','ids':'','annotated':'','left_annotated':'','right_annotated':'','strand':''}
+TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'intervals':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':None,'samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keyword':'','sample_id':'by_sample_id.gz','ids':'','annotated':'','left_annotated':'','right_annotated':'','strand':''}
 RANGE_FIELDS = ['length','samples_count','coverage_sum','coverage_avg','coverage_median','strand']
 JSON_FIELDS=set(['intervals','genes','ids','metadata_keywords','sample_fields'])
 JSON_FIELDS.update(RANGE_FIELDS)
