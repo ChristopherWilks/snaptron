@@ -43,11 +43,12 @@ LUCENE_SAMPLE_DB="%s/lucene_full_tcga/" % (TABIX_DB_PATH)
 #gene annotation related flat files
 REFSEQ_ANNOTATION='refFlat.hg38.txt.sorted'
 CANONICAL_ANNOTATION='hg38.ucsc_known_canonical.tsv'
-SAMPLE_MD_FILE="%s/samples.tsv" % (TABIX_DB_PATH)
+SAMPLE_MD_FILE="%s/TCGA.tsv.bad_rows_removed.rids.tsv" % (TABIX_DB_PATH)
 COSMIC_FUSION_FILE="%s/CosmicFusionExport.tsv.gz" % (TABIX_DB_PATH)
 SAMPLE_ID_FIELD_NAME='rail_id'
 LUCENE_ANALYZER=analyzer
 LUCENE_BACKUP_ANALYZER=analyzer_ws
+#hasn't been setup yet
 PACKED_SAMPLE_IDS_PATH='/data3/snaptron/tcga_sample_ids_full'
 MAX_SNAPTRON_ID=29160541
 #####END of fields that need to be changed for a different instance
