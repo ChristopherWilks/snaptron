@@ -18,8 +18,6 @@ import cherrypy
 from snaptronws import snaptron_endpoint
 from snaptronws import samples_endpoint
 from snaptronws import annotations_endpoint
-from snaptronws import density_endpoint
-from snaptronws import breakpoint_endpoint
 
 import snapconf
 

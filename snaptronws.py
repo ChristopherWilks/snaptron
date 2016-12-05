@@ -355,12 +355,6 @@ def samples_endpoint(environ, start_response):
 def annotations_endpoint(environ, start_response):
         return generic_endpoint(environ, start_response, snapconf.ANNOTATIONS_APP)
 
-def density_endpoint(environ, start_response):
-        return generic_endpoint(environ, start_response, snapconf.DENSITY_APP)
-
-def breakpoint_endpoint(environ, start_response):
-        return generic_endpoint(environ, start_response, snapconf.BREAKPOINT_APP)
-
 def old_sample_endpoint(environ, start_response):
     http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}
     query_string = environ.get('QUERY_STRING')
