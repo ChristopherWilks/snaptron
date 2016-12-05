@@ -360,9 +360,8 @@ def search_ranges_lucene(rangeq,snaptron_ids,stream_back=False,filtering=False):
             sids.add(sid)
     return (sids,set())
            
-def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],filtering=False,region_args=default_region_args):
+def search_introns_by_ids(ids,rquery,filtering=False,region_args=default_region_args):
     ra = region_args
-    tabix_db = ra.tabix_db_file
     select = 'SELECT * from intron WHERE snaptron_id in'
     found_snaptron_ids = set()
     if len(ids) == 0:
@@ -377,47 +376,10 @@ def search_introns_by_ids(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],
     for intron in results:
         found_snaptron_ids.update(set([str(intron[0])])) 
         if ra.stream_back:
-            #streamer_method(sys.stdout,"%s\n" % "\t".join([str(x) for x in intron]),intron,ra)
             streamer_method(sys.stdout,None,intron,ra)
     return (found_snaptron_ids,set())
 
 
-#do multiple searches by a set of ids
-def search_introns_by_ids_old(ids,rquery,tabix_db=snapconf.TABIX_DBS['snaptron_id'],filtering=False):
-    '''
-    search by EITHER snaptron_id(s) OR sample_id(s)
-    '''
-    sid_queries = []
-    start_sid = 1    
-    end_sid = 1
-    #coalesce the ids into ranges
-    #to avoid making too many queries (n+1 problem) to Tabix
-    for sid in sorted(int(x) for x in ids):
-        #offset ids by one since the actual tabix search starts at 1
-        #but the ids themselves start at 0
-        sid = int(sid) + 1
-        dist = abs(sid - start_sid)
-        if dist <= snapconf.MAX_DISTANCE_BETWEEN_IDS:
-           end_sid = sid
-        else:
-           sid_queries.append("1:%d-%d" % (start_sid,end_sid))
-           start_sid = sid
-           end_sid = sid
-    sid_queries.append("1:%d-%d" % (start_sid,end_sid))
-    print_header = True
-    found_snaptron_ids = set()
-    for query in sid_queries:
-        if DEBUG_MODE:
-            sys.stderr.write("query %s\n" % (query))
-        #(retrieved_ids,sample_ids) = run_tabix(query,rquery,tabix_db,intron_filters=ids,save_introns=filtering,print_header=print_header,cut_start_col=snapconf.ID_START_COL,debug=DEBUG_MODE)
-        ra = default_region_args._replace(region_filters=rquery,tabix_db_file=tabix_db,intron_filter=ids,save_introns=filtering,print_header=print_header,cut_start=snapconf.ID_START_COL,debug=DEBUG_MODE)
-        (retrieved_ids,sample_ids) = run_tabix(query,region_args=ra)
-        if filtering:
-            found_snaptron_ids.update(retrieved_ids)
-        print_header = False
-    return (found_snaptron_ids,set())
-   
- 
 def range_query_parser(rangeq,snaptron_ids):
     '''this method is only used if we need to *filter* by one or more ranges during an interval or sample search'''
     rquery=None
