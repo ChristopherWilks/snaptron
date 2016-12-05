@@ -29,24 +29,24 @@ PYTHON_PATH="python"
 TABIX="tabix"
 #tabix related
 TABIX_DB_PATH='./data'
-TABIX_GENE_INTERVAL_DB='gensemrefg.hg38_annotations.gtf.sorted.gz'
-TABIX_INTERVAL_DB='first_pass_tcga_junctions.tsv.gz.hg38.bgzip'
+TABIX_GENE_INTERVAL_DB='all_transcripts.gtf.bgz'
+TABIX_INTERVAL_DB='junctions.bgz'
 ID_START_COL=2
 CUT_START_COL=1
 #sqlite3 dbs
-SAMPLE_SQLITE_DB="%s/by_sample_id_tcga.sqlite" % (TABIX_DB_PATH)
-SNAPTRON_SQLITE_DB="%s/tcga_junctions_hg38.sqlite3" % (TABIX_DB_PATH)
+SAMPLE_SQLITE_DB="%s/sample2junction.sqlite" % (TABIX_DB_PATH)
+SNAPTRON_SQLITE_DB="%s/junctions.sqlite" % (TABIX_DB_PATH)
 #Lucene dbs
-LUCENE_SAMPLE_DB="%s/lucene_full_tcga/" % (TABIX_DB_PATH)
+LUCENE_SAMPLE_DB="%s/lucene_full/" % (TABIX_DB_PATH)
 #gene annotation related flat files
-REFSEQ_ANNOTATION='refFlat.hg38.txt.sorted'
-CANONICAL_ANNOTATION='hg38.ucsc_known_canonical.tsv'
-SAMPLE_MD_FILE="%s/TCGA.tsv.bad_rows_removed.rids.tsv" % (TABIX_DB_PATH)
+REFSEQ_ANNOTATION='refseq_transcripts_by_hgvs.tsv'
+CANONICAL_ANNOTATION='ucsc_known_canonical_transcript.tsv'
+SAMPLE_MD_FILE="%s/samples.tsv" % (TABIX_DB_PATH)
 SAMPLE_ID_FIELD_NAME='rail_id'
 LUCENE_ANALYZER=analyzer
 LUCENE_BACKUP_ANALYZER=analyzer_ws
 #hasn't been setup yet
-PACKED_SAMPLE_IDS_PATH='/data3/snaptron/tcga_sample_ids_full'
+PACKED_SAMPLE_IDS_PATH='%s/sample2junction_packed' % (TABIX_DB_PATH)
 MAX_SNAPTRON_ID=29160541
 #####END of fields that need to be changed for a different instance
 
