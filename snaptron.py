@@ -14,7 +14,6 @@ import json
 import gzip
 
 import sqlite3
-#from pysqlite2 import dbapi2 as sqlite3
 
 import lucene
 from java.io import File
