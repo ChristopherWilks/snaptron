@@ -75,7 +75,7 @@ Table 1. Query Types
 Query Type      Description                                                      Multiplicity Format                                          Example
 --------------- ---------------------------------------------------------------- ------------ ----------------------------------------------- ------------------
 Region          chromosome based coordinates range (1-based); HUGO gene name     1            chr(1-22,X,Y,M):1-size of chromosome; gene_name chr21:1-500; CD99
-Range           range over summary statistic column values                       1 or more    column_name(>:,<:,:)number (integer or float)   coverage_avg>:10
+Filter          range over summary statistic column values                       1 or more    column_name(>:,<:,:)number (integer or float)   coverage_avg>:10
 Sample Metadata is-equal-to/contains text (keywords) search over sample metadata 1 or more    fieldname:keyword                               description:cortex
 Snaptron IDs    one or more snaptron_ids                                         1 or more    ids=\d+[,\d+]*                                  ids=5,7,8
 Sample IDs      one or more sample_ids                                           1 or more    ids=\d+[,\d+]*                                  ids=20,40,100
@@ -88,7 +88,7 @@ Table 2.  List of Snaptron Parameters
 +===========+===================+======================================+===========================================================================+=============================================================+================================================================================================================================================================+
 | regions   | snaptron          | chr[1-22XYM]:\d+-\d+; HUGO gene name | 1 but can take multiple arguments separated by a comma representing an OR | chr1:1-5000;DRD4                                            | coordinate intervals and/or HUGO gene names                                                                                                                    |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ids       | snaptron; samples | ids=\d+[,\d+]*                       | 1                                                                         | ids=5,6,7                                                   | ID filter for snaptron_id (endpoint="snaptron") and sample_id (endpoint="samples")                                                                             |
+| ids*      | snaptron; samples | ids=\d+[,\d+]*                       | 1                                                                         | ids=5,6,7                                                   | ID filter for snaptron_id (endpoint="snaptron") and sample_id (endpoint="samples")                                                                             |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | rfilter   | snaptron          | fieldname[><!:]value                 | 0 or more                                                                 | rfilter=samples_count>:5&rfilter=coverage_sum:3             | point range filter (inclusion)                                                                                                                                 |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -104,6 +104,11 @@ Table 2.  List of Snaptron Parameters
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | fields**  | snaptron          | fields=fieldname[,fieldname]*        | 0 or more unique fieldnames within one fields clause                      | fields=snaptron_id,samples_count                            | which fields to return                                                                                                                                         |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+\* individual records for junction record can be accessed via the Snaptron ID directly as: ::
+        curl "http://snaptron.cs.jhu.edu/srav1/snaptron/5"
+and for a sample record through its Rail ID: ::        
+        curl "http://snaptron.cs.jhu.edu/srav1/samples/10"
 
 \*\*can include non-return field options such as: “rc” (result count)
 
@@ -123,14 +128,14 @@ Table 3. Region Query Fields ("regions" parameter)
 
 \*you can either pass a coordinate string or a gene symbol in the interval query segment, but not both
 
-Often the Range query type columns (Table 4) can be used as a way to reduce the number of false positive junctions.  This can be done easily with the two columns: samples_count and coverage_sum.  Some suggested values from our own research are presented in Table 5.
+Often the query filter columns (Table 4) can be used as a way to reduce the number of false positive junctions.  This can be done easily with the two columns: samples_count and coverage_sum.  Some suggested values from our own research are presented in Table 5.
 
-Table 4. Range Query Fields ("rfilter" parameter)
--------------------------------------------------
+Table 4. Query Filter Fields ("rfilter" parameter)
+--------------------------------------------------
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
 | Field             | Range of Values | Example              | Description                                                                               |
 +===================+=================+======================+===========================================================================================+
-| length            | 1-600K          | intron_length<:5000  | length of exon-exon junction (intron)                                                     |
+| length            | 1-500K          | intron_length<:5000  | length of exon-exon junction (intron)                                                     |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
 | annotated         | 0 or 1          | annotated:1          | whether both left and right splice sites in one or more annotations (default is both)     |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
@@ -138,14 +143,12 @@ Table 4. Range Query Fields ("rfilter" parameter)
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
 | samples_count     | 1-Inf           | samples_count>:5     | number of samples in which this junction has one or more reads covering it                |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
-| coverage_sum**    | 1-Inf           | coverage_sum>:10     | aggregate count of reads covering the junction across all samples the junction appears in |
+| coverage_sum      | 1-Inf           | coverage_sum>:10     | aggregate count of reads covering the junction across all samples the junction appears in |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
-| coverage_avg**    | 1.0-Inf         | coverage_avg>:5.0    | average of read coverage across all samples the junction appears in                       |
+| coverage_avg      | 1.0-Inf         | coverage_avg>:5.0    | average of read coverage across all samples the junction appears in                       |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
-| coverage_median** | 1.0-Inf         | coverage_median>:6.0 | median of read coverage across all samples the junction appears in                        |
+| coverage_median   | 1.0-Inf         | coverage_median>:6.0 | median of read coverage across all samples the junction appears in                        |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
-
-\*\*for the GTEx dataset append a "2" to the end of this column to get query off the 2nd pass alignment read coverage statistics
 
 Exact HUGO (HGNC) gene symbols can be searched in snaptron SRA instance in lieu of actual coordinates.   If the gene symbol had multiple coordinate ranges that were either on different chromosomes or more than 10,000 bases apart, Snaptron will do multiple tabix lookups and will stream them back in coordinate order per chromosome (the chromosome order itself is sorted via default python sorted which is not 1-22,X,Y,M).
 
