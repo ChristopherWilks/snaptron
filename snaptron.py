@@ -51,10 +51,6 @@ DEBUG_MODE=True
 
 REQ_FIELDS = []
 
-#setup lucene reader for range related searches
-rreader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_RANGE_DB)))
-rsearcher = IndexSearcher(rreader)
-
 def filter_by_ranges(fields,rquerys):
     skip=False
     for rfield in rquerys.keys():
