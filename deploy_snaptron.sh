@@ -9,6 +9,10 @@ virtualenv ./python
 source ./python/bin/activate
 pip install -r dependencies.txt
 
+#this requires sudo and may need additional
+#packages at the system level
+./install_pylucene.sh
+
 #link config file(s)
 ./setup_configs.sh ${1}
 
