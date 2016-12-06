@@ -14,13 +14,12 @@ sudo apt-get install python-dev
 easy_install pip
 pip install setuptools --upgrade 
 
-#no need to install JCC(?)
-#cd pylucene-4.10.1-1/jcc
-#python setup.py build
-#python setup.py install
+cd pylucene-4.10.1-1/jcc
+python setup.py build
+python setup.py install
+cd ..
 
 # Build and install pylucene
-cd pylucene-4.10.1-1
 make
 easy_install ./dist/lucene-4.10.1-py2.7-linux-x86_64.egg
 cd ..
