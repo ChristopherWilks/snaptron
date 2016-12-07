@@ -1,7 +1,7 @@
 #!/bin/bash
 #Deploys snaptron for whatever data source label was passed in (srav1,srav2,tcga,gtex)
 
-#Tabix, Sqlite3, and virtualenv need to be compiled and already in the PATH *before*
+#Tabix >= 1.2.1 and Sqlite3 >= 3.11.0 need to be compiled and already in the PATH *before*
 #running this script
 
 #setup python for Snaptron
