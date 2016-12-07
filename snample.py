@@ -174,7 +174,7 @@ def sample_ids2intron_ids_from_bit_vector(sample_ids):
 #this does the reverse: given a set of sample ids,
 #return all the introns associated with each sample
 def intron_ids_from_samples(sample_ids,snaptron_ids,rquery,filtering=False):
-    if snaptron_ids is not None or len(snaptron_ids) == 0:
+    if sample_ids is None or len(sample_ids) == 0:
         return
     start = time.time()
     sample_ids2intron_ids = sample_ids2intron_ids_from_db
