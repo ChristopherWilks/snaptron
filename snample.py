@@ -15,6 +15,10 @@ import gzip
 
 import lucene
 from java.io import File
+from org.apache.lucene.search import BooleanQuery
+from org.apache.lucene.search import NumericRangeQuery
+from org.apache.lucene.index import Term
+from org.apache.lucene.search import TermQuery
 from org.apache.lucene.search import IndexSearcher
 from org.apache.lucene.index import IndexReader
 from org.apache.lucene.queryparser.classic import MultiFieldQueryParser
@@ -39,15 +43,14 @@ def lucene_sample_query_parse(sampleq):
     fields = []
     queries = []
     booleans = []
+    bq = BooleanQuery()
     for query_tuple in sampleq:
         (field,query) = query_tuple.split(snapconf.SAMPLE_QUERY_FIELD_DELIMITER)
-        field_w_type = snapconf.SAMPLE_HEADER_FIELDS_TYPE_MAP[field]
-        fields.append(field_w_type)
         query = query.replace('AND',' AND ')
+        field_w_type = snapconf.SAMPLE_HEADER_FIELDS_TYPE_MAP[field]
+        bq.add(TermQuery(Term(field_w_type,query)),BooleanClause.Occur.MUST)
         sys.stderr.write("query + fields: %s %s\n" % (query,field_w_type))
-        queries.append(query)
-        booleans.append(BooleanClause.Occur.MUST)
-    return (fields,queries,booleans)
+    return bq
 
 def sqlite_query_parse(sampleq):
     select = "SELECT * FROM sample WHERE "
@@ -76,13 +79,8 @@ def search_samples_sqlite(sample_map,sampleq,sample_set,stream_sample_metadata=F
 #based on the example code at
 #http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
 def search_samples_lucene(sample_map,sampleq,sample_set,ra,stream_sample_metadata=False):
-    (fields,queries,booleans) = lucene_sample_query_parse(sampleq)
-    query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, snapconf.LUCENE_ANALYZER)
+    query= lucene_sample_query_parse(sampleq)
     hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
-    #if we get nothing, try with the backup analyzer
-    if hits.totalHits == 0:
-        query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, snapconf.LUCENE_BACKUP_ANALYZER)
-        hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
     if DEBUG_MODE: 
         sys.stderr.write("Found %d document(s) that matched query '%s':\n" % (hits.totalHits, sampleq))
     if stream_sample_metadata:
