@@ -5,7 +5,12 @@
 #running this script
 
 #setup python for Snaptron
-virtualenv ./python
+#from https://virtualenv.pypa.io/en/stable/installation/
+curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-13.1.2.tar.gz
+tar xvfz virtualenv-13.1.2.tar.gz
+cd virtualenv-13.1.2
+python virtualenv.py ../python
+cd ..
 source ./python/bin/activate
 pip install -r dependencies.txt
 
