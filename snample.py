@@ -26,6 +26,7 @@ from org.apache.lucene.util import Version
 import snapconf
 import snaputil
 import snaptron
+import snquery
 
 import sqlite3
 sconn = sqlite3.connect(snapconf.SAMPLE_SQLITE_DB)
@@ -90,7 +91,7 @@ def search_samples_lucene(sample_map,sampleq,sample_set,ra,stream_sample_metadat
         sys.stdout.write("DataSource:Type\tLucene TF-IDF Score\t%s\n" % (snapconf.SAMPLE_HEADER))
     for hit in hits.scoreDocs:
         doc = searcher.doc(hit.doc)
-        sid = doc.get(snapconf.SAMPLE_ID_FIELD_NAME)
+        sid = str(doc.get(snapconf.SAMPLE_ID_FIELD_NAME))
         #track the sample ids if asked to
         if sid != None and len(sid) >= 1:
             if sample_set != None:
@@ -191,6 +192,16 @@ def intron_ids_from_samples(sample_ids,snaptron_ids,rquery,filtering=False):
     snaptron_ids.update(found_snaptron_ids)
 
 
+def query_samples_fast(sampleq,sample_map,snaptron_ids,ra,stream_sample_metadata=False):
+    sample_ids = set()
+    search_samples_lucene(sample_map,sampleq,sample_ids,ra,stream_sample_metadata=stream_sample_metadata)
+    #search_samples_sqlite(sample_map,sampleq,sample_ids,stream_sample_metadata=stream_sample_metadata)
+    if DEBUG_MODE:
+        sys.stderr.write("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
+    sid_search_automaton = None
+    if not stream_sample_metadata:
+        sid_search_automaton = snquery.build_sid_ahoc_queries(sample_ids)
+    return sid_search_automaton
 
 def query_samples(sampleq,sample_map,snaptron_ids,ra,stream_sample_metadata=False):
     sample_ids = set()

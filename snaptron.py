@@ -21,8 +21,6 @@ from org.apache.lucene.search import IndexSearcher
 from org.apache.lucene.search import BooleanQuery
 from org.apache.lucene.index import IndexReader
 
-#for speedy multi-sample ID searching per jx
-import ahocorasick
 
 import snapconf
 import snaputil
@@ -50,11 +48,6 @@ snc = sconn.cursor()
 
 DEBUG_MODE=True
 
-def build_sid_ahoc_queries(sample_ids):
-    acs = ahocorasick.Automaton()
-    [acs.add_word(sid, sid) for sid in sample_ids]
-    acs.make_automaton()
-    return acs
 
 
 
@@ -355,12 +348,13 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
     #if we have any sample related queries, do them to get snaptron_id filter set
     #NOTE we are NOT currently support sample-id querying
     if len(sampleq) >= 1:
-        snaptron_ids = snample.query_samples(sampleq,sample_map,snaptron_ids,ra)
+        sid_search_automaton = snample.query_samples_fast(sampleq,sample_map,snaptron_ids,ra)
+        ra = ra._replace(sid_search_object=sid_search_automaton)
 
     #end result here is that we have a list of snaptron_ids to filter by
     #or if no snaptron_ids were found we're done, in keeping with the strict AND policy (currently)
     #TODO: update this when we start supporting OR in the POSTs, this will need to change
-    if len(snaptron_ids) == 0 and (len(idq) >=1 or len(sampleq) >= 1):
+    if len(snaptron_ids) == 0 and ra.sid_search_object is None and (len(idq) >=1 or len(sampleq) >= 1):
         return
 
     #NOW start normal query processing between: 1) interval 2) range or 3) or just snaptron ids
