@@ -1,5 +1,5 @@
-#!/bin/bash
-export PORT=1556
+#!/bin/bash -x
+export PORT=1560
 export HOST=localhost
 export PATH_=''
 

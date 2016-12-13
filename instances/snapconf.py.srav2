@@ -20,13 +20,14 @@ analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
 #####fields that need to be changed for a different instance
 DATA_SOURCE='SRAv2'
 IP='127.0.0.1'
-PORT=1556
+PORT=1560
 SERVER_STRING='http://snaptron.cs.jhu.edu/%s/' % (DATA_SOURCE.lower())
 HG='hg38'
 BIGWIG2WIG="bigWigToWig"
 ROOT_DIR='./'
 PYTHON_PATH="python"
 TABIX="tabix"
+SQLITE="sqlite3"
 #tabix related
 TABIX_DB_PATH='./data'
 TABIX_GENE_INTERVAL_DB='all_transcripts.gtf.bgz'

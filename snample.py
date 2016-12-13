@@ -22,6 +22,7 @@ from org.apache.lucene.search import BooleanClause
 from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.util import Version
 
+
 import snapconf
 import snaputil
 import snaptron

@@ -8,6 +8,7 @@ import snapconf
 import snaputil
 import snaptron
 import snannotation
+import snquery
 
 #set of test interval queries
 IQs=['chr1:10160-10161','CD99','chr11:82970135-82997450','chr11:82985784-82989768','chr11:82571908-82571909','chr11:82356629-82403678']
@@ -42,9 +43,19 @@ def tearDownModule():
 
 gc = snannotation.GeneCoords()
 #shortcuts for snaptron methods used in tests
-tc = snaptron.run_tabix
+def run_tabix(intervalq,region_args=snaptron.default_region_args):
+    runner = snquery.RunExternalQueryEngine(snapconf.TABIX,intervalq,None,set(),region_args=region_args)
+    return runner.run_query()
+
+tc = run_tabix
 rqp = snaptron.range_query_parser
-srl = snaptron.run_sqlite3
+
+def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=snaptron.default_region_args):
+    runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,intervalq,rangeq,snaptron_ids,region_args=region_args)
+    return runner.run_query()
+
+srl = run_sqlite3
+
 sbi = snaptron.search_introns_by_ids
 sbg = snaptron.search_by_gene_name
 
@@ -123,16 +134,16 @@ class TestTabixCalls(unittest.TestCase):
         '''make sure we're getting a correct header'''
         sout = StringIO()
 
-        snaptron.REQ_FIELDS=[]
-        snaptron.stream_header(sout,region_args=snaptron.default_region_args)
+        snaputil.REQ_FIELDS=[]
+        snaputil.stream_header(sout,region_args=snaptron.default_region_args)
         hfields = sout.getvalue().split("\n")[0].rstrip().split("\t")
         self.assertEqual(len(hfields),len(snapconf.INTRON_HEADER_FIELDS)+1)
 
         req_field = 'snaptron_id'
-        snaptron.REQ_FIELDS=[snapconf.INTRON_HEADER_FIELDS_MAP[req_field]]
+        snaputil.REQ_FIELDS=[snapconf.INTRON_HEADER_FIELDS_MAP[req_field]]
 
         sout = StringIO()
-        snaptron.stream_header(sout,region_args=snaptron.default_region_args)
+        snaputil.stream_header(sout,region_args=snaptron.default_region_args)
         header = sout.getvalue().split("\n")[0].rstrip()
         self.assertEqual(header,'DataSource:Type\t%s' % (req_field))
 
