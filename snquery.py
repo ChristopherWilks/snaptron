@@ -24,7 +24,7 @@ UCSC_URL=snapconfshared.UCSC_URL
 
 def build_sid_ahoc_queries(sample_ids):
     acs = ahocorasick.Automaton()
-    #need to add ":" to make sure we dont match coverage counts
+    #need to add "," and ":" to make sure we dont match coverage counts or within other IDs
     [acs.add_word(","+sid+":", sid) for sid in sample_ids]
     acs.make_automaton()
     return acs
@@ -92,7 +92,6 @@ class RunExternalQueryEngine:
                 sys.stderr.write("%s\n" % (self.full_cmd))
             self.range_filters = None
             self.extern_proc = subprocess.Popen(full_cmd_args, stdout=subprocess.PIPE, shell=False, bufsize=-1)
-            #self.extern_proc = subprocess.Popen(self.full_cmd, stdout=subprocess.PIPE, shell=True, bufsize=-1)
 
     def run_query(self):
         ids_found = set()

@@ -46,8 +46,6 @@ SAMPLE_MD_FILE="%s/samples.tsv" % (TABIX_DB_PATH)
 SAMPLE_ID_FIELD_NAME='intropolis_sample_id_i'
 LUCENE_ANALYZER=analyzer_ws
 LUCENE_BACKUP_ANALYZER=analyzer
-PACKED_SAMPLE_IDS_PATH='%s/sample2junction_packed' % (TABIX_DB_PATH)
-MAX_SNAPTRON_ID=81063662
 #####END of fields that need to be changed for a different instance
 
 

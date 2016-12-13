@@ -345,8 +345,7 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
     if len(idq) >= 1:
         query_ids(idq,snaptron_ids)
 
-    #if we have any sample related queries, do them to get snaptron_id filter set
-    #NOTE we are NOT currently support sample-id querying
+    #if we have any sample related queries, do them to get filter set for later jx querying
     if len(sampleq) >= 1:
         sid_search_automaton = snample.query_samples_fast(sampleq,sample_map,snaptron_ids,ra)
         ra = ra._replace(sid_search_object=sid_search_automaton)
