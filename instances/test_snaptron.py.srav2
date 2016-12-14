@@ -1,6 +1,7 @@
 #!/usr/bin/env python2.7
 import sys
 import os
+import operator
 from StringIO import StringIO
 import unittest
 
@@ -333,6 +334,41 @@ class TestSampleSearch(unittest.TestCase):
         covs_found = set(found[0:len(found),1])
         self.assertEqual(len(samples.intersection(samples_found)), len(samples))
         self.assertEqual(len(covs.intersection(covs_found)), len(covs))
+    
+    def test_summary_recalculation(self):
+        sample_ids = set(["1","5","53","276","4987","18000"])
+        sid_search_obj = snquery.build_sid_ahoc_queries(sample_ids)
+        samples_str = ",5:5,4:32,276:7,18000:276"
+        fields = range(0,snapconf.SAMPLE_IDS_COL+5)
+        fields[snapconf.SAMPLE_IDS_COL+1] = 4
+        fields[snapconf.SAMPLE_IDS_COL+2] = 320
+        fields[snapconf.SAMPLE_IDS_COL+3] = 80
+        fields[snapconf.SAMPLE_IDS_COL+4] = 19.5
+        fields[snapconf.SAMPLE_IDS_COL] = samples_str
+        sid_search_iter = sid_search_obj.iter(samples_str)
+        (found,fields) = snaputil.extract_sids_and_covs_from_search_iter(sid_search_iter, fields)
+        self.assertEqual(fields[snapconf.SAMPLE_IDS_COL+1], 3)
+        self.assertEqual(fields[snapconf.SAMPLE_IDS_COL+2], 288)
+        self.assertEqual(fields[snapconf.SAMPLE_IDS_COL+3], 96)
+        self.assertEqual(fields[snapconf.SAMPLE_IDS_COL+4], 7)
+    
+    def test_range_filter(self):
+        sample_ids = set(["1","5","53","276","4987","18000"])
+        sid_search_obj = snquery.build_sid_ahoc_queries(sample_ids)
+        samples_str = ",5:5,4:32,276:7,18000:276"
+        fields = range(0,snapconf.SAMPLE_IDS_COL+5)
+        fields[snapconf.SAMPLE_IDS_COL+1] = 4
+        fields[snapconf.SAMPLE_IDS_COL+2] = 320
+        fields[snapconf.SAMPLE_IDS_COL+3] = 80
+        fields[snapconf.SAMPLE_IDS_COL+4] = 19.5
+        fields[snapconf.SAMPLE_IDS_COL] = samples_str
+        sid_search_iter = sid_search_obj.iter(samples_str)
+        (found,fields) = snaputil.extract_sids_and_covs_from_search_iter(sid_search_iter, fields)
+        range_filters = {'samples_count':[operator.gt,2],'coverage_sum':[operator.eq,288],'coverage_avg':[operator.ge,3.0],'coverage_median':[operator.lt,20]}
+        self.assertEqual(snaputil.filter_by_ranges(fields, range_filters), False)
+        #change range_filters
+        range_filters = {'samples_count':[operator.gt,2],'coverage_sum':[operator.eq,288],'coverage_avg':[operator.ge,3.0],'coverage_median':[operator.ne,7.0]}
+        self.assertEqual(snaputil.filter_by_ranges(fields, range_filters), True)
 
 if __name__ == '__main__':
     unittest.main()
