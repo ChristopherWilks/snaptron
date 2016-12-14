@@ -4,6 +4,9 @@ import re
 import cPickle
 import gzip
 import urllib
+
+import numpy as np
+
 import snapconf
 import snapconfshared
 
@@ -141,6 +144,23 @@ def stream_intron(fout,line,fields,region_args=default_region_args):
         fout.write("%s\t%s" % (ra.prefix,newline))
 
 return_formats={TSV:(stream_header,stream_intron),UCSC_BED:(ucsc_format_header,ucsc_format_intron),UCSC_URL:(ucsc_url,None)}
+
+def extract_sids_and_covs_from_search_iter(samples_found_iter, samples_str, num_samples):
+    found = np.empty((0,2),dtype=np.int32)
+    idx = 0
+    for (pos,sid) in samples_found_iter:
+        i = pos+1
+        cov = ""
+        while(i < len(samples_str) and samples_str[i] != ','):
+            cov+=samples_str[i]
+            i+=1
+        #found[idx][0] = int(sid)
+        #found[idx][1] = int(cov)
+        found = np.append(found, [[int(sid),int(cov)]], 0)
+        idx+=1
+    return found
+
+
 
 def filter_by_ranges(fields,rquerys):
     skip=False

@@ -311,5 +311,26 @@ class TestQueryCalls(unittest.TestCase):
         (iids,sids) = qr([iq],rq,set(),filtering=True,region_args=queries['ra'])
         self.assertEqual(iids, set([]))
 
+class TestSampleSearch(unittest.TestCase):
+    '''
+    Test the search and recovery of sample IDs and coverages in a junction's sample/coverage list
+    '''
+
+    def setUp(self):
+        pass
+
+    def test_basic_extraction(self):
+        sample_ids = set(["1","5","53","276","4987","18000"])
+        sid_search_obj = snquery.build_sid_ahoc_queries(sample_ids)
+        samples_str = ",5:5,4:32,276:7,18000:276"
+        sid_search_iter = sid_search_obj.iter(samples_str)
+        found = snaputil.extract_sids_and_covs_from_search_iter(sid_search_iter, samples_str, 4)
+        samples = set([5,276,18000])
+        covs = set([5,7,276])
+        samples_found = set(found[0:len(found),0])
+        covs_found = set(found[0:len(found),1])
+        self.assertEqual(len(samples.intersection(samples_found)), len(samples))
+        self.assertEqual(len(covs.intersection(covs_found)), len(covs))
+
 if __name__ == '__main__':
     unittest.main()
