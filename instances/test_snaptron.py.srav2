@@ -323,8 +323,10 @@ class TestSampleSearch(unittest.TestCase):
         sample_ids = set(["1","5","53","276","4987","18000"])
         sid_search_obj = snquery.build_sid_ahoc_queries(sample_ids)
         samples_str = ",5:5,4:32,276:7,18000:276"
+        fields = range(0,snapconf.SAMPLE_IDS_COL+5)
+        fields[snapconf.SAMPLE_IDS_COL] = samples_str
         sid_search_iter = sid_search_obj.iter(samples_str)
-        found = snaputil.extract_sids_and_covs_from_search_iter(sid_search_iter, samples_str, 4)
+        (found,fields) = snaputil.extract_sids_and_covs_from_search_iter(sid_search_iter, fields)
         samples = set([5,276,18000])
         covs = set([5,7,276])
         samples_found = set(found[0:len(found),0])

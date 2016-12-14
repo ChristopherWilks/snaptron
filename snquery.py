@@ -93,6 +93,7 @@ class RunExternalQueryEngine:
             self.range_filters = None
             self.extern_proc = subprocess.Popen(full_cmd_args, stdout=subprocess.PIPE, shell=False, bufsize=-1)
 
+
     def run_query(self):
         ids_found = set()
         sample_set = set()
@@ -113,31 +114,34 @@ class RunExternalQueryEngine:
             #now filter, this order is important (filter first, than save ids/print)
             if self.filter_by_introns and snaptron_id not in self.ra.intron_filter and snaptron_id not in self.snaptron_ids:
                 continue
-            #not used unless testing Tabix
-            if self.cmd == snapconf.TABIX and self.ra.range_filters and snaputil.filter_by_ranges(fields,self.ra.range_filters):
-                continue
+            #filter by M (sample IDs), recalculate summaries from subset of samples, and update fields
             samples_found_iter = None
             if self.ra.sid_search_object is not None:
                 samples_found_iter = self.ra.sid_search_object.iter(fields[snapconf.SAMPLE_IDS_COL])
                 #check to see if this jx has one or more of the sample IDs
                 try:
                     sample_pos = samples_found_iter.next()
+                    (found_np, fields) = snaputil.extract_sids_and_covs_from_search_iter(samples_found_iter, fields)
                 except StopIteration:
                     continue
+            #not used unless testing Tabix or doing a F + M query
+            if (self.cmd == snapconf.TABIX or samples_found_iter is not None) and self.ra.range_filters and snaputil.filter_by_ranges(fields,self.ra.range_filters):
+                continue
             #combine these two so we only have to split sample <= 1 times
-            if self.filter_by_samples or self.ra.save_samples:
+            if self.ra.save_samples:
                 samples = set(fields[snapconf.SAMPLE_IDS_COL].split(","))
-                if self.filter_by_samples:
-                    have_samples = self.sample_filter.intersection(samples)
-                    if len(have_samples) == 0:
-                        continue
-                if self.ra.save_samples:
-                    sample_set.update(samples)
+                #due to start prefixed "," delete empty string in set
+                if '' in samples:
+                    samples.remove('')
+                sample_set.update(samples)
             #TODO: use samples_found_iter to get a projection of just the samples
             #searched for and then recalculate summary stats
             #filter return stream based on range queries (if any)
             if self.ra.stream_back:
-                 self.streamer_method(sys.stdout,line,fields,region_args=self.ra)
+                 if samples_found_iter is not None:
+                    self.streamer_method(sys.stdout,None,fields,region_args=self.ra)
+                 else:
+                    self.streamer_method(sys.stdout,line,fields,region_args=self.ra)
             if self.ra.save_introns:
                 ids_found.add(snaptron_id)
         exitc=self.extern_proc.wait() 

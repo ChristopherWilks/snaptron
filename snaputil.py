@@ -145,20 +145,29 @@ def stream_intron(fout,line,fields,region_args=default_region_args):
 
 return_formats={TSV:(stream_header,stream_intron),UCSC_BED:(ucsc_format_header,ucsc_format_intron),UCSC_URL:(ucsc_url,None)}
 
-def extract_sids_and_covs_from_search_iter(samples_found_iter, samples_str, num_samples):
+#def extract_sids_and_covs_from_search_iter(samples_found_iter, samples_str, num_samples):
+def extract_sids_and_covs_from_search_iter(samples_found_iter, fields):
+    samples_str = fields[snapconf.SAMPLE_IDS_COL]
     found = np.empty((0,2),dtype=np.int32)
     idx = 0
+    samples = ""
     for (pos,sid) in samples_found_iter:
         i = pos+1
         cov = ""
         while(i < len(samples_str) and samples_str[i] != ','):
             cov+=samples_str[i]
             i+=1
-        #found[idx][0] = int(sid)
-        #found[idx][1] = int(cov)
         found = np.append(found, [[int(sid),int(cov)]], 0)
+        samples+=","+sid+":"+cov
         idx+=1
-    return found
+    length = len(found)
+    #newfields = [samples,length,np.sum(found[0:length,1]),np.mean(found[0:length,1]),np.median(found[0:length,1])]
+    fields[snapconf.SAMPLE_IDS_COL] = samples
+    fields[snapconf.SAMPLE_IDS_COL+1] = length
+    fields[snapconf.SAMPLE_IDS_COL+2] = np.sum(found[0:length,1])
+    fields[snapconf.SAMPLE_IDS_COL+3] = np.mean(found[0:length,1])
+    fields[snapconf.SAMPLE_IDS_COL+4] = np.median(found[0:length,1])
+    return (found,fields)
 
 
 
