@@ -119,11 +119,10 @@ class RunExternalQueryEngine:
             if self.ra.sid_search_object is not None:
                 samples_found_iter = self.ra.sid_search_object.iter(fields[snapconf.SAMPLE_IDS_COL])
                 #check to see if this jx has one or more of the sample IDs
-                try:
-                    sample_pos = samples_found_iter.next()
-                    (found_np, fields) = snaputil.extract_sids_and_covs_from_search_iter(samples_found_iter, fields)
-                except StopIteration:
+                (found_np, fields) = snaputil.extract_sids_and_covs_from_search_iter(samples_found_iter, fields)
+                if fields is None:
                     continue
+            #print fields
             #not used unless testing Tabix or doing a F + M query
             if (self.cmd == snapconf.TABIX or samples_found_iter is not None) and self.ra.range_filters and snaputil.filter_by_ranges(fields,self.ra.range_filters):
                 continue

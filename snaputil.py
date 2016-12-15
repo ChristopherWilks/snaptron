@@ -151,15 +151,21 @@ def extract_sids_and_covs_from_search_iter(samples_found_iter, fields):
     found = np.empty((0,2),dtype=np.int32)
     idx = 0
     samples = ""
-    for (pos,sid) in samples_found_iter:
-        i = pos+1
-        cov = ""
-        while(i < len(samples_str) and samples_str[i] != ','):
-            cov+=samples_str[i]
-            i+=1
-        found = np.append(found, [[int(sid),int(cov)]], 0)
-        samples+=","+sid+":"+cov
-        idx+=1
+    #for (pos,sid) in samples_found_iter:
+    try:
+        while(True):
+            (pos, sid) = samples_found_iter.next()
+            i = pos+1
+            cov = ""
+            while(i < len(samples_str) and samples_str[i] != ','):
+                cov+=samples_str[i]
+                i+=1
+            found = np.append(found, [[int(sid),int(cov)]], 0)
+            samples+=","+sid+":"+cov
+            idx+=1
+    except StopIteration:
+        if idx == 0:
+            return (None,None)
     length = len(found)
     #newfields = [samples,length,np.sum(found[0:length,1]),np.mean(found[0:length,1]),np.median(found[0:length,1])]
     fields[snapconf.SAMPLE_IDS_COL] = samples

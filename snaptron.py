@@ -114,6 +114,7 @@ def search_ranges_lucene(rangeq,snaptron_ids,stream_back=False,filtering=False):
     return (sids,set())
            
 def search_introns_by_ids(ids,rquery,filtering=False,region_args=default_region_args):
+    #TODO also process rquery as part of the SQL
     ra = region_args
     select = 'SELECT * from intron WHERE snaptron_id in'
     found_snaptron_ids = set()
@@ -169,10 +170,8 @@ def search_by_gene_name(gc,geneq,rquery,intron_filters=None,save_introns=False,p
     for (chrom,coord_tuples) in gc.gene2coords(geneq):
         for coord_tuple in coord_tuples:
             (st,en) = coord_tuple
-            #(iids_,sids_) = run_tabix("%s:%d-%d" % (chrom,st,en),rquery,snapconf.TABIX_INTERVAL_DB,intron_filters=intron_filters,print_header=print_header,save_introns=save_introns)
             ra = region_args._replace(range_filters=rquery,intron_filter=intron_filters,print_header=print_header,save_introns=save_introns)
             #TODO replace this with an if:else to run sqlite3
-            #(iids_,sids_) = run_tabix("%s:%d-%d" % (chrom,st,en),region_args=ra)
             runner = snquery.RunExternalQueryEngine(snapconf.TABIX,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra)
             (iids_,sids_) = runner.run_query()
             print_header = False
@@ -277,6 +276,10 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
     snaptron_ids_returned = set()
     sample_ids_returned = set()
     gc = None
+    #make sure we run any R * + M queries through Tabix
+    global FORCE_TABIX
+    if region_args.sid_search_object is not None:
+        FORCE_TABIX = True
     for interval in intervalq:
         ids = None
         sids = None
@@ -285,10 +288,8 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
             #if we have JUST an interval do tabix (faster) otherwise run against slqite
             runner = None
             if FORCE_TABIX or (not FORCE_SQLITE and (rangeq is None or len(rangeq) < 1 or len(rangeq['rfilter']) < 1)):
-                #(ids,sids) = run_tabix(interval,region_args=ra)
                 runner = snquery.RunExternalQueryEngine(snapconf.TABIX,interval,rangeq,set(),region_args=ra)
             else:
-                #(ids,sids) = run_sqlite3(interval,rangeq,set(),region_args=ra)
                 runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,interval,rangeq,set(),region_args=ra)
             (ids,sids) = runner.run_query()
         else:
