@@ -34,8 +34,15 @@ sc = sconn.cursor()
 
 DEBUG_MODE=False
 
-reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_SAMPLE_DB)))
-searcher = IndexSearcher(reader)
+searchers = []
+std_reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_STD_SAMPLE_DB)))
+std_searcher = IndexSearcher(std_reader)
+searchers.append(std_searcher)
+
+ws_reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_WS_SAMPLE_DB)))
+ws_searcher = IndexSearcher(ws_reader)
+searchers.append(ws_searcher)
+
 
 def lucene_sample_query_parse(sampleq):
     fields = []
@@ -78,27 +85,32 @@ def search_samples_sqlite(sample_map,sampleq,sample_set,stream_sample_metadata=F
 #based on the example code at
 #http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
 def search_samples_lucene(sample_map,sampleq,sample_set,ra,stream_sample_metadata=False):
+    #still useful for local tracking of sample IDs
+    #even if we don't need them higher up in the stack
+    if sample_set is None:
+        sample_set = set()
     (fields,queries,booleans) = lucene_sample_query_parse(sampleq)
-    query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, snapconf.LUCENE_ANALYZER)
-    hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
-    #if we get nothing, try with the backup analyzer
-    if hits.totalHits == 0:
-        query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, snapconf.LUCENE_BACKUP_ANALYZER)
-        hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
-    if DEBUG_MODE: 
-        sys.stderr.write("Found %d document(s) that matched query '%s':\n" % (hits.totalHits, sampleq))
-    if stream_sample_metadata:
-        sys.stdout.write("DataSource:Type\tLucene TF-IDF Score\t%s\n" % (snapconf.SAMPLE_HEADER))
-    for hit in hits.scoreDocs:
-        doc = searcher.doc(hit.doc)
-        sid = str(doc.get(snapconf.SAMPLE_ID_FIELD_NAME))
-        #track the sample ids if asked to
-        if sid != None and len(sid) >= 1:
-            if sample_set != None:
-                sample_set.add(sid)
-            #stream back the full sample metadata record from the in-memory dictionary
-            if stream_sample_metadata:
-                sys.stdout.write("%s:S\t%s\t%s\n" % (snapconf.DATA_SOURCE,str(hit.score),sample_map[sid]))
+    #do a non-redundant union of the 2 analyzers and 2 lucene DB types
+    lucene_queries = []
+    lucene_queries.append(MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, snapconf.LUCENE_STD_ANALYZER))
+    lucene_queries.append(MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, snapconf.LUCENE_WS_ANALYZER))
+    header = ra.print_header
+    for searcher in searchers:
+        for query in lucene_queries:
+            hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
+            sys.stderr.write("%s %s Found %d document(s) that matched query '%s':\n" % (searcher, query, hits.totalHits, sampleq))
+            if stream_sample_metadata and header:
+                sys.stdout.write("DataSource:Type\tLucene TF-IDF Score\t%s\n" % (snapconf.SAMPLE_HEADER))
+                header = False
+            for hit in hits.scoreDocs:
+                doc = searcher.doc(hit.doc)
+                sid = str(doc.get(snapconf.SAMPLE_ID_FIELD_NAME))
+                #track the sample ids if asked to
+                if sid != None and len(sid) >= 1 and sid not in sample_set:
+                    sample_set.add(sid)
+                    #stream back the full sample metadata record from the in-memory dictionary
+                    if stream_sample_metadata:
+                        sys.stdout.write("%s:S\t%s\t%s\n" % (snapconf.DATA_SOURCE,str(hit.score),sample_map[sid]))
 
 #when not querying against Lucene
 def stream_samples(sample_set,sample_map,ra):
