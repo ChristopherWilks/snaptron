@@ -218,5 +218,10 @@ zcat junctions.bgz | cut -f 14 | perl -ne 'chomp; $c++; $s+=$_; END { $a=$s/$c; 
 #get over-represented tissues TS analysis
 cut -f 1,3,4 client/ts_list.tsv | egrep -e '        1       ' | sort | uniq -c | sort -k1,1nr
 
+python -mcProfile -s "cumtime" ./snaptron.py 'regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&sfilter=SMTSD:Brain' > prof1a 2>&1 &
+
+#latest version of sampleid2intronid mapping (fixed to check if coverage was 0 or not)
+zcat /data2/gigatron2/gtex/consolidated_gtex_junctions.tsv.snaptron.no_extra.gz | cut -f2,13,14 | perl -ne 'chomp; ($tid,$sids,$covs)=split(/\t/,$_); @sids=split(/,/,$sid); @covs=split(/,/,$covs); for($i=0;$i<scalar(@sids);$i++) { $s=$sids[$i]; $cov=$covs[$i]; if($cov > 0) { print "$s\t$tid\n";}}' | sort -k1,1 -n | perl -ne 'chomp; $s=$_; ($sid,$tid)=split(/\t/,$s); if(defined($pid) && $pid != $sid) { print "$pid\t"; foreach $s (sort keys %h) {print "$s,";} print "\n"; %h=();} $pid=$sid; $h{$tid}=1; END { if(defined($pid)) { print "$pid\t"; foreach $s (sort keys %h) {print "$s,";} print "\n";}}' | bzip2 > /data3/snaptron/gtex_by_sample_id.bgzip
+
 #speed testing AHOC
 time python ./snaptron.py "regions=chr1:1-25000000&rfilter=samples_count>:1&sfilter=all:tissue" | wc -l
