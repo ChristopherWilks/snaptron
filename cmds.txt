@@ -159,3 +159,64 @@ python ./sbreakpoint.py '1271' > CCDC6_RET_breakpoint.tsv
 python ./sbreakpoint.py 'CCDC6-RET' > CCDC6_RET_breakpoint.tsv
 
 curl "http://stingray.cs.jhu.edu:8090/srav1/breakpoint?eml4-alk"
+
+sqlite3 data/by_sample_ids.v2.sqlite3 "select * from by_sample_id;" | python pack_samples.py
+
+#dump per-sample # of snaptron ids
+sqlite3 ./by_sample_ids.sqlite3 "select * from by_sample_id;" | perl -ne 'chomp; ($sid,$sids)=split(/\|/,$_); @sids=split(/,/,$sids); print "$sid\t".scalar(@sids)."\n";' > /data3/snaptron/gtex_sample_snaptron_id_mapping_counts.tsv
+
+
+#get lenths per intron, count,coverage per sample
+zcat consolidated_gtex_junctions.tsv.snaptron.no_extra.gz | cut -f2,6,13,14 |  perl -ne 'BEGIN { %h; } chomp; ($snid,$length,$samples,$covs)=split(/\t/,$_); print "$snid\t$length\n"; @samples_=split(/,/,$samples); @covs_=split(/,/,$covs); for($i=0;$i<scalar(@samples_);$i++) { if($covs_[$i] != 0) { $s=$samples_[$i]; $c=$covs_[$i]; $h{$s}->[0]+=1; $h{$s}->[1]+=$c;} } END { open(OUT,">/data3/snaptron/gtex_samples_counts_covs.tsv"); for $s (keys %h) { print OUT "$s\t".$h{$s}->[0]."\t".$h{$s}->[1]."\n";}}' > /data3/snaptron/gtex_junction_lengths.tsv
+
+#same for hg38/srav2
+zcat intropolis.v2.hg38.tsv.snaptron2.bgzip | cut -f 1,5,12,13 | perl -ne 'BEGIN { %h; } chomp; ($snid,$length,$samples,$covs)=split(/\t/,$_); print "$snid\t$length\n"; @samples_=split(/,/,$samples); @covs_=split(/,/,$covs); for($i=0;$i<scalar(@samples_);$i++) { $s=$samples_[$i]; $c=$covs_[$i]; $h{$s}->[0]+=1; $h{$s}->[1]+=$c; } END { open(OUT,">srav2_samples_counts_covs.tsv"); for $s (keys %h) { print OUT "$s\t".$h{$s}->[0]."\t".$h{$s}->[1]."\n";}}' > srav2_junction_lengths.tsv
+
+#plotting sample2junction count/coverage
+#do a log+1 transform in the case of the junction_counts since log(0) is -Inf
+ggplot(gs1, aes(x = junction_count)) + geom_histogram() + scale_x_log10() + scale_y_continuous(trans="log1p")
+ggplot(gs1, aes(x = junction_coverage_sum)) + geom_histogram() + scale_y_log10() + scale_x_log10()
+#transparent blue version
+gplot(ss1, aes(x = junction_coverage_sum)) + geom_histogram(color="black", fill="blue", alpha=0.3) + scale_y_log10() + scale_x_log10() + theme_bw()
+
+#experimental
+ggplot(gs1, aes(x = junction_count)) + stat_density(aes(y=..count..), color="black", fill="blue", alpha=0.3) + theme_bw() + scale_y_continuous(trans="log1p", expand=c(0,0)) + scale_x_continuous(breaks=round(seq(min(ss1$junction_count), max(ss1$junction_count), by=100000),1))
+
+ggplot(ss1, aes(x = junction_count)) + geom_histogram() + theme_bw() + scale_y_log10(expand=c(0,0)) + scale_x_continuous(breaks=round(seq(min(ss1$junction_count), max(ss1$junction_count), by=100000),1))
+
+
+#similar for length of intron
+ggplot(lengths, aes(x=junction_length)) + geom_histogram(color="black", fill="blue", alpha=0.3) + theme_bw() + scale_y_log10()
+
+
+#lucene indexer
+cat data/all_illumina_sra_for_human_ids.tsv | python lucene_indexer.py
+
+#convert to BED for bedToBigBed formatting
+zcat junctions.bgzip | perl -ne 'chomp; @f=split(/\t/,$_); @f1=@f; ($c,$s,$e)=splice(@f1,2,4); $s--; $jid=$f[1]; $scount=int(log($f[14])*200); $scount=1000 if($scount > 1000); $st=$f[6]; print "$c\t$s\t$e\t$jid\t$scount\t$st\n";' > junctions.bed
+
+/data/kent_tools/bedToBigBed -tab -type=bed6 junctions.bed /data/kent_tools/hg19.chrom.sizes ./srav1_hg19_junctions.bb
+
+python ./snaptron.py "regions=CD99&sfilter=description:tissue&sfilter=design_description:brain"
+
+
+#reformat sample ids and covs together for Ahocoarsick
+zcat junctions.bgz | perl -ne 'chomp; @f=split(/\t/,$_); @ids=split(/,/,$f[11]); @covs=split(/,/,$f[12]); @new=(); for($i=0;$i<scalar(@ids);$i++) { push(@new,$ids[$i].":".$covs[$i]); } @f1=splice(@f,0,11); @f2=splice(@f,2); print "".join("\t",@f1)."\t".join(",",@new)."\t".join("\t",@f2)."\n";' | bgzip > /data3/snaptron/srav2.junctions.sids_covs_together.bgz
+
+#both sqlite3 and tabix
+zcat junctions.bgz | perl -ne 'chomp; @f=split(/\t/,$_); @ids=split(/,/,$f[11]); @covs=split(/,/,$f[12]); @new=(); for($i=0;$i<scalar(@ids);$i++) { push(@new,$ids[$i].":".$covs[$i]); } @f1=splice(@f,0,11); @f2=splice(@f,2); print "".join("\t",@f1)."\t,".join(",",@new)."\t".join("\t",@f2)."\n";' | tee /data/import | bgzip > /data3/snaptron/srav2.junctions.sids_covs_together2.bgz
+
+#redone metadata indexing
+cat /data2/gigatron2/gtex/gtex_pheno_table.w_ids.tsv | perl -ne 'chomp; $n++; @f=split(/\t/,$_); foreach $idx (0 .. (scalar @f)-1) { $type="t"; $type="n" if($f[$idx] eq "NA"); if($f[$idx]=~/^-?\d+?\.?\d+$/) { $type="f"; } $type="i" if($f[$idx]=~/^-?\d+$/); $counts{$idx}->{$type}++; } END { foreach $idx (sort { $a<=>$b} keys %counts) { print "$idx"; $counts{$idx}->{"n"}=-$counts{$idx}->{"n"} if(defined($counts{$idx}->{"n"})); $counts{$idx}->{"i"}=-$counts{$idx}->{"i"} if(defined($counts{$idx}->{"f"}) && defined($counts{$idx}->{"i"}) > 0); foreach $t (sort {$counts{$idx}->{$b}<=>$counts{$idx}->{$a}} keys %{$counts{$idx}}) { print "\t$t,".$counts{$idx}->{$t}; } print "\n";}}' > /data2/gigatron2/gtex/gtex_pheno_table.w_ids.tsv.type_inferences_w_na_floats
+
+cat gtex_pheno_table.w_ids.tsv | python lucene_indexer.py.gtex gtex_pheno_table.w_ids.tsv.type_inferences_w_na_floats > gtex_lucene_indexer_run 2>&1 &
+
+zcat junctions.bgz | cut -f 14 | perl -ne 'chomp; $c++; $s+=$_; END { $a=$s/$c; print "$c\t$s\t$a\n";}' > junctions.bgz.avg_samples_per_junction
+
+/data/kent_tools/bedToBigBed -tab -type=bed6 junctions.bed /data/kent_tools/hg19.chrom.sizes ./srav1_hg19_junctions.bb
+
+#get over-represented tissues TS analysis
+cut -f 1,3,4 client/ts_list.tsv | egrep -e '        1       ' | sort | uniq -c | sort -k1,1nr
+
+#speed testing AHOC
+time python ./snaptron.py "regions=chr1:1-25000000&rfilter=samples_count>:1&sfilter=all:tissue" | wc -l
