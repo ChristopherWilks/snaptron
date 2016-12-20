@@ -11,9 +11,11 @@ while(my $line = <STDIN>)
 	my @f=split(/\t/,$line); 
 	foreach my $idx (0 .. (scalar @f)-1) 
 	{ 
+		#default type is Text
 		my $type="t"; 
-		$type="n" if($f[$idx] eq "NA"); 
-		$type="f" if($f[$idx]=~/^-?\d+?\.?\d+$/);
+		#NAs or empty/space strings are flagged as "N"
+		$type="n" if($f[$idx] eq "NA" || $f[$idx] =~ /^\s*$/); 
+		$type="f" if($f[$idx]=~/^-?\d+?\.?\d+$/ || $f[$idx] =~ /e\+/);
 		$type="i" if($f[$idx]=~/^-?\d+$/); 
 		$counts{$idx}->{$type}++; 
 	} 
