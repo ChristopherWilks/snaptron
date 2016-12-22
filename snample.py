@@ -151,9 +151,7 @@ def search_samples_lucene(sample_map,sampleq,sample_set,ra,stream_sample_metadat
     #even if we don't need them higher up in the stack
     if sample_set is None:
         sample_set = set()
-    #(fields,queries,booleans) = lucene_sample_query_parse(sampleq)
-    #lucene_queries.append(MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, snapconf.LUCENE_WS_ANALYZER))
-    ftypes = read_lucene_field_types_file("./lucene_indexed_numeric_types.tsv")
+    ftypes = read_lucene_field_types_file(lucene_indexer.LUCENE_TYPES_FILE)
     query = lucene_sample_query_parse(sampleq, ftypes)
     #do a non-redundant union of the 2 analyzers and 2 lucene DB types
     header = ra.print_header
