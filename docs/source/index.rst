@@ -54,6 +54,9 @@ A Snaptron query is a set of predicates logically AND'ed together from three dif
 
 A snaptron query may contain only one of the three types of queries or may contain all three, or some combination of two types.  In the example above the region and range query types are present as ``chr6:1-514015`` for the region type and ``samples_count:100`` for the range type.
 
+Snaptron Compilations (instances)
+---------------------------------
+
 There are currently (11/16/2016) four Snaptron instances indexing different data sources (modify the example URL for your own queries):
 
 - TCGA: ~36 million junctions from ~11 thousand public samples from the TCGA consortium sequences using HG38 reference:
@@ -68,6 +71,36 @@ http://snaptron.cs.jhu.edu/srav2/snaptron?regions=ABCD3
 - SRAv1 (legacy, replaced by SRAv2): ~42 million junctions from ~21 thousand public samples from the Sequence Read Archive using HG19 reference:
 http://snaptron.cs.jhu.edu/srav1/snaptron?regions=KMT2E
 
+Forbidden Characters
+--------------------
+
+Because of how Snaptron parses queries the following characters are not allowed as part search terms/phrases: ::
+        ><:!
+
+
+Sample Metadata
+---------------
+
+Each of the above compilations has its own set of sample metadata with varying field names and definitions.
+Snaptron indexes these metadata fields in a document store (Lucene) for full text retrieval.
+Numeric columns (e.g. RIN in the GTEx compilation) are indexed to support range based lookups.
+
+
+Both sample-only searches and junction searches limited by a sample predicate can be performed: ::
+
+  curl "http://snaptron.cs.jhu.edu/gtex/samples?sfilter=sfilter=SMRIN>8"
+
+will return a list of samples which have a RIN value > 8. ::
+
+  curl "http://snaptron.cs.jhu.edu/srav1/snaptron?regions=chr6:1-514015&rfilter=samples_count:100&sfilter=description:cortex"
+
+will return a list of junctions and their list of summary stats calcuated from the intersection of the region and rfilter
+predicates and which contain at least one sample in the list of samples which have "cortex" in their description field.
+
+.. Add list of sample metadata columns for each compilation
+
+Reference Tables
+----------------
 
 Table 1. Query Types
 --------------------
@@ -76,7 +109,7 @@ Query Type      Description                                                     
 --------------- ---------------------------------------------------------------- ------------ ----------------------------------------------- ------------------
 Region          chromosome based coordinates range (1-based); HUGO gene name     1            chr(1-22,X,Y,M):1-size of chromosome; gene_name chr21:1-500; CD99
 Filter          range over summary statistic column values                       1 or more    column_name(>:,<:,:)number (integer or float)   coverage_avg>:10
-Sample Metadata is-equal-to/contains text (keywords) search over sample metadata 1 or more    fieldname:keyword                               description:cortex
+Sample Metadata keyword and numeric range search over sample metadata            1 or more    fieldname(>:,<:,:)keyword                       description:cortex; SMRIN>:8
 Snaptron IDs    one or more snaptron_ids                                         1 or more    ids=\d+[,\d+]*                                  ids=5,7,8
 Sample IDs      one or more sample_ids                                           1 or more    ids=\d+[,\d+]*                                  ids=20,40,100
 =============== ================================================================ ============ =============================================== ==================
