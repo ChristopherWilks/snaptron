@@ -7,8 +7,8 @@ if [ $1 = "srav1" ] || [ $1 = "srav2" ] ; then
 	ln -fs instances/tests.sh.${1} ./tests.sh
 	ln -fs instances/test_s2i_ids_15.snaptron_ids.${1} ./test_s2i_ids_15.snaptron_ids
 	ln -fs instances/test_annot_full.${1} ./test_annot_full
-	ln -fs lucene_indexer.py.sra instances/lucene_indexer.py.srav1
-	ln -fs lucene_indexer.py.sra instances/lucene_indexer.py.srav2
 fi
-ln -fs lucene_indexer.py.gtex instances/lucene_indexer.py.tcga
-ln -fs instances/lucene_indexer.py.${1} ./lucene_indexer.py
+if [ $1 = "srav2" ] ; then
+	ln -fs instances/test_s2i_ids_3.snaptron_ids.${1} ./test_s2i_ids_3.snaptron_ids
+	ln -fs instances/lucene_range_ids.test.${1} ./lucene_range_ids.test
+fi
