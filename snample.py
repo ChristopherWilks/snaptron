@@ -271,7 +271,7 @@ def query_samples_fast(sampleq,sample_map,snaptron_ids,ra,stream_sample_metadata
     if DEBUG_MODE:
         sys.stderr.write("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
     sid_search_automaton = None
-    if not stream_sample_metadata:
+    if not stream_sample_metadata and len(sample_ids) > 0:
         sid_search_automaton = snquery.build_sid_ahoc_queries(sample_ids)
     return sid_search_automaton
 
