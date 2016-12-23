@@ -22,7 +22,7 @@ DATA_SOURCE='SRAv1'
 IP='127.0.0.1'
 SERVER_STRING='http://snaptron.cs.jhu.edu/%s/' % (DATA_SOURCE.lower())
 HG='hg19'
-PORT=1565
+PORT=1555
 ROOT_DIR='./'
 PYTHON_PATH="python"
 TABIX="tabix"
@@ -44,7 +44,7 @@ LUCENE_WS_SAMPLE_DB="%s/lucene_full_ws/" % (TABIX_DB_PATH)
 REFSEQ_ANNOTATION='refseq_transcripts_by_hgvs.tsv'
 CANONICAL_ANNOTATION='ucsc_known_canonical_transcript.tsv'
 SAMPLE_MD_FILE="%s/samples.tsv" % (TABIX_DB_PATH)
-SAMPLE_ID_FIELD_NAME='intropolis_sample_id_i'
+SAMPLE_ID_FIELD_NAME='intropolis_sample_id'
 LUCENE_STD_ANALYZER=analyzer_ws
 LUCENE_WS_ANALYZER=analyzer
 #####END of fields that need to be changed for a different instance
@@ -123,7 +123,7 @@ GENE_ANNOTATION_HEADER = "DataSource:Type\treference\tannotation_source\tfeature
 INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated	left_motif	right_motif	left_annotated	right_annotated	samples	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'
 INTRON_TYPE_HEADER_MAP={'snaptron_id':int,'chromosome':str,'start':int,'end':int,'length':int,'strand':str,'annotated':bool,'left_motif':str,'right_motif':str,'left_annotated':str,'right_annotated':str,'samples':str,'samples_count':int,'coverage_sum':int,'coverage_avg':float,'coverage_median':float,'source_dataset_id':str}
 
-SAMPLE_HEADER='intropolis_sample_id_i	run_accession_s	sample_accession_s	experiment_accession_s	study_accession_s	submission_accession_s	sra_ID_s	run_ID_s	run_alias_t	run_date_t	updated_date_t	spots_s	bases_s	run_center_t	experiment_name_t	run_attribute_t	experiment_ID_s	experiment_alias_t	experiment_title_t	study_name_t	sample_name_t	design_description_t	library_name_t	library_strategy_s	library_source_t	library_selection_t	library_layout_t	library_construction_protocol_t	read_spec_t	platform_t	instrument_model_t	platform_parameters_t	experiment_url_link_s	experiment_attribute_t	sample_ID_s	sample_alias_t	taxon_id_s	common_name_t	description_t	sample_url_link_s	sample_attribute_t	study_ID_s	study_alias_t	study_title_t	study_type_t	study_abstract_t	center_project_name_t	study_description_t	study_url_link_s	study_attribute_t	related_studies_t	primary_study_s	submission_ID_s	submission_comment_t	submission_center_t	submission_lab_t	submission_date_t	sradb_updated.x_s	fastq_ID_s	file_name_t	md5_s	bytes_s	audit_time_s	sradb_updated_file_s	date_download_t	URL_s	layout_s	URL_R_s	md5_R_s	cell_type_t	tissue_t	cell_line_t	strain_t	age_s	disease_t	population_t	sex_s	source_name_s	all_t'
+SAMPLE_HEADER='intropolis_sample_id	run_accession	sample_accession	experiment_accession	study_accession	submission_accession	sra_ID	run_ID	run_alias	run_date	updated_date	spots	bases	run_center	experiment_name	run_attribute	experiment_ID	experiment_alias	experiment_title	study_name	sample_name	design_description	library_name	library_strategy	library_source	library_selection	library_layout	library_construction_protocol	read_spec	platform	instrument_model	platform_parameters	experiment_url_link	experiment_attribute	sample_ID	sample_alias	taxon_id	common_name	description	sample_url_link	sample_attribute	study_ID	study_alias	study_title	study_type	study_abstract	center_project_name	study_description	study_url_link	study_attribute	related_studies	primary_study	submission_ID	submission_comment	submission_center	submission_lab	submission_date	sradb_updated.x	fastq_ID	file_name	md5	bytes	audit_time	sradb_updated_file	date_download	URL	layout	URL_R	md5_R	cell_type	tissue	cell_line	strain	age	disease	population	sex	source_name	all'
 
 INTRON_HEADER_FIELDS=INTRON_HEADER.split('\t')
 INTRON_HEADER_FIELDS_MAP={}
@@ -138,7 +138,5 @@ SAMPLE_HEADER_FIELDS_MAP={}
 SAMPLE_HEADER_FIELDS_TYPE_MAP={}
 for (i,field) in enumerate(SAMPLE_HEADER_FIELDS):
    SAMPLE_HEADER_FIELDS_MAP[field]=i
-   fields = field.split('_')
-   t = fields[-1]
-   field_wo_type = '_'.join(fields[:-1])
+   field_wo_type = field
    SAMPLE_HEADER_FIELDS_TYPE_MAP[field_wo_type]=field
