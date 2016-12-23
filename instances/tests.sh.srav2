@@ -14,10 +14,6 @@ echo "25" > expected_wc
 python ./snaptron.py 'regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000' 2> /dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
-#echo "91" > expected_wc
-#python ./sdensity.py "regions=chr2:1-100000&bigwig_db=snps1k" 2> /dev/null | wc -l > test_wc
-#diff test_wc expected_wc
-
 echo "25" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000" 2> /dev/null | wc -l  > test_wc
 diff test_wc expected_wc
@@ -55,28 +51,45 @@ echo "4" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/samples?ids=0,4,10" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
+echo "2" > expected_wc
+curl "http://$HOST:$PORT/$PATH_/samples/4" 2>/dev/null | wc -l > test_wc
+diff test_wc expected_wc
+
+echo "4" > expected_wc
+curl "http://$HOST:$PORT/$PATH_/snaptron?ids=33401865,33401867,33401868" 2>/dev/null | wc -l > test_wc
+diff test_wc expected_wc
+
 echo "5" > expected_wc
 curl --data 'fields=[{"ids":["33401865","33401867","33401868"]}]' http://$HOST:$PORT/$PATH_/snaptron 2>/dev/null | wc -l > test_wc
+diff test_wc expected_wc
+
+echo "2" > expected_wc
+curl "http://$HOST:$PORT/$PATH_/snaptron/33401865" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "4" > expected_wc
 curl --data 'fields=[{"ids":["0","5","11"]}]' http://$HOST:$PORT/$PATH_/samples 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
-#echo "3" > expected_wc
-#curl "http://$HOST:$PORT/$PATH_/analysis?ids_a=4&ids_b=5,6&compute=jir&ratio=cov&order=T:5" 2>/dev/null | wc -l > test_wc
-#diff test_wc expected_wc
+echo "3" > expected_wc
+curl --data 'fields=[{"ids":["0","5","11"],"sample_fields":"0,1,11"}]' http://$HOST:$PORT/$PATH_/samples 2>/dev/null | grep "SRA" | grep "SRR" | wc -l > test_wc
+diff test_wc expected_wc
 
 echo "34" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/annotations?regions=CD99" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
-#echo "91" > expected_wc
-#curl "http://$HOST:$PORT/$PATH_/density?regions=chr2:1-100000&bigwig_db=snps1k" 2>/dev/null | wc -l > test_wc
-#diff test_wc expected_wc
+echo "3" > expected_wc
+curl --data 'fields=[{"ids":["7465808"],"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":"100"}],"coverage_sum":[{"op":">:","val":"1000"}]}]' http://snaptron.cs.jhu.edu/srav1/snaptron 2>/dev/null | wc -l > test_wc
+diff test_wc expected_wc
+
+echo "6" > expected_wc
+curl --data 'fields=[{"ids":["7465808"],"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":"100"}],"coverage_sum":[{"op":">:","val":"1000"}]},{"ids":["33401865","33401867","33401868"]}]' http://snaptron.cs.jhu.edu/srav1/snaptron 2>/dev/null | wc -l > test_wc
+diff test_wc expected_wc
 
 curl "http://$HOST:$PORT/$PATH_/snaptron?contains=1&regions=chr2:29446395-30142858&rfilter=samples_count>:100&rfilter=annotated:1" 2>/dev/null > test_annot_full.test
 diff test_annot_full.test test_annot_full
+
 
 rm test_wc expected_wc
 
