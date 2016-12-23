@@ -36,9 +36,7 @@ tabix -s 1 -b 4 -e 5 all_transcripts.gtf.bgz
 
 #creation of sqlite junction db
 ../scripts/build_sqlite_junction_db.sh junctions junctions.bgz
-#creation of sample2junction of sqlite by_sample_id db
-../scripts/build_sqlite_sample_mapping_db.sh sample2junction junctions.bgz
 
 #run lucene indexer on metadata
-cat samples.tsv | perl -ne 'chomp; $n++; @f=split(/\t/,$_); foreach $idx (0 .. (scalar @f)-1) { $type="t"; $type="n" if($f[$idx] eq "NA"); if($f[$idx]=~/^-?\d+?\.?\d+$/) { $type="f"; } $type="i" if($f[$idx]=~/^-?\d+$/); $counts{$idx}->{$type}++; } END { foreach $idx (sort { $a<=>$b} keys %counts) { print "$idx"; $counts{$idx}->{"n"}=-$counts{$idx}->{"n"} if(defined($counts{$idx}->{"n"})); $counts{$idx}->{"i"}=-$counts{$idx}->{"i"} if(defined($counts{$idx}->{"f"}) && defined($counts{$idx}->{"i"}) > 0); foreach $t (sort {$counts{$idx}->{$b}<=>$counts{$idx}->{$a}} keys %{$counts{$idx}}) { print "\t$t,".$counts{$idx}->{$t}; } print "\n";}}' > samples.tsv.type_inference
-cat samples.tsv | python ../lucene_indexer.py samples.tsv.type_inference
+cat samples.tsv | perl ../scripts/infer_sample_metadata_field_types.pl > samples.tsv.type_inference 
+cat samples.tsv | python ../lucene_indexer.py samples.tsv.type_inference > run_indexer 2>&1
