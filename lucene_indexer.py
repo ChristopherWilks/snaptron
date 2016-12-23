@@ -123,5 +123,6 @@ if __name__ == "__main__":
   print "Closing index of %d docs..." % writer2.numDocs()
   writer1.close()
   writer2.close()
+  ftypes.write("all\tt\n")
   ftypes.close()
 
