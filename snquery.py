@@ -49,7 +49,7 @@ class RunExternalQueryEngine:
         self.streamer_method = streamer_method
         #exit early as we only want the ucsc_url
         if self.ra.return_format == UCSC_URL:
-            return (set(),set())
+            return
 
         if cmd == snapconf.TABIX:
             self.delim = '\t'
@@ -97,6 +97,9 @@ class RunExternalQueryEngine:
     def run_query(self):
         ids_found = set()
         sample_set = set()
+        #exit early as we only want the ucsc_url
+        if self.ra.return_format == UCSC_URL:
+            return (ids_found,sample_set)
         for line in self.extern_proc.stdout:
             fields = line.rstrip().split(self.delim)
             snaptron_id = str(fields[snapconf.INTRON_ID_COL])
