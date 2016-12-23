@@ -22,6 +22,7 @@ from org.apache.lucene.util import Version
 LUCENE_TYPES={'i':LongField,'s':StringField,'t':TextField,'f':FloatField,'NA':TextField}
 LUCENE_TYPE_METHODS={'i':NumericRangeQuery.newLongRange,'f':NumericRangeQuery.newFloatRange}
 PREC_STEP=1
+LUCENE_TYPES_FILE='./lucene_indexed_numeric_types.tsv'
 
 float_patt = re.compile(r'\tf,')
 def process_pre_inferred_types(types_map,typesF):
@@ -70,7 +71,7 @@ if __name__ == "__main__":
   print "%d docs in index2" % writer2.numDocs()
   print "Reading lines from sys.stdin..."
     
-  ftypes = open("./lucene_indexed_numeric_types.tsv","w")
+  ftypes = open(LUCENE_TYPES_FILE, "w")
   
   for n, l in enumerate(sys.stdin):
     doc = Document()

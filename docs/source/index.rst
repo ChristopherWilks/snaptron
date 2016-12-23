@@ -54,6 +54,9 @@ A Snaptron query is a set of predicates logically AND'ed together from three dif
 
 A snaptron query may contain only one of the three types of queries or may contain all three, or some combination of two types.  In the example above the region and range query types are present as ``chr6:1-514015`` for the region type and ``samples_count:100`` for the range type.
 
+Snaptron Compilations (instances)
+---------------------------------
+
 There are currently (11/16/2016) four Snaptron instances indexing different data sources (modify the example URL for your own queries):
 
 - TCGA: ~36 million junctions from ~11 thousand public samples from the TCGA consortium sequences using HG38 reference:
@@ -68,6 +71,36 @@ http://snaptron.cs.jhu.edu/srav2/snaptron?regions=ABCD3
 - SRAv1 (legacy, replaced by SRAv2): ~42 million junctions from ~21 thousand public samples from the Sequence Read Archive using HG19 reference:
 http://snaptron.cs.jhu.edu/srav1/snaptron?regions=KMT2E
 
+Forbidden Characters
+--------------------
+
+Because of how Snaptron parses queries the following characters are not allowed as part search terms/phrases: ::
+        ><:!
+
+
+Sample Metadata
+---------------
+
+Each of the above compilations has its own set of sample metadata with varying field names and definitions.
+Snaptron indexes these metadata fields in a document store (Lucene) for full text retrieval.
+Numeric columns (e.g. RIN in the GTEx compilation) are indexed to support range based lookups.
+
+
+Both sample-only searches and junction searches limited by a sample predicate can be performed: ::
+
+  curl "http://snaptron.cs.jhu.edu/gtex/samples?sfilter=sfilter=SMRIN>8"
+
+will return a list of samples which have a RIN value > 8. ::
+
+  curl "http://snaptron.cs.jhu.edu/srav1/snaptron?regions=chr6:1-514015&rfilter=samples_count:100&sfilter=description:cortex"
+
+will return a list of junctions and their list of summary stats calcuated from the intersection of the region and rfilter
+predicates and which contain at least one sample in the list of samples which have "cortex" in their description field.
+
+.. Add list of sample metadata columns for each compilation
+
+Reference Tables
+----------------
 
 Table 1. Query Types
 --------------------
@@ -76,7 +109,7 @@ Query Type      Description                                                     
 --------------- ---------------------------------------------------------------- ------------ ----------------------------------------------- ------------------
 Region          chromosome based coordinates range (1-based); HUGO gene name     1            chr(1-22,X,Y,M):1-size of chromosome; gene_name chr21:1-500; CD99
 Filter          range over summary statistic column values                       1 or more    column_name(>:,<:,:)number (integer or float)   coverage_avg>:10
-Sample Metadata is-equal-to/contains text (keywords) search over sample metadata 1 or more    fieldname:keyword                               description:cortex
+Sample Metadata keyword and numeric range search over sample metadata            1 or more    fieldname(>:,<:,:)keyword                       description:cortex; SMRIN>:8
 Snaptron IDs    one or more snaptron_ids                                         1 or more    ids=\d+[,\d+]*                                  ids=5,7,8
 Sample IDs      one or more sample_ids                                           1 or more    ids=\d+[,\d+]*                                  ids=20,40,100
 =============== ================================================================ ============ =============================================== ==================
@@ -173,43 +206,45 @@ The return format is a TAB-delimited series of fields where each line represents
 
 Table 6. Complete list of Snaptron Fields In Return Format
 ----------------------------------------------------------
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| Field Index | Field Name              | Type                                 | Description                                                                                                   | Example                       |
-+=============+=========================+======================================+===============================================================================================================+===============================+
-| 1           | DataSource:Type         | Abbrev:Single Character              | Differentiates between a return line of type Intron (I), Sample (S), or Gene (G).                             | SRAv1:I                       |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 2*          | snaptron_id             | Integer                              | stable, unique ID for Snaptron junctions                                                                      | 5                             |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 3           | chromosome              | String                               | Reference ID for genomics coordinates                                                                         | chr7                          |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 4           | start                   | Integer                              | beginning (left) coordinate of intron                                                                         | 10113                         |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 5           | end                     | Integer                              | last (right) coordinate of intron                                                                             | 10244                         |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 6           | length                  | Integer                              | Length of intron coordinate span                                                                              | 132                           |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 7           | strand                  | Single Character                     | Orientation of intron (Watson or Crick)                                                                       | ``+`` or ``-``                |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 8           | annotated               | Boolean Integer                      | If both ends of the intron are annotated as *a* splice site in some annotation                                | 1 or 0                        |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 9           | left_motif              | String                               | Splice site sequence bases at the left end of the intron                                                      | GT                            |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 10          | right_motif             | String                               | Splice site sequence bases at the right end of the intron                                                     | AG                            |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 11          | left_annotated          | String                               | If the left end splice site is annotated or not and which annotations it appears in (maybe more than once)    | aC19,cG19,cG38:1;0            |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 12          | right_annotated         | String                               | If the right end splice site is in an annotated or not, same as left_annotated                                | aC19,cG19,cG38:1;0            |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 13          | samples                 | Comma separated list of Integers IDs | The list of samples which had one or more reads covering the intron(?). IDs are from the IntropolisDB.        | 5,10,14                       |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 14          | read_coverage_by_sample | Comma separated list of Integers     | Coverage of the intron per sample (matches "samples" column position)                                         | 1,6,20                        |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 17*         | coverage_avg            | Float                                | Average coverage across all samples which had at least 1 read covering the intron in the first pass alignment | 8.667                         |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 18*         | coverage_median         | Float                                | Median coverage across all samples which had at least 1 read covering the intron in the first pass alignment  | 6                             |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 19          | source_dataset_id       | Integer                              | Snaptron ID for the original dataset used (SRA, GTEx, TCGA)                                                   | SRAv1=0,GTEx=1,SRAv2=2,TCGA=4 |
-+-------------+-------------------------+--------------------------------------+---------------------------------------------------------------------------------------------------------------+-------------------------------+
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| Field Index | Field Name        | Type                                            | Description                                                                                                             | Example                       |
++=============+===================+=================================================+=========================================================================================================================+===============================+
+| 1           | DataSource:Type   | Abbrev:Single Character                         | Differentiates between a return line of type Intron (I), Sample (S), or Gene (G).                                       | SRAv1:I                       |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 2*          | snaptron_id       | Integer                                         | stable, unique ID for Snaptron junctions                                                                                | 5                             |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 3           | chromosome        | String                                          | Reference ID for genomics coordinates                                                                                   | chr7                          |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 4           | start             | Integer                                         | beginning (left) coordinate of intron                                                                                   | 10113                         |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 5           | end               | Integer                                         | last (right) coordinate of intron                                                                                       | 10244                         |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 6           | length            | Integer                                         | Length of intron coordinate span                                                                                        | 132                           |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 7           | strand            | Single Character                                | Orientation of intron (Watson or Crick)                                                                                 | ``+`` or ``-``                |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 8           | annotated         | Boolean Integer                                 | If both ends of the intron are annotated as a splice site in some annotation                                            | 1 or 0                        |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 9           | left_motif        | String                                          | Splice site sequence bases at the left end of the intron                                                                | GT                            |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 10          | right_motif       | String                                          | Splice site sequence bases at the right end of the intron                                                               | AG                            |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 11          | left_annotated    | String                                          | If the left end splice site is annotated or not and which annotations it appears in (maybe more than once)              | aC19,cG19,cG38:1;0            |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 12          | right_annotated   | String                                          | If the right end splice site is in an annotated or not, same as left_annotated                                          | aC19,cG19,cG38:1;0            |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 13          | samples           | Comma separated list of tuples: integer:integer | The list of samples which had one or more reads covering the intron and their coverages. IDs are from the IntropolisDB. | ,5:10,10:2,14:3               |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 14          | samples_count     | Integer                                         | Total number of samples that have one or more reads covering this junction                                              | 20                            |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 15          | coverage_sum      | Integer                                         | Sum of all samples coverage for this junction                                                                           | 10                            |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 16          | coverage_avg      | Float                                           | Average coverage across all samples which had at least 1 read covering the intron in the first pass alignment           | 8.667                         |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 17          | coverage_median   | Float                                           | Median coverage across all samples which had at least 1 read covering the intron in the first pass alignment            | 6                             |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+| 18          | source_dataset_id | Integer                                         | Snaptron ID for the original dataset used (SRA, GTEx, TCGA)                                                             | SRAv1=0,GTEx=1,SRAv2=2,TCGA=4 |
++-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
 
 * :ref:`genindex`
 * :ref:`modindex`

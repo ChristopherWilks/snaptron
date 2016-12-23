@@ -9,12 +9,17 @@ import os
 import subprocess
 import json
 import time
+import re
 
 import gzip
 
 
 import lucene
 from java.io import File
+from org.apache.lucene.search import BooleanQuery
+from org.apache.lucene.search import NumericRangeQuery
+from org.apache.lucene.index import Term
+from org.apache.lucene.search import TermQuery
 from org.apache.lucene.search import IndexSearcher
 from org.apache.lucene.index import IndexReader
 from org.apache.lucene.queryparser.classic import MultiFieldQueryParser
@@ -22,9 +27,12 @@ from org.apache.lucene.search import BooleanClause
 from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.util import Version
 
+
 import snapconf
 import snaputil
 import snaptron
+import snquery
+import lucene_indexer
 
 import sqlite3
 sconn = sqlite3.connect(snapconf.SAMPLE_SQLITE_DB)
@@ -32,22 +40,25 @@ sc = sconn.cursor()
 
 DEBUG_MODE=False
 
-reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_SAMPLE_DB)))
-searcher = IndexSearcher(reader)
+searchers = []
+std_reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_STD_SAMPLE_DB)))
+std_searcher = IndexSearcher(std_reader)
+searchers.append(std_searcher)
 
-def lucene_sample_query_parse(sampleq):
-    fields = []
-    queries = []
-    booleans = []
-    for query_tuple in sampleq:
-        (field,query) = query_tuple.split(snapconf.SAMPLE_QUERY_FIELD_DELIMITER)
-        field_w_type = snapconf.SAMPLE_HEADER_FIELDS_TYPE_MAP[field]
-        fields.append(field_w_type)
-        query = query.replace('AND',' AND ')
-        sys.stderr.write("query + fields: %s %s\n" % (query,field_w_type))
-        queries.append(query)
-        booleans.append(BooleanClause.Occur.MUST)
-    return (fields,queries,booleans)
+ws_reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_WS_SAMPLE_DB)))
+ws_searcher = IndexSearcher(ws_reader)
+searchers.append(ws_searcher)
+
+def read_lucene_field_types_file(file_in):
+    ftypes = {}
+    with open(file_in, "r") as fin:
+        for line in fin:
+            (fieldname, fieldtypechar) = line.rstrip().split('\t')
+            lucene_type_method = TermQuery
+            if fieldtypechar in lucene_indexer.LUCENE_TYPE_METHODS:
+                lucene_type_method =lucene_indexer. LUCENE_TYPE_METHODS[fieldtypechar]
+            ftypes[fieldname]=[fieldtypechar, lucene_type_method]
+    return ftypes
 
 def sqlite_query_parse(sampleq):
     select = "SELECT * FROM sample WHERE "
@@ -72,31 +83,94 @@ def search_samples_sqlite(sample_map,sampleq,sample_set,stream_sample_metadata=F
         if stream_sample_metadata:
             sys.stdout.write("%s:S\t%s\n" % (snapconf.DATA_SOURCE,sample_map[sid]))
 
+def lucene_sample_query_parse_old(sampleq):
+    fields = []
+    queries = []
+    booleans = []
+    for query_tuple in sampleq:
+        (field,query) = query_tuple.split(snapconf.SAMPLE_QUERY_FIELD_DELIMITER)
+        field_w_type = snapconf.SAMPLE_HEADER_FIELDS_TYPE_MAP[field]
+        fields.append(field_w_type)
+        query = query.replace('AND',' AND ')
+        sys.stderr.write("query + fields: %s %s\n" % (query,field_w_type))
+        queries.append(query)
+        booleans.append(BooleanClause.Occur.MUST)
+    return (fields,queries,booleans)
+
+def lucene_range_query_parse(field_w_type, op, val, fieldtypechar, ftype_method):
+    '''parse the user's range query string into something pylucene can understand'''
+    ptype = int
+    if fieldtypechar == 'f':
+        ptype = float
+    (start, end) = (ptype(val), ptype(val)) 
+    start_inclusive = True
+    end_inclusive = True
+    #assume operator == '='
+    if op == '>:':
+        end = None 
+    if op == '<:':
+        start = None 
+    if op == '<':
+        start = None
+        end_inclusive = False
+    if op == '>':
+        end = None
+        start_inclusive = False
+    #sys.stderr.write("query + fields: %s %s\n" % (query,field))
+    return ftype_method(field_w_type, lucene_indexer.PREC_STEP, start, end, start_inclusive, end_inclusive)
+
+
+def lucene_sample_query_parse(sampleq, ftypes):
+    fields = []
+    queries = []
+    booleans = []
+    bq = BooleanQuery()
+    for query_tuple in sampleq:
+        (field, op_, value) = re.split(snapconf.RANGE_QUERY_OPS, query_tuple)
+        m=snapconf.RANGE_QUERY_FIELD_PATTERN.search(query_tuple)
+        if m is None or field is None:
+            continue
+        op=m.group(1)
+        if op not in snapconf.operators:
+            sys.stderr.write("bad operator %s in range query,exiting\n" % (str(op)))
+            sys.exit(-1)
+        field_w_type = snapconf.SAMPLE_HEADER_FIELDS_TYPE_MAP[field]
+        (fieldtypechar, ftype_method) = ftypes[field_w_type]
+        if fieldtypechar == 'i' or fieldtypechar == 'f':
+            bq.add(lucene_range_query_parse(field_w_type, op, value, fieldtypechar, ftype_method), BooleanClause.Occur.MUST)
+        else:
+            bq.add(TermQuery(Term(field_w_type, value)), BooleanClause.Occur.MUST)
+        sys.stderr.write("value + fields: %s %s\n" % (value, field_w_type))
+    return bq
+
 
 #based on the example code at
 #http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
 def search_samples_lucene(sample_map,sampleq,sample_set,ra,stream_sample_metadata=False):
-    (fields,queries,booleans) = lucene_sample_query_parse(sampleq)
-    query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, snapconf.LUCENE_ANALYZER)
-    hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
-    #if we get nothing, try with the backup analyzer
-    if hits.totalHits == 0:
-        query = MultiFieldQueryParser.parse(Version.LUCENE_4_10_1, queries, fields, booleans, snapconf.LUCENE_BACKUP_ANALYZER)
+    #still useful for local tracking of sample IDs
+    #even if we don't need them higher up in the stack
+    if sample_set is None:
+        sample_set = set()
+    ftypes = read_lucene_field_types_file(lucene_indexer.LUCENE_TYPES_FILE)
+    query = lucene_sample_query_parse(sampleq, ftypes)
+    #do a non-redundant union of the 2 analyzers and 2 lucene DB types
+    header = ra.print_header
+    for searcher in searchers:
         hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
-    if DEBUG_MODE: 
-        sys.stderr.write("Found %d document(s) that matched query '%s':\n" % (hits.totalHits, sampleq))
-    if stream_sample_metadata:
-        sys.stdout.write("DataSource:Type\tLucene TF-IDF Score\t%s\n" % (snapconf.SAMPLE_HEADER))
-    for hit in hits.scoreDocs:
-        doc = searcher.doc(hit.doc)
-        sid = doc.get(snapconf.SAMPLE_ID_FIELD_NAME)
-        #track the sample ids if asked to
-        if sid != None and len(sid) >= 1:
-            if sample_set != None:
+        sys.stderr.write("%s %s Found %d document(s) that matched query '%s':\n" % (searcher, query, hits.totalHits, sampleq))
+        if stream_sample_metadata and header:
+            sys.stdout.write("DataSource:Type\tLucene TF-IDF Score\t%s\n" % (snapconf.SAMPLE_HEADER))
+            header = False
+        for hit in hits.scoreDocs:
+            doc = searcher.doc(hit.doc)
+            sid = str(doc.get(snapconf.SAMPLE_ID_FIELD_NAME))
+            #track the sample ids if asked to
+            if sid != None and len(sid) >= 1 and sid not in sample_set and sid in sample_map:
                 sample_set.add(sid)
-            #stream back the full sample metadata record from the in-memory dictionary
-            if stream_sample_metadata:
-                sys.stdout.write("%s:S\t%s\t%s\n" % (snapconf.DATA_SOURCE,str(hit.score),sample_map[sid]))
+                #stream back the full sample metadata record from the in-memory dictionary
+                if stream_sample_metadata:
+                    sys.stdout.write("%s:S\t%s\t%s\n" % (snapconf.DATA_SOURCE,str(hit.score),sample_map[sid]))
+
 
 #when not querying against Lucene
 def stream_samples(sample_set,sample_map,ra):
@@ -190,6 +264,16 @@ def intron_ids_from_samples(sample_ids,snaptron_ids,rquery,filtering=False):
     snaptron_ids.update(found_snaptron_ids)
 
 
+def query_samples_fast(sampleq,sample_map,snaptron_ids,ra,stream_sample_metadata=False):
+    sample_ids = set()
+    search_samples_lucene(sample_map,sampleq,sample_ids,ra,stream_sample_metadata=stream_sample_metadata)
+    #search_samples_sqlite(sample_map,sampleq,sample_ids,stream_sample_metadata=stream_sample_metadata)
+    if DEBUG_MODE:
+        sys.stderr.write("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
+    sid_search_automaton = None
+    if not stream_sample_metadata:
+        sid_search_automaton = snquery.build_sid_ahoc_queries(sample_ids)
+    return sid_search_automaton
 
 def query_samples(sampleq,sample_map,snaptron_ids,ra,stream_sample_metadata=False):
     sample_ids = set()

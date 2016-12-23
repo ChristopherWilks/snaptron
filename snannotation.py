@@ -17,6 +17,7 @@ import gzip
 import snapconf
 import snaputil
 import snaptron
+import snquery
 
 DEBUG_MODE=False
 
@@ -176,12 +177,15 @@ def query_gene_regions(intervalq,contains=False,either=0,exact=False,limit=20):
     gc = GeneCoords()
     limit_filter = 'perl -ne \'chomp; @f=split(/\\t/,$_); @f1=split(/;/,$f[8]); $boost=0; $boost=100000 if($f1[1]!~/"NA"/); @f2=split(/,/,$f1[2]); $s1=$f1[2]; $f[5]=(scalar @f2)+$boost; print "".(join("\\t",@f))."\\n";\' | sort -t"	" -k6,6nr'
     additional_cmd = ""
+    ra_additional_cmd = ra
     if limit > 0:
         sys.stderr.write("limit_filter %s\n" % (limit_filter))
         additional_cmd = "%s | head -%d" % (limit_filter,limit)
+        ra_additional_cmd = ra._replace(additional_cmd=additional_cmd)
     for interval in intervalq:
         if snapconf.INTERVAL_PATTERN.search(interval):
-           (ids,sids) = snaptron.run_tabix(interval,region_args=ra)
+           runner = snquery.RunExternalQueryEngine(snapconf.TABIX,interval,None,set(),region_args=ra)
+           (ids,sids) = runner.run_query()
         else:
             intervals = gc.gene2coords(interval)
             sys.stderr.write("# of gene intervals: %d\n" % (len(intervals)))
@@ -190,9 +194,10 @@ def query_gene_regions(intervalq,contains=False,either=0,exact=False,limit=20):
                 sys.stderr.write("# of gene intervals in chrom %s: %d\n" % (chrom,len(coord_tuples)))
                 for coord_tuple in coord_tuples:
                     (st,en) = coord_tuple
-                    (ids_,sids_) = snaptron.run_tabix("%s:%d-%d" % (chrom,st,en),region_args=ra,additional_cmd=additional_cmd)
-                    if ra.print_header:
-                        ra=ra._replace(print_header=False)
+                    runner = snquery.RunExternalQueryEngine(snapconf.TABIX,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra_additional_cmd)
+                    (ids,sids_) = runner.run_query()
+                    if ra_additional_cmd.print_header:
+                        ra_additional_cmd=ra_additional_cmd._replace(print_header=False)
   
 def main():
     global DEBUG_MODE
