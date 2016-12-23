@@ -37,14 +37,15 @@ CUT_START_COL=1
 SAMPLE_SQLITE_DB="%s/sample2junction.sqlite" % (TABIX_DB_PATH)
 SNAPTRON_SQLITE_DB="%s/junctions_ahoc.sqlite" % (TABIX_DB_PATH)
 #Lucene dbs
-LUCENE_SAMPLE_DB="%s/lucene_full/" % (TABIX_DB_PATH)
+LUCENE_STD_SAMPLE_DB="%s/lucene_full_standard/" % (TABIX_DB_PATH)
+LUCENE_WS_SAMPLE_DB="%s/lucene_full_ws/" % (TABIX_DB_PATH)
 #gene annotation related flat files
 REFSEQ_ANNOTATION='refseq_transcripts_by_hgvs.tsv'
 CANONICAL_ANNOTATION='ucsc_known_canonical_transcript.tsv'
 SAMPLE_MD_FILE="%s/samples.tsv" % (TABIX_DB_PATH)
 SAMPLE_ID_FIELD_NAME='rail_id'
-LUCENE_ANALYZER=analyzer
-LUCENE_BACKUP_ANALYZER=analyzer_ws
+LUCENE_STD_ANALYZER=analyzer_ws
+LUCENE_WS_ANALYZER=analyzer
 #####END of fields that need to be changed for a different instance
 
 

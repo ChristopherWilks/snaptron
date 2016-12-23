@@ -160,6 +160,7 @@ python ./sbreakpoint.py 'CCDC6-RET' > CCDC6_RET_breakpoint.tsv
 
 curl "http://stingray.cs.jhu.edu:8090/srav1/breakpoint?eml4-alk"
 
+<<<<<<< Updated upstream
 sqlite3 data/by_sample_ids.v2.sqlite3 "select * from by_sample_id;" | python pack_samples.py
 
 #dump per-sample # of snaptron ids
@@ -225,3 +226,6 @@ zcat /data2/gigatron2/gtex/consolidated_gtex_junctions.tsv.snaptron.no_extra.gz 
 
 #speed testing AHOC
 time python ./snaptron.py "regions=chr1:1-25000000&rfilter=samples_count>:1&sfilter=all:tissue" | wc -l
+cut -f 63 data/samples.tsv | perl -ne 'chomp; $s=$_; if($s>=8) { print "$s\n";}' | wc -l
+
+python ./snaptron.py "regions=ALK&rfilter=samples_count>:10&sfilter=SMRIN>:8" | wc -l
