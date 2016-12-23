@@ -3,11 +3,13 @@ import sys
 import os
 from StringIO import StringIO
 import unittest
+import operator
 
 import snapconf
 import snaputil
 import snaptron
 import snannotation
+import snquery
 
 #set of test interval queries
 IQs=['chr1:10160-10161','CD99','chr11:82970135-82997450','chr11:82985784-82989768','chr11:82571908-82571909','chr11:82571908-82976906']
@@ -38,9 +40,18 @@ def tearDownModule():
 
 gc = snannotation.GeneCoords()
 #shortcuts for snaptron methods used in tests
-tc = snaptron.run_tabix
+def run_tabix(intervalq,region_args=snaptron.default_region_args):
+    runner = snquery.RunExternalQueryEngine(snapconf.TABIX,intervalq,None,set(),region_args=region_args)
+    return runner.run_query()
+
+tc = run_tabix
 rqp = snaptron.range_query_parser
-srl = snaptron.run_sqlite3
+
+def run_sqlite3(intervalq,rangeq,snaptron_ids,region_args=snaptron.default_region_args):
+    runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,intervalq,rangeq,snaptron_ids,region_args=region_args)
+    return runner.run_query()
+
+srl = run_sqlite3
 sbi = snaptron.search_introns_by_ids
 sbg = snaptron.search_by_gene_name
 
@@ -66,7 +77,7 @@ class TestTabixCalls(unittest.TestCase):
         pass
 
     def tearDown(self):
-        snaptron.REQ_FIELDS=[]
+        snaputil.REQ_FIELDS=[]
    
     def itc(self,interval_query,range_query=None,filter_set=None,sample_set=None,filtering=False):
         '''wrap the normal run_tabix/search_by_gene_name call to hardcode defaults for interval/gene name querying'''
@@ -119,16 +130,16 @@ class TestTabixCalls(unittest.TestCase):
         '''make sure we're getting a correct header'''
         sout = StringIO()
 
-        snaptron.REQ_FIELDS=[]
-        snaptron.stream_header(sout,region_args=snaptron.default_region_args)
+        snaputil.REQ_FIELDS=[]
+        snaputil.stream_header(sout,region_args=snaptron.default_region_args)
         hfields = sout.getvalue().split("\n")[0].rstrip().split("\t")
         self.assertEqual(len(hfields),len(snapconf.INTRON_HEADER_FIELDS)+1)
 
         req_field = 'snaptron_id'
-        snaptron.REQ_FIELDS=[snapconf.INTRON_HEADER_FIELDS_MAP[req_field]]
+        snaputil.REQ_FIELDS=[snapconf.INTRON_HEADER_FIELDS_MAP[req_field]]
 
         sout = StringIO()
-        snaptron.stream_header(sout,region_args=snaptron.default_region_args)
+        snaputil.stream_header(sout,region_args=snaptron.default_region_args)
         header = sout.getvalue().split("\n")[0].rstrip()
         self.assertEqual(header,'DataSource:Type\t%s' % (req_field))
 
@@ -291,6 +302,68 @@ class TestQueryCalls(unittest.TestCase):
         rq = queries['rq']
         (iids,sids) = qr([iq],rq,set(),filtering=True,region_args=queries['ra'])
         self.assertEqual(iids, set([]))
+
+class TestSampleSearch(unittest.TestCase):
+    '''
+    Test the search and recovery of sample IDs and coverages in a junction's sample/coverage list
+    '''
+
+    def setUp(self):
+        pass
+
+    def test_basic_extraction(self):
+        sample_ids = set(["1","5","53","276","4987","18000"])
+        sid_search_obj = snquery.build_sid_ahoc_queries(sample_ids)
+        samples_str = ",5:5,4:32,276:7,18000:276"
+        fields = range(0,snapconf.SAMPLE_IDS_COL+5)
+        fields[snapconf.SAMPLE_IDS_COL] = samples_str
+        sid_search_iter = sid_search_obj.iter(samples_str)
+        (found,fields) = snaputil.extract_sids_and_covs_from_search_iter(sid_search_iter, fields)
+        samples = set([5,276,18000])
+        covs = set([5,7,276])
+        samples_found = set(found[0:len(found),0])
+        covs_found = set(found[0:len(found),1])
+        self.assertEqual(len(samples.intersection(samples_found)), len(samples))
+        self.assertEqual(len(covs.intersection(covs_found)), len(covs))
+    
+    def test_summary_recalculation(self):
+        sample_ids = set(["1","5","53","276","4987","18000"])
+        sid_search_obj = snquery.build_sid_ahoc_queries(sample_ids)
+        samples_str = ",5:5,4:32,276:7,18000:276"
+        sids_covs_should_be_found = set(["5:5","276:7","18000:276"])
+        fields = range(0,snapconf.SAMPLE_IDS_COL+5)
+        fields[snapconf.SAMPLE_IDS_COL+1] = 4
+        fields[snapconf.SAMPLE_IDS_COL+2] = 320
+        fields[snapconf.SAMPLE_IDS_COL+3] = 80
+        fields[snapconf.SAMPLE_IDS_COL+4] = 19.5
+        fields[snapconf.SAMPLE_IDS_COL] = samples_str
+        sid_search_iter = sid_search_obj.iter(samples_str)
+        (found,fields) = snaputil.extract_sids_and_covs_from_search_iter(sid_search_iter, fields)
+        sids_covs_from_search = set([x for x in fields[snapconf.SAMPLE_IDS_COL].split(",")])
+        sids_covs_from_search.remove('')
+        self.assertEqual(sids_covs_from_search, sids_covs_should_be_found)
+        self.assertEqual(fields[snapconf.SAMPLE_IDS_COL+1], 3)
+        self.assertEqual(fields[snapconf.SAMPLE_IDS_COL+2], 288)
+        self.assertEqual(fields[snapconf.SAMPLE_IDS_COL+3], 96)
+        self.assertEqual(fields[snapconf.SAMPLE_IDS_COL+4], 7)
+    
+    def test_range_filter(self):
+        sample_ids = set(["1","5","53","276","4987","18000"])
+        sid_search_obj = snquery.build_sid_ahoc_queries(sample_ids)
+        samples_str = ",5:5,4:32,276:7,18000:276"
+        fields = range(0,snapconf.SAMPLE_IDS_COL+5)
+        fields[snapconf.SAMPLE_IDS_COL+1] = 4
+        fields[snapconf.SAMPLE_IDS_COL+2] = 320
+        fields[snapconf.SAMPLE_IDS_COL+3] = 80
+        fields[snapconf.SAMPLE_IDS_COL+4] = 19.5
+        fields[snapconf.SAMPLE_IDS_COL] = samples_str
+        sid_search_iter = sid_search_obj.iter(samples_str)
+        (found,fields) = snaputil.extract_sids_and_covs_from_search_iter(sid_search_iter, fields)
+        range_filters = {'samples_count':[operator.gt,2],'coverage_sum':[operator.eq,288],'coverage_avg':[operator.ge,3.0],'coverage_median':[operator.lt,20]}
+        self.assertEqual(snaputil.filter_by_ranges(fields, range_filters), False)
+        #change range_filters
+        range_filters = {'samples_count':[operator.gt,2],'coverage_sum':[operator.eq,288],'coverage_avg':[operator.ge,3.0],'coverage_median':[operator.ne,7.0]}
+        self.assertEqual(snaputil.filter_by_ranges(fields, range_filters), True)
 
 if __name__ == '__main__':
     unittest.main()

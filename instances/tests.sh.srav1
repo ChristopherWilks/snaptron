@@ -1,5 +1,5 @@
 #!/bin/bash
-export PORT=1555
+export PORT=1565
 export HOST=localhost
 export PATH_=''
 
@@ -12,10 +12,6 @@ fi
 #system tests (roundtrip)
 echo "26" > expected_wc
 python ./snaptron.py 'regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000' 2> /dev/null | wc -l > test_wc
-diff test_wc expected_wc
-
-echo "91" > expected_wc
-python ./sdensity.py "regions=chr2:1-100000&bigwig_db=snps1k" 2> /dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "26" > expected_wc
