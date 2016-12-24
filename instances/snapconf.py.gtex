@@ -27,6 +27,7 @@ BIGWIG2WIG="bigWigToWig"
 ROOT_DIR='./'
 PYTHON_PATH="python"
 TABIX="tabix"
+SQLITE="sqlite3"
 #tabix related
 TABIX_DB_PATH='./data'
 TABIX_GENE_INTERVAL_DB='all_transcripts.gtf.bgz'
