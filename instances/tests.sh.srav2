@@ -79,6 +79,18 @@ echo "34" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/annotations?regions=CD99" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
+curl "http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&return_format=2" > test_wc
+diff test_wc expected_ucsc_url
+
+curl "http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&return_format=1" > test_wc
+diff test_wc expected_ucsc_format
+
+#ID version
+curl "http://$HOST:$PORT/$PATH_/snaptron?ids=33401865,33401867,33401868&return_format=2&coordinate_string=chr6:9838875-10284241" > test_wc
+diff test_wc expected_ucsc_ids_url
+curl "http://$HOST:$PORT/$PATH_/snaptron?ids=33401865,33401867,33401868&return_format=1&coordinate_string=chr6:9838875-10284241" > test_wc
+diff test_wc expected_ucsc_ids_format
+
 echo "3" > expected_wc
 curl --data 'fields=[{"ids":["7465808"],"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":"100"}],"coverage_sum":[{"op":">:","val":"1000"}]}]' http://snaptron.cs.jhu.edu/srav1/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
