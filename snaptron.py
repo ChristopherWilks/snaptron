@@ -308,10 +308,11 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
         ra_ = ra._replace(tabix_db_file=snapconf.TABIX_DBS['snaptron_id'],stream_back=True)
         (found_snaptron_ids,found_sample_ids) = search_introns_by_ids(snaptron_ids,rquery,filtering=ra_.result_count,region_args=ra_)
     #finally if there's no interval OR id query to use with tabix, use a point range query (first_rquery) with additional filters from the following point range queries and/or ids in lucene
+    #UPDATE: disable this since we can't do a recalculation based on a projection of the samples
     elif len(rangeq) >= 1:
-        #(found_snaptron_ids,found_sample_ids) = run_sqlite3(None,rangeq,snaptron_ids,region_args=ra)
-        runner = RunExternalQueryEngine(snapconf.SQLITE,None,rangeq,snaptron_ids,region_args=ra)
-        (found_snaptron_ids,found_sample_ids) = runner.run_query()
+        sys.stdout.write("Filter and filter + metadata queries not supported at this time\n")
+        #runner = RunExternalQueryEngine(snapconf.SQLITE,None,rangeq,snaptron_ids,region_args=ra)
+        #(found_snaptron_ids,found_sample_ids) = runner.run_query()
     
     if ra.result_count:
         sys.stdout.write("%d\n" % (len(found_snaptron_ids)))
