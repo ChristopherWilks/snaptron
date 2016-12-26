@@ -31,12 +31,12 @@ BIGWIG2WIG="bigWigToWig"
 #tabix related
 TABIX_DB_PATH='./data'
 TABIX_GENE_INTERVAL_DB='all_transcripts.gtf.bgz'
-TABIX_INTERVAL_DB='junctions_ahoc.bgz'
+TABIX_INTERVAL_DB='junctions.bgz'
 ID_START_COL=2
 CUT_START_COL=1
 #sqlite3 dbs
 SAMPLE_SQLITE_DB="%s/sample2junction.sqlite" % (TABIX_DB_PATH)
-SNAPTRON_SQLITE_DB="%s/junctions_ahoc.sqlite" % (TABIX_DB_PATH)
+SNAPTRON_SQLITE_DB="%s/junctions.sqlite" % (TABIX_DB_PATH)
 #Lucene dbs
 LUCENE_STD_SAMPLE_DB="%s/lucene_full_standard/" % (TABIX_DB_PATH)
 LUCENE_WS_SAMPLE_DB="%s/lucene_full_ws/" % (TABIX_DB_PATH)
