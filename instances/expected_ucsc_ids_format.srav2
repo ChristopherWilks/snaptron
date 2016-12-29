@@ -1,0 +1,5 @@
+browser position chr6:9838875-10284241
+track name="Snaptron" visibility=2 description="Snaptron Exported Splice Junctions" color=100,50,0 useScore=1
+chr17	70164261	70165006	junc	1	-
+chr17	70164388	70167004	junc	1	-
+chr17	70164401	70164422	junc	1	+

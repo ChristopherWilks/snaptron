@@ -1,0 +1,2 @@
+DataSource:Type	coordinate_string	URL
+SRAv2:U	chr11:82970135-82997450	http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&position=chr11:82970135-82997450&hgct_customText=http://snaptron.cs.jhu.edu/srav2//snaptron?regions%3Dchr11%3A82970135-82997450%26rfilter%3Dsamples_count%3E%3A100%26rfilter%3Dcoverage_sum%3E%3A1000%26return_format%3D1
