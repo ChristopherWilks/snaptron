@@ -29,13 +29,10 @@ DEBUG_MODE=True
 logger = logging.getLogger("snaptronws")
 logger.setLevel(logging.INFO)
 lHandler = logging.StreamHandler()
-#sHandler = logging.handlers.SysLogHandler()
 lHandler.setLevel(logging.DEBUG)
-#sHandler.setLevel(logging.DEBUG)
 logger.addHandler(lHandler)
 
 #passes back a stream, either binary or text (its agnostic) in READ_SIZE chunks
-#Iterator for SamTools (ST)
 class StreamingResponseIterator:
     def __init__(self, start_response, stream_subproc, request_id, read_size=snapconf.READ_SIZE):
         self.start_response = start_response
@@ -156,7 +153,6 @@ class DebugStreamIterator():
 
 #these first are just the methdos mapping to various http return codes
 def bad_request(start_response, msg):
-    #status = "400 Bad Request:%s" % (msg)
     status = "400 Bad Request:%s" % (msg)
     sys.stderr.write("%s\n" % (status))
     status_response = "%s\n" % (status)
@@ -217,6 +213,7 @@ def run_command(cmd_and_args):
     #we need to make sure that reading from the STDERR pipe 
     #is NOT going to block since we don't know if we'll get errors, or not
     #we DO want to block on the STDOUT though
+    #thanks to Hannes Schmidt for his contribution here
     flgs = fcntl(sproc.stderr, F_GETFL)
     fcntl(sproc.stderr, F_SETFL, flgs | O_NONBLOCK)
     return sproc
@@ -253,26 +250,10 @@ def query(query, add_checksum=True):
                                     None, None)
         args.append(range)
 
-    #hash the unique parts of the command for checksum service
     request_id = None
-    #if add_checksum:
-        #request_id = get_request_id(analysis_id, "slices", "stream", query)
 
     return args, request_id
 
-
-def translate_range_query(squery):
-    #squery=re.sub(r'EQ',r'=',squery)
-    return squery
-    squery=re.sub(r'\*',r'|',squery)
-    squery=re.sub(r'GT',r'>',squery)
-    squery=re.sub(r'GE',r'>=',squery)
-    squery=re.sub(r'LE',r'<=',squery)
-    squery=re.sub(r'LT',r'<',squery)
-    squery=re.sub(r'\$',r':',squery)
-    squery=re.sub(r'!',r'!=',squery)
-    squery=re.sub(r'AND',r',',squery)
-    return squery
 
 #adapted from http://stackoverflow.com/questions/530526/accessing-post-data-from-wsgi
 def process_post(environ, start_response):
@@ -284,7 +265,6 @@ def process_post(environ, start_response):
         raise ValueError('no \"fields\" parameter in POST')
     jstring = post_data['fields'].value
     #only need to pass on the json string
-    #jstruct = json.loads(jstring) 
     return jstring
 
 
@@ -330,7 +310,6 @@ def generic_endpoint(environ, start_response, endpoint_app):
     logger.info("READ_SIZE=%s" % read_size)
     read_size = int(read_size)
 
-    #rquery = translate_range_query(rquery[0])
     args=[snapconf.PYTHON_PATH, endpoint_app, query_string]
     #create subprocess run object 
     sproc = run_command(args)
@@ -355,64 +334,9 @@ def samples_endpoint(environ, start_response):
 def annotations_endpoint(environ, start_response):
         return generic_endpoint(environ, start_response, snapconf.ANNOTATIONS_APP)
 
-def old_sample_endpoint(environ, start_response):
-    http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}
-    query_string = environ.get('QUERY_STRING')
-   
-    query = {}
-    if len(query_string) == 0:
-        try:
-            query_string=process_post(environ, start_response)
-        except ValueError, ve:
-            return bad_request(start_response, ve)
-    else:
-        #first log message (outside of errors) so put in a newline
-        logger.info("\nQUERY_STRING %s" % query_string)
-        query_string = query_string.replace("'","")
-        query_string = query_string.replace('"','')
-        query = urlparse.parse_qs(query_string)
-
-    logger.debug("SAMPLES REQUEST ENVIRONMENT:")
-    for (key, val) in environ.iteritems():
-        logger.debug("key=%s val=%s" % (key, val))
-        #see if we're in test/debug mode for the chunked error
-    try:
-        force_stream_error = str(environ['HTTP_X_FORCE_STREAM_ERROR'])
-    except KeyError:
-        force_stream_error = "0"
-
-    read_size = snapconf.READ_SIZE
-    #see if the read_size is being overriden (as in a test server is calling this)
-    if 'read_size' in environ:
-        read_size = str(environ['read_size'])
-        if snapconf.READ_SIZE_PATTERN.search(read_size) is None:
-            return bad_request(start_response, "bad read_size in environment")
-    logger.info("READ_SIZE=%s" % read_size)
-    read_size = int(read_size)
-
-    args=[snapconf.PYTHON_PATH, snapconf.SAMPLES_APP, query_string]
-    #create subprocess run object 
-    sproc = run_command(args)
-
-    #do the response 
-    status = "200 OK"
-    response_headers = [('Content-type', 'text/plain')]
-    start_response(status, response_headers)
-    request_id=None
-    si = StreamingResponseIterator(start_response, sproc, request_id, read_size)
-    if force_stream_error == str(1):
-        logger.debug("bforce_stream_error %s\n" % force_stream_error)
-        si = DebugStreamIterator(si)
-    return si
-
 #only for basic testing
 if __name__ == '__main__':
-    #rquery=r'chr6$1-10000000*samples_countEQ5*'
     rquery=r'chr6:1-10000000|samples_countEQ5|'
-    logger.info("BEFORE rquery=%s" % (rquery))
-    rquery = translate_range_query(rquery)
-    logger.info("AFTER rquery=%s" % (rquery))
-    #sproc = run_command([PYTHON_PATH, SNAPTRON_APP, 'chr6:1-10000000|samples_count=5|','1'])
     sproc = run_command([snapconf.PYTHON_PATH, snapconf.SNAPTRON_APP, rquery])
     itr=StreamingResponseIterator(None,sproc,None)
     chunk=itr.next();
