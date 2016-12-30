@@ -145,14 +145,14 @@ def lucene_sample_query_parse(sampleq, ftypes):
         #phrase query
         elif ' ' in value or '\t' in value:
             pquery = PhraseQuery()
-            [pquery.add(Term(field_w_type, v)) for v in re.split(r'\s+',value)]
+            [pquery.add(Term(field_w_type, v.lower())) for v in re.split(r'\s+',value)]
             #force exact phrase matching only
             pquery.setSlop(0)
             bq.add(pquery, BOOLEAN_OCCUR)
         #term query
         else:
-            bq.add(TermQuery(Term(field_w_type, value)), BOOLEAN_OCCUR)
-        sys.stderr.write("value + fields: %s %s\n" % (value, field_w_type))
+            bq.add(TermQuery(Term(field_w_type, value.lower())), BOOLEAN_OCCUR)
+        sys.stderr.write("value + fields: %s %s\n" % (value.lower(), field_w_type))
     return bq
 
 

@@ -75,6 +75,7 @@ if __name__ == "__main__":
   
   for n, l in enumerate(sys.stdin):
     doc = Document()
+    doc_lc = Document()
     fields = l.rstrip().split("\t")
     all_ = []
     if n == 0:
@@ -93,6 +94,7 @@ if __name__ == "__main__":
             sys.stdout.write("%s %s %s %d %d\n" % (fname,fieldtype,field,idx,n))
             #basically this is complex to handle NA's in numeric fields
             field_object = None
+            field_object_lc = None
             ft = FieldType()
             ft.setStored(True)
             ft.setIndexed(True)
@@ -108,15 +110,22 @@ if __name__ == "__main__":
                     field_object = fieldtype(fname, field, ft)
                 else:
                     field_object = fieldtype(fname, field, Field.Store.YES)
+                    field_object_lc = fieldtype(fname, field.lower(), Field.Store.YES)
             except ValueError, e:
                 field = None
-            if field is not None:
+            if field_object is not None:
                 doc.add(field_object)
+
+            if field_object_lc is not None:
+                doc_lc.add(field_object_lc)
+            elif field_object is not None:
+                doc_lc.add(field_object)
     if n > 0:
         all_fields = ' '.join(all_)
         doc.add(TextField('all', all_fields, Field.Store.NO))
+        doc_lc.add(TextField('all', all_fields.lower(), Field.Store.NO))
     writer1.addDocument(doc)
-    writer2.addDocument(doc)
+    writer2.addDocument(doc_lc)
   print "Indexed %d lines from stdin (%d docs in index)" % (n, writer1.numDocs())
   print "Closing index of %d docs..." % writer1.numDocs()
   print "Indexed %d lines from stdin (%d docs in index)" % (n, writer2.numDocs())
