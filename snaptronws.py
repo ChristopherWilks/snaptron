@@ -286,6 +286,7 @@ def generic_endpoint(environ, start_response, endpoint_app):
     else:
         #first log message (outside of errors) so put in a newline
         logger.info("\nQUERY_STRING %s" % query_string)
+        query_string = urllib.unquote(query_string)
         query_string = query_string.replace("'","")
         query_string = query_string.replace('"','')
         query = urlparse.parse_qs(query_string)
