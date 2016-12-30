@@ -20,6 +20,7 @@ from org.apache.lucene.search import BooleanQuery
 from org.apache.lucene.search import NumericRangeQuery
 from org.apache.lucene.index import Term
 from org.apache.lucene.search import TermQuery
+from org.apache.lucene.search import PhraseQuery
 from org.apache.lucene.search import IndexSearcher
 from org.apache.lucene.index import IndexReader
 from org.apache.lucene.queryparser.classic import MultiFieldQueryParser
@@ -39,6 +40,8 @@ sconn = sqlite3.connect(snapconf.SAMPLE_SQLITE_DB)
 sc = sconn.cursor()
 
 DEBUG_MODE=False
+
+BOOLEAN_OCCUR=BooleanClause.Occur.MUST
 
 searchers = []
 std_reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_STD_SAMPLE_DB)))
@@ -94,7 +97,7 @@ def lucene_sample_query_parse_old(sampleq):
         query = query.replace('AND',' AND ')
         sys.stderr.write("query + fields: %s %s\n" % (query,field_w_type))
         queries.append(query)
-        booleans.append(BooleanClause.Occur.MUST)
+        booleans.append(BOOLEAN_OCCUR)
     return (fields,queries,booleans)
 
 def lucene_range_query_parse(field_w_type, op, val, fieldtypechar, ftype_method):
@@ -136,10 +139,19 @@ def lucene_sample_query_parse(sampleq, ftypes):
             sys.exit(-1)
         field_w_type = snapconf.SAMPLE_HEADER_FIELDS_TYPE_MAP[field]
         (fieldtypechar, ftype_method) = ftypes[field_w_type]
+        #range query
         if fieldtypechar == 'i' or fieldtypechar == 'f':
-            bq.add(lucene_range_query_parse(field_w_type, op, value, fieldtypechar, ftype_method), BooleanClause.Occur.MUST)
+            bq.add(lucene_range_query_parse(field_w_type, op, value, fieldtypechar, ftype_method), BOOLEAN_OCCUR)
+        #phrase query
+        elif ' ' in value or '\t' in value:
+            pquery = PhraseQuery()
+            [pquery.add(Term(field_w_type, v)) for v in re.split(r'\s+',value)]
+            #force exact phrase matching only
+            pquery.setSlop(0)
+            bq.add(pquery, BOOLEAN_OCCUR)
+        #term query
         else:
-            bq.add(TermQuery(Term(field_w_type, value)), BooleanClause.Occur.MUST)
+            bq.add(TermQuery(Term(field_w_type, value)), BOOLEAN_OCCUR)
         sys.stderr.write("value + fields: %s %s\n" % (value, field_w_type))
     return bq
 
