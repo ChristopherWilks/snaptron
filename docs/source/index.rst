@@ -35,8 +35,8 @@ SRAv1 (~21K samples, ~42M junctions):
 
 Caveat emptor, these instances are provided as examples only for the time being.  While they serve real data and may prove useful for investigations, they are not guaranteed to be stable/performant in any way.
 
-Quickstart
-----------
+RESTful WSI Quickstart
+----------------------
 
 First, we will present an example query and then break it down to allow the impatient users to get on with their research and skip the longer explanation of the details: ::
 
@@ -74,9 +74,9 @@ http://snaptron.cs.jhu.edu/srav1/snaptron?regions=KMT2E
 Forbidden Characters
 --------------------
 
-Because of how Snaptron parses queries the following characters are not allowed as part search terms/phrases: ::
-        ><:!
+Because of how Snaptron parses queries the following characters are not allowed as part of search terms/phrases:
 
+        ><:!
 
 Sample Metadata
 ---------------
@@ -84,6 +84,8 @@ Sample Metadata
 Each of the above compilations has its own set of sample metadata with varying field names and definitions.
 Snaptron indexes these metadata fields in a document store (Lucene) for full text retrieval.
 Numeric columns (e.g. RIN in the GTEx compilation) are indexed to support range based lookups.
+
+Query metadata and sample metadata text is converted to lower case before indexing/querying to make searches case-insensitive.
 
 
 Both sample-only searches and junction searches limited by a sample predicate can be performed: ::
@@ -96,6 +98,56 @@ will return a list of samples which have a RIN value > 8. ::
 
 will return a list of junctions and their list of summary stats calcuated from the intersection of the region and rfilter
 predicates and which contain at least one sample in the list of samples which have "cortex" in their description field.
+
+A complete list of all sample metadata fields and types stored and indexed by Snaptron are available for each compilation:
+
+- TCGA
+http://snaptron.cs.jhu.edu/data/tcga/samples.fields.tsv
+
+- GTEx
+http://snaptron.cs.jhu.edu/data/gtex/samples.fields.tsv
+
+- SRAv2
+http://snaptron.cs.jhu.edu/data/srav2/samples.fields.tsv
+
+- SRAv1
+http://snaptron.cs.jhu.edu/data/srav1/samples.fields.tsv
+
+
+---------------------------
+Sample Metadata Field Types
+---------------------------
+
+Lucene types are reported for each field in the above TSV files:
+
+- ``text``
+Input field tokenized into one or more terms by whitespace before indexing to support "contains" searching
+
+Example:
+a free-text description of the RNA-seq sequencing protocol
+
+- ``string``
+Input field indexed as one term (not tokenized)
+
+Example:
+controlled vocabulary field such as an NCBI sample accession
+
+- ``integer``
+Numeric input field indexed to support range searches
+
+Example:
+age at diagnosis for a cancer patient
+
+- ``float``
+Numeric input field indexed to support range searches, used if any floating point values were present in input
+
+Example:
+RNA-seq integrity value (RIN)
+
+NOTE: Lucene stores the input field as a float, but range queries need to be specified as integers for now, even for float fields
+
+
+If a metadata field for a particular sample is empty/NA or is a string and the field type is numeric, that particular entry is set to NULL in Lucene.
 
 .. Add list of sample metadata columns for each compilation
 
@@ -131,7 +183,7 @@ Table 2.  List of Snaptron Parameters
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | exact     | snaptron          | 0,1                                  | 0-1 occurrences                                                           | exact=1                                                     | return only those junctions whose start and end coordinates are match the boundaries of the region requested                                                   |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| within    | snaptron          | 0,1,2                                | 0-1 occurrences                                                           | within=2                                                    | return only those junctions whose start (within=1) or end (within=2) coordinate match or are within the boundaries of the region requested                     |
+| either    | snaptron          | 0,1,2                                | 0-1 occurrences                                                           | either=2                                                    | return only those junctions whose start (either=1) or end (either=2) coordinate match or are within the boundaries of the region requested                     |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | header    | snaptron          | 0,1                                  | 0-1 occurrences                                                           | header=0                                                    | include the header as the first line (or not)                                                                                                                  |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -233,7 +285,7 @@ Table 6. Complete list of Snaptron Fields In Return Format
 +-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
 | 12          | right_annotated   | String                                          | If the right end splice site is in an annotated or not, same as left_annotated                                          | aC19,cG19,cG38:1;0            |
 +-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
-| 13          | samples           | Comma separated list of tuples: integer:integer | The list of samples which had one or more reads covering the intron and their coverages. IDs are from the IntropolisDB. | ,5:10,10:2,14:3               |
+| 13          | samples*          | Comma separated list of tuples: integer:integer | The list of samples which had one or more reads covering the intron and their coverages. IDs are from the IntropolisDB. | ,5:10,10:2,14:3               |
 +-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
 | 14          | samples_count     | Integer                                         | Total number of samples that have one or more reads covering this junction                                              | 20                            |
 +-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
@@ -245,6 +297,8 @@ Table 6. Complete list of Snaptron Fields In Return Format
 +-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
 | 18          | source_dataset_id | Integer                                         | Snaptron ID for the original dataset used (SRA, GTEx, TCGA)                                                             | SRAv1=0,GTEx=1,SRAv2=2,TCGA=4 |
 +-------------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+-------------------------------+
+
+\* this field always starts with a ``,``; this is due to how it is searched when samples are used to filter a junction query (R+M or R+F+M)
 
 * :ref:`genindex`
 * :ref:`modindex`
