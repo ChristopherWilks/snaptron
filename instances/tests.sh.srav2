@@ -31,7 +31,7 @@ curl "http://$HOST:$PORT/$PATH_/samples?sfilter=description:cortex" 2>/dev/null 
 diff test_wc expected_wc
 
 echo "9" > expected_wc
-curl "http://$HOST:$PORT/$PATH_/samples?sfilter=all:BONE%20METASTATIC%20TUMOR" 2>/dev/null | wc -l > test_wc
+curl "http://$HOST:$PORT/$PATH_/samples?sfilter=all:BONE%20METASTATIC%20tumor" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
 echo "2" > expected_wc
