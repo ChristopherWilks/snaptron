@@ -229,3 +229,5 @@ time python ./snaptron.py "regions=chr1:1-25000000&rfilter=samples_count>:1&sfil
 cut -f 63 data/samples.tsv | perl -ne 'chomp; $s=$_; if($s>=8) { print "$s\n";}' | wc -l
 
 python ./snaptron.py "regions=ALK&rfilter=samples_count>:10&sfilter=SMRIN>:8" | wc -l
+
+cat lucene_indexed_numeric_types.tsv | perl -ne 'BEGIN { %h=("t"=>"text","s"=>"string","i"=>"integer","f"=>"float"); $i=0;} chomp; ($n,$t)=split(/\t/,$_); $t1=$h{$t}; print "".$i++."\t$n\t$t1\n";' > data/samples.fields.tsv
