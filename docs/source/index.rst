@@ -71,6 +71,12 @@ http://snaptron.cs.jhu.edu/srav2/snaptron?regions=ABCD3
 - SRAv1 (legacy, replaced by SRAv2): ~42 million junctions from ~21 thousand public samples from the Sequence Read Archive using HG19 reference:
 http://snaptron.cs.jhu.edu/srav1/snaptron?regions=KMT2E
 
+Raw Data and Indices
+--------------------
+
+All data and the associated indices backing Snaptron are available here (by compilation):
+http://snaptron.cs.jhu.edu/data/
+
 Forbidden Characters
 --------------------
 
