@@ -62,7 +62,9 @@ class RunExternalQueryEngine:
             additional_cmd = ''
             if len(self.ra.additional_cmd) > 0:
                 additional_cmd = " | %s" % (self.ra.additional_cmd)
-            self.full_cmd = "%s %s %s | cut -f %d- %s" % (cmd,self.ra.tabix_db_file,self.qargs,self.ra.cut_start_col,additional_cmd)
+            #self.full_cmd = "%s %s %s | cut -f %d- %s" % (cmd,self.ra.tabix_db_file,self.qargs,self.ra.cut_start_col,additional_cmd)
+            self.full_cmd = "%s %s %s %s" % (cmd,self.ra.tabix_db_file,self.qargs,additional_cmd)
+            self.range_filters = self.ra.range_filters if self.ra.range_filters is not None and len(self.ra.range_filters) > 0 else None
             self.extern_proc = subprocess.Popen(self.full_cmd, stdout=subprocess.PIPE, shell=True, bufsize=-1)
 
         elif cmd == snapconf.SQLITE:
@@ -74,7 +76,14 @@ class RunExternalQueryEngine:
             self.start = start
             self.end = end
             snaputil.sqlite3_range_query_parse(rangeq,where,arguments)
-            select = "SELECT * from intron WHERE %s" % (' AND '.join(where))
+            #force sqlite3 to 3 decimal places
+            select_fields = snapconf.INTRON_HEADER_FIELDS
+            select_fields[snapconf.CHROM_COL]='chrom'
+            select_fields[snapconf.DONOR_COL]='donor'
+            select_fields[snapconf.ACCEPTOR_COL]='acceptor'
+            select_fields[snapconf.COV_AVG_COL]="printf('%.3f',coverage_avg)"
+            select_fields[snapconf.COV_MED_COL]="printf('%.3f',coverage_median)"
+            select = "SELECT %s from intron WHERE %s" % (",".join(select_fields), ' AND '.join(where))
             if self.ra.debug:
                 sys.stderr.write("%s\t%s\n" % (select,arguments))
             query_ = select
@@ -92,6 +101,7 @@ class RunExternalQueryEngine:
                 sys.stderr.write("%s\n" % (self.full_cmd))
             self.range_filters = None
             self.extern_proc = subprocess.Popen(full_cmd_args, stdout=subprocess.PIPE, shell=False, bufsize=-1)
+            #self.extern_proc = subprocess.Popen(" ".join(full_cmd_args), stdout=subprocess.PIPE, shell=True, bufsize=-1)
 
 
     def run_query(self):
@@ -127,7 +137,7 @@ class RunExternalQueryEngine:
                     continue
             #print fields
             #not used unless testing Tabix or doing a F + M query
-            if (self.cmd == snapconf.TABIX or samples_found_iter is not None) and self.ra.range_filters and snaputil.filter_by_ranges(fields,self.ra.range_filters):
+            if (self.cmd == snapconf.TABIX or samples_found_iter is not None) and self.range_filters and snaputil.filter_by_ranges(fields,self.range_filters):
                 continue
             #combine these two so we only have to split sample <= 1 times
             if self.ra.save_samples:
