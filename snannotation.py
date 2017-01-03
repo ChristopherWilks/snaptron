@@ -184,7 +184,7 @@ def query_gene_regions(intervalq,contains=False,either=0,exact=False,limit=20):
         ra_additional_cmd = ra._replace(additional_cmd=additional_cmd)
     for interval in intervalq:
         if snapconf.INTERVAL_PATTERN.search(interval):
-           runner = snquery.RunExternalQueryEngine(snapconf.TABIX,interval,None,set(),region_args=ra)
+           runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,interval,None,set(),region_args=ra)
            (ids,sids) = runner.run_query()
         else:
             intervals = gc.gene2coords(interval)
@@ -194,7 +194,7 @@ def query_gene_regions(intervalq,contains=False,either=0,exact=False,limit=20):
                 sys.stderr.write("# of gene intervals in chrom %s: %d\n" % (chrom,len(coord_tuples)))
                 for coord_tuple in coord_tuples:
                     (st,en) = coord_tuple
-                    runner = snquery.RunExternalQueryEngine(snapconf.TABIX,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra_additional_cmd)
+                    runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra_additional_cmd)
                     (ids,sids_) = runner.run_query()
                     if ra_additional_cmd.print_header:
                         ra_additional_cmd=ra_additional_cmd._replace(print_header=False)

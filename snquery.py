@@ -50,8 +50,9 @@ class RunExternalQueryEngine:
         #exit early as we only want the ucsc_url
         if self.ra.return_format == UCSC_URL:
             return
-
-        if cmd == snapconf.TABIX:
+            
+        self.range_filters = self.ra.range_filters if self.ra.range_filters is not None and len(self.ra.range_filters) > 0 else None
+        if False and cmd == snapconf.TABIX:
             self.delim = '\t'
             m = snapconf.TABIX_PATTERN.search(self.qargs)
             self.start = int(m.group(2))
@@ -64,7 +65,6 @@ class RunExternalQueryEngine:
                 additional_cmd = " | %s" % (self.ra.additional_cmd)
             #self.full_cmd = "%s %s %s | cut -f %d- %s" % (cmd,self.ra.tabix_db_file,self.qargs,self.ra.cut_start_col,additional_cmd)
             self.full_cmd = "%s %s %s %s" % (cmd,self.ra.tabix_db_file,self.qargs,additional_cmd)
-            self.range_filters = self.ra.range_filters if self.ra.range_filters is not None and len(self.ra.range_filters) > 0 else None
             self.extern_proc = subprocess.Popen(self.full_cmd, stdout=subprocess.PIPE, shell=True, bufsize=-1)
 
         elif cmd == snapconf.SQLITE:
@@ -99,7 +99,6 @@ class RunExternalQueryEngine:
             full_cmd_args = shlex.split(self.full_cmd)
             if self.ra.debug:
                 sys.stderr.write("%s\n" % (self.full_cmd))
-            self.range_filters = None
             self.extern_proc = subprocess.Popen(full_cmd_args, stdout=subprocess.PIPE, shell=False, bufsize=-1)
             #self.extern_proc = subprocess.Popen(" ".join(full_cmd_args), stdout=subprocess.PIPE, shell=True, bufsize=-1)
 
