@@ -106,7 +106,6 @@ def search_by_gene_name(gc,geneq,rangeq,rquery,intron_filters=None,save_introns=
     for (chrom,coord_tuples) in gc.gene2coords(geneq):
         for coord_tuple in coord_tuples:
             (st,en) = coord_tuple
-            #TODO replace this with an if:else to run sqlite3
             #runner = snquery.RunExternalQueryEngine(snapconf.TABIX,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra)
             runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,"%s:%d-%d" % (chrom,st,en),rangeq,set(),region_args=ra)
             (iids_,sids_) = runner.run_query()

@@ -23,6 +23,16 @@ CREATE INDEX coverage_sum_idx ON intron (coverage_sum);
 CREATE INDEX coverage_avg_idx ON intron (coverage_avg);
 CREATE INDEX length_idx ON intron (length);
 
-CREATE TABLE by_sample_id (sample_id INTEGER NOT NULL,
-				snaptron_ids TEXT NOT NULL,
-				PRIMARY KEY (sample_id));
+
+CREATE TABLE transcript (chrom varchar(20) NOT NULL,
+			source varchar(256) NOT NULL, 
+			type varchar(256) NOT NULL, 
+			start int(11) NOT NULL,
+			end int(11) NOT NULL,
+			unused1 varchar(20) DEFAULT NULL,
+			strand char(1) NOT NULL,
+			unused2 varchar(20) DEFAULT NULL,
+			info LONGTEXT NOT NULL);
+
+CREATE INDEX tran_chrom_start_end_idx ON transcript(chrom,start,end);
+

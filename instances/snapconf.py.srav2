@@ -30,7 +30,8 @@ TABIX="tabix"
 SQLITE="sqlite3"
 #tabix related
 TABIX_DB_PATH='./data'
-TABIX_GENE_INTERVAL_DB='all_transcripts.gtf.bgz'
+TABIX_GENE_INTERVAL_FILE='all_transcripts.gtf.bgz'
+GENE_INTERVAL_DB='%s/transcripts.sqlite' % (TABIX_DB_PATH)
 TABIX_INTERVAL_DB='junctions.bgz'
 ID_START_COL=2
 CUT_START_COL=1
