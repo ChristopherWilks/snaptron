@@ -179,7 +179,7 @@ Table 2.  List of Snaptron Parameters
 +===========+===================+======================================+===========================================================================+=============================================================+================================================================================================================================================================+
 | regions   | snaptron          | chr[1-22XYM]:\d+-\d+; HUGO gene name | 1 but can take multiple arguments separated by a comma representing an OR | chr1:1-5000;DRD4                                            | coordinate intervals and/or HUGO gene names                                                                                                                    |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ids*      | snaptron; samples | ids=\d+[,\d+]*                       | 1                                                                         | ids=5,6,7                                                   | ID filter for snaptron_id (endpoint="snaptron") and sample_id (endpoint="samples")                                                                             |
+| ids*      | snaptron; samples | ids=\d+[,\d+]*                       | 1                                                                         | ids=5,6,7                                                   | ID filter for snaptron_id (endpoint=snaptron) and sample_id (endpoint=samples)                                                                                 |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | rfilter   | snaptron          | fieldname[><!:]value                 | 0 or more                                                                 | rfilter=samples_count>:5&rfilter=coverage_sum:3             | point range filter (inclusion)                                                                                                                                 |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -196,12 +196,17 @@ Table 2.  List of Snaptron Parameters
 | fields**  | snaptron          | fields=fieldname[,fieldname]*        | 0 or more unique fieldnames within one fields clause                      | fields=snaptron_id,samples_count                            | which fields to return                                                                                                                                         |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
-\* individual records for junction record can be accessed via the Snaptron ID directly as: ::
-        curl "http://snaptron.cs.jhu.edu/srav1/snaptron/5"
-and for a sample record through its Rail ID: ::        
-        curl "http://snaptron.cs.jhu.edu/srav1/samples/10"
+\* The ``ids`` parameter cannot be used with other parameters.
 
-\*\*can include non-return field options such as: “rc” (result count)
+\*\*can include non-return field options such as: ``rc`` (result count)
+
+Individual records for junctions can be accessed via the Snaptron ID directly as: ::
+        
+        curl "http://snaptron.cs.jhu.edu/srav1/snaptron/5"
+
+and for a sample record through its Rail ID: ::
+
+        curl "http://snaptron.cs.jhu.edu/srav1/samples/10"
 
 
 Tables 3 and 4 show the queryable fields for region and range query types respectively.
