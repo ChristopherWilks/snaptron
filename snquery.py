@@ -31,7 +31,7 @@ def build_sid_ahoc_queries(sample_ids):
 
 class RunExternalQueryEngine:
 
-    def __init__(self,cmd,qargs,rangeq,snaptron_ids,region_args=default_region_args,additional_cmd=""):
+    def __init__(self,cmd,qargs,rangeq,snaptron_ids,region_args=default_region_args,run_in_shell=False):
         self.cmd = cmd
         self.qargs = qargs
         self.ra = region_args
@@ -94,12 +94,18 @@ class RunExternalQueryEngine:
                     query_ = re.sub('\?',"\'%s\'" % arg_,query_,count=1)
                 else:
                     query_ = re.sub('\?',arg_,query_,count=1)
-            full_cmd_args = [self.cmd, '-separator \'	\'', snapconf.SNAPTRON_SQLITE_DB, '"%s"' % query_]
+            additional_cmd = ""
+            if len(self.ra.additional_cmd) > 0:
+                additional_cmd = " | %s" % (self.ra.additional_cmd)
+            full_cmd_args = [self.cmd, '-separator \'	\'', snapconf.SNAPTRON_SQLITE_DB, '"%s"' % query_, additional_cmd]
             self.full_cmd = " ".join(full_cmd_args)
-            full_cmd_args = shlex.split(self.full_cmd)
-            if self.ra.debug:
-                sys.stderr.write("%s\n" % (self.full_cmd))
-            self.extern_proc = subprocess.Popen(full_cmd_args, stdout=subprocess.PIPE, shell=False, bufsize=-1)
+            cmd_to_run = shlex.split(self.full_cmd)
+            #it's an error to submit an additional command but not to set run_in_shell=True
+            if run_in_shell:
+                cmd_to_run = self.full_cmd
+            #if self.ra.debug:
+            sys.stderr.write("%s\n" % (self.full_cmd))
+            self.extern_proc = subprocess.Popen(cmd_to_run, stdout=subprocess.PIPE, shell=run_in_shell, bufsize=-1)
             #self.extern_proc = subprocess.Popen(" ".join(full_cmd_args), stdout=subprocess.PIPE, shell=True, bufsize=-1)
 
 
