@@ -67,6 +67,8 @@ def sqlite3_interval_query_parse(qargs,where,arguments,ra):
     return (chrom,start,end)
 
 def sqlite3_range_query_parse(rquery,where,arguments):
+    if rquery is None or len(rquery) == 0:
+        return ""
     for query_string in rquery['rfilter']:
         queries_ = query_string.split(snapconf.RANGE_QUERY_DELIMITER)
         for query_tuple in queries_:

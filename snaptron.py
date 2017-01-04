@@ -30,7 +30,7 @@ import snquery
 import snapconfshared 
 
 FORCE_SQLITE=False
-FORCE_TABIX=False
+#FORCE_TABIX=False
 
 #return formats:
 TSV=snapconfshared.TSV
@@ -99,15 +99,15 @@ def range_query_parser(rangeq,snaptron_ids):
         rquery[col]=(snapconf.operators[op],val)
     return rquery
         
-def search_by_gene_name(gc,geneq,rquery,intron_filters=None,save_introns=False,print_header=True,region_args=default_region_args):
+def search_by_gene_name(gc,geneq,rangeq,rquery,intron_filters=None,save_introns=False,print_header=True,region_args=default_region_args):
     iids = set()
     sids = set()
+    ra = region_args._replace(range_filters=rquery,intron_filter=intron_filters,print_header=print_header,save_introns=save_introns)
     for (chrom,coord_tuples) in gc.gene2coords(geneq):
         for coord_tuple in coord_tuples:
             (st,en) = coord_tuple
-            ra = region_args._replace(range_filters=rquery,intron_filter=intron_filters,print_header=print_header,save_introns=save_introns)
-            #TODO replace this with an if:else to run sqlite3
-            runner = snquery.RunExternalQueryEngine(snapconf.TABIX,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra)
+            #runner = snquery.RunExternalQueryEngine(snapconf.TABIX,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra)
+            runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,"%s:%d-%d" % (chrom,st,en),rangeq,set(),region_args=ra)
             (iids_,sids_) = runner.run_query()
             print_header = False
             if save_introns:
@@ -212,9 +212,11 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
     sample_ids_returned = set()
     gc = None
     #make sure we run any R * + M queries through Tabix
-    global FORCE_TABIX
+    #global FORCE_TABIX
+    #make sure we run any R + F + M queries without a sqlite range restriction
     if region_args.sid_search_object is not None:
-        FORCE_TABIX = True
+        rangeq = None
+    #    FORCE_TABIX = True
     for interval in intervalq:
         ids = None
         sids = None
@@ -222,15 +224,15 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
             ra = region_args._replace(range_filters=rquery,intron_filter=snaptron_ids,print_header=print_header,save_introns=filtering,debug=DEBUG_MODE)
             #if we have JUST an interval do tabix (faster) otherwise run against slqite
             runner = None
-            if FORCE_TABIX or (not FORCE_SQLITE and (rangeq is None or len(rangeq) < 1 or len(rangeq['rfilter']) < 1)):
-                runner = snquery.RunExternalQueryEngine(snapconf.TABIX,interval,rangeq,set(),region_args=ra)
-            else:
-                runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,interval,rangeq,set(),region_args=ra)
+            #if FORCE_TABIX or (not FORCE_SQLITE and (rangeq is None or len(rangeq) < 1 or len(rangeq['rfilter']) < 1)):
+            #    runner = snquery.RunExternalQueryEngine(snapconf.TABIX,interval,rangeq,set(),region_args=ra)
+            #else:
+            runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,interval,rangeq,set(),region_args=ra)
             (ids,sids) = runner.run_query()
         else:
            if gc is None:
                gc = snannotation.GeneCoords()
-           (ids,sids) = search_by_gene_name(gc,interval,rquery,intron_filters=snaptron_ids,print_header=print_header,region_args=region_args)
+           (ids,sids) = search_by_gene_name(gc,interval,rangeq,rquery,intron_filters=snaptron_ids,print_header=print_header,region_args=region_args)
         print_header = False
         if filtering:
             snaptron_ids_returned.update(ids)
@@ -330,13 +332,13 @@ def main():
     input_ = sys.argv[1]
     DEBUG_MODE_=DEBUG_MODE
     global FORCE_SQLITE
-    global FORCE_TABIX
+    #global FORCE_TABIX
     if len(sys.argv) == 3:
        DEBUG_MODE_=True
     if len(sys.argv) == 4:
        FORCE_SQLITE=True
-    if len(sys.argv) == 5:
-       FORCE_TABIX=True
+    #if len(sys.argv) == 5:
+    #   FORCE_TABIX=True
     (intervalq,rangeq,idq) = (None,None,None)
     sampleq = []
     #(intervalq,rangeq,sampleq,idq) = ([],[],[],[])
