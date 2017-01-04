@@ -175,32 +175,33 @@ def query_gene_regions(intervalq,contains=False,either=0,exact=False,limit=20):
     print_header = True
     gc = GeneCoords()
     limit_filter = 'perl -ne \'chomp; @f=split(/\\t/,$_); @f1=split(/;/,$f[8]); $boost=0; $boost=100000 if($f1[1]!~/"NA"/); @f2=split(/,/,$f1[2]); $s1=$f1[2]; $f[5]=(scalar @f2)+$boost; print "".(join("\\t",@f))."\\n";\' | sort -t"	" -k6,6nr'
+    additional_cmd = ""
+    ra = snaptron.default_region_args._replace(sqlite_db_file=snapconf.GENE_INTERVAL_DB,sqlite_db_table='transcript',sqlite_db_fields="*",range_filters=None,save_introns=False,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G",cut_start_col=1,region_start_col=snapconf.GENE_START_COL,region_end_col=snapconf.GENE_END_COL,contains=contains,either=either,exact=exact,debug=DEBUG_MODE)
+    ra_additional_cmd = ra
+    if limit > 0:
+        sys.stderr.write("limit_filter %s\n" % (limit_filter))
+        additional_cmd = "%s | head -%d" % (limit_filter,limit)
+        ra_additional_cmd = ra._replace(additional_cmd=additional_cmd)
     for interval in intervalq:
-        if snapconf.INTERVAL_PATTERN.search(interval):
-           runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,interval,None,set(),region_args=ra)
-           (ids,sids) = runner.run_query()
-        else:
-            additional_cmd = ""
-            ra = snaptron.default_region_args._replace(sqlite_db_file=snapconf.GENE_INTERVAL_DB,sqlite_db_table='transcript',sqlite_db_fields="*",range_filters=None,save_introns=False,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G",cut_start_col=1,region_start_col=snapconf.GENE_START_COL,region_end_col=snapconf.GENE_END_COL,contains=contains,either=either,exact=exact,debug=DEBUG_MODE)
-            ra_additional_cmd = ra
-            if limit > 0:
-                sys.stderr.write("limit_filter %s\n" % (limit_filter))
-                additional_cmd = "%s | head -%d" % (limit_filter,limit)
-                ra_additional_cmd = ra._replace(additional_cmd=additional_cmd)
-            intervals = gc.gene2coords(interval)
-            #sys.stderr.write("# of gene intervals: %d\n" % (len(intervals)))
-            sys.stderr.write("gene intervals: %s\n" % (intervals))
-            #if given a gene name, first convert to coordinates and then search tabix
-            for (chrom,coord_tuples) in intervals:
-                sys.stderr.write("# of gene intervals in chrom %s: %d\n" % (chrom,len(coord_tuples)))
-                for coord_tuple in coord_tuples:
-                    (st,en) = coord_tuple
-                    #safe to run in shell as we're setting the only query ourselves
-                    #and it is dervied internally from the gene2coords mapping
-                    runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra_additional_cmd,run_in_shell=True)
-                    (ids,sids_) = runner.run_query()
-                    if ra_additional_cmd.print_header:
-                        ra_additional_cmd=ra_additional_cmd._replace(print_header=False)
+        #don't want to support intervals only at this time
+        #if snapconf.INTERVAL_PATTERN.search(interval):
+        #   runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,interval,None,set(),region_args=ra_additional_cmd,run_in_shell=True)
+        #   (ids,sids) = runner.run_query()
+        #else:
+        intervals = gc.gene2coords(interval)
+        #sys.stderr.write("# of gene intervals: %d\n" % (len(intervals)))
+        sys.stderr.write("gene intervals: %s\n" % (intervals))
+        #if given a gene name, first convert to coordinates and then search tabix
+        for (chrom,coord_tuples) in intervals:
+            sys.stderr.write("# of gene intervals in chrom %s: %d\n" % (chrom,len(coord_tuples)))
+            for coord_tuple in coord_tuples:
+                (st,en) = coord_tuple
+                #safe to run in shell as we're setting the only query ourselves
+                #and it is dervied internally from the gene2coords mapping
+                runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra_additional_cmd,run_in_shell=True)
+                (ids,sids_) = runner.run_query()
+                if ra_additional_cmd.print_header:
+                    ra_additional_cmd=ra_additional_cmd._replace(print_header=False)
   
 def main():
     global DEBUG_MODE
