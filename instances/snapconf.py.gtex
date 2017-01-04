@@ -30,7 +30,8 @@ TABIX="tabix"
 SQLITE="sqlite3"
 #tabix related
 TABIX_DB_PATH='./data'
-TABIX_GENE_INTERVAL_DB='all_transcripts.gtf.bgz'
+TABIX_GENE_INTERVAL_FILE='all_transcripts.gtf.bgz'
+GENE_INTERVAL_DB='%s/transcripts.sqlite' % (TABIX_DB_PATH)
 TABIX_INTERVAL_DB='junctions.bgz'
 ID_START_COL=2
 CUT_START_COL=1
@@ -80,14 +81,17 @@ RANGE_FIELDS = ['length','samples_count','coverage_sum','coverage_avg','coverage
 JSON_FIELDS=set(['intervals','genes','ids','metadata_keywords','sample_fields'])
 JSON_FIELDS.update(RANGE_FIELDS)
 SAMPLE_IDS_COL=11
-SAMPLE_ID_COL=0
-SAMPLES_COUNT_COL=13
 INTRON_ID_COL=0
+CHROM_COL=1
 INTERVAL_START_COL=2
 INTERVAL_END_COL=3
 GENE_START_COL=3
 GENE_END_COL=4
 STRAND_COL=5
+DONOR_COL=7
+ACCEPTOR_COL=8
+COV_AVG_COL=14
+COV_MED_COL=15
 
 
 #search by gene constants
