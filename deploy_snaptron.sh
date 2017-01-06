@@ -1,7 +1,7 @@
 #!/bin/bash
 #Deploys snaptron for whatever data source label was passed in (srav1,srav2,tcga,gtex)
 
-#sqlite3 >= 3.11.0 need to be compiled and already in the PATH *before*
+#Tabix >= 1.2.1 and Sqlite3 >= 3.11.0 need to be compiled and already in the PATH *before*
 #running this script
 
 #setup python for Snaptron
@@ -30,8 +30,12 @@ wget http://snaptron.cs.jhu.edu/data/${1}/all_transcripts.gtf.bgz
 wget http://snaptron.cs.jhu.edu/data/${1}/refseq_transcripts_by_hgvs.tsv
 wget http://snaptron.cs.jhu.edu/data/${1}/ucsc_known_canonical_transcript.tsv
 
-#creation of junction and transcript sqlite DBs
-../scripts/build_sqlite_junction_db.sh junctions junctions.bgz all_transcripts.gtf.bgz
+#creation of Tabix index of junctions and all_transcripts
+tabix -s 2 -b 3 -e 4 junctions.bgz
+tabix -s 1 -b 4 -e 5 all_transcripts.gtf.bgz
+
+#creation of sqlite junction db
+../scripts/build_sqlite_junction_db.sh junctions junctions.bgz
 
 #run lucene indexer on metadata
 cat samples.tsv | perl ../scripts/infer_sample_metadata_field_types.pl > samples.tsv.type_inference 
