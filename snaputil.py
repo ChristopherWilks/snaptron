@@ -43,6 +43,8 @@ def store_cpickle_file(filepath, ds, compress=False):
     return False
 
 def retrieve_from_db_by_ids(dbh,select,ids):
+    #bug from snaptronUI
+    ids.discard("snaptron_id")
     wheres = ['?' for x in ids]
     select = "%s (%s);" % (select,','.join(wheres))
     ids_ = [int(id_) for id_ in ids]
