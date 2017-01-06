@@ -1,6 +1,8 @@
-Snaptron Tabix Interval	python ./snaptron.py "regions=:n:"
+Snaptron Tabix-Uncompressed Interval	python ./snaptron.py "regions=:n:"
+Snaptron Tabix-Uncompressed Interval w/ 1 Constraint	python ./snaptron.py "regions=:n:&rfilter=samples_count>:100" 1 1 1
 Snaptron SQLite Interval	python ./snaptron.py "regions=:n:" 1 1
-Snaptron SQLite-NoIndex Interval	python ./snaptron_noindex.py "regions=:n:" 1 1
 Snaptron SQLite Interval w/ 1 Constraint	python ./snaptron.py "regions=:n:&rfilter=samples_count>:100"
+Snaptron Tabix-Compressed Interval	python ./snaptron_compressed.py "regions=:n:"
+Snaptron Tabix-Compressed Interval w/ 1 Constraint	python ./snaptron_compressed.py "regions=:n:&rfilter=samples_count>:100" 1 1 1
+Snaptron SQLite-NoIndex Interval	python ./snaptron_noindex.py "regions=:n:" 1 1
 Snaptron SQLite-NoIndex Interval w/ 1 Constraint	python ./snaptron_noindex.py "regions=:n:&rfilter=samples_count>:100"
-Snaptron Tabix Interval w/ 1 Constraint	python ./snaptron.py "regions=:n:&rfilter=samples_count>:100" 1 1 1
