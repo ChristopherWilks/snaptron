@@ -7,9 +7,10 @@ wget http://mirror.serversupportforum.de/apache/lucene/pylucene/pylucene-4.10.1-
 tar -zxvf pylucene-4.10.1-1-src.tar.gz
 
 # Install dependencies
-sudo apt-get install ant
-sudo apt-get install g++
-sudo apt-get install python-dev
+#This REQUIRES ant, g++, python-dev, and Java >=1.7
+#sudo apt-get install ant
+#sudo apt-get install g++
+#sudo apt-get install python-dev
 #sudo apt-get install python3-setuptools
 easy_install pip
 pip install setuptools --upgrade 
