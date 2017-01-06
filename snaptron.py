@@ -98,16 +98,21 @@ def range_query_parser(rangeq,snaptron_ids):
         val=ptype(val)
         rquery[col]=(snapconf.operators[op],val)
     return rquery
+
+def determine_index_to_use(interval,rangeq,ra):
+    if FORCE_TABIX or (not FORCE_SQLITE and (rangeq is None or len(rangeq) < 1 or len(rangeq['rfilter']) < 1)):
+        return snquery.RunExternalQueryEngine(snapconf.TABIX,interval,rangeq,set(),region_args=ra)
+    return snquery.RunExternalQueryEngine(snapconf.SQLITE,interval,rangeq,set(),region_args=ra)
         
-def search_by_gene_name(gc,geneq,rquery,intron_filters=None,save_introns=False,print_header=True,region_args=default_region_args):
+def search_by_gene_name(gc,geneq,rangeq,rquery,intron_filters=None,save_introns=False,print_header=True,region_args=default_region_args):
     iids = set()
     sids = set()
     for (chrom,coord_tuples) in gc.gene2coords(geneq):
         for coord_tuple in coord_tuples:
             (st,en) = coord_tuple
             ra = region_args._replace(range_filters=rquery,intron_filter=intron_filters,print_header=print_header,save_introns=save_introns)
-            #TODO replace this with an if:else to run sqlite3
-            runner = snquery.RunExternalQueryEngine(snapconf.TABIX,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra)
+            #runner = snquery.RunExternalQueryEngine(snapconf.TABIX,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra)
+            runner = determine_index_to_use("%s:%d-%d" % (chrom,st,en), rangeq, ra)
             (iids_,sids_) = runner.run_query()
             print_header = False
             if save_introns:
@@ -221,16 +226,12 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
         if snapconf.INTERVAL_PATTERN.search(interval):
             ra = region_args._replace(range_filters=rquery,intron_filter=snaptron_ids,print_header=print_header,save_introns=filtering,debug=DEBUG_MODE)
             #if we have JUST an interval do tabix (faster) otherwise run against slqite
-            runner = None
-            if FORCE_TABIX or (not FORCE_SQLITE and (rangeq is None or len(rangeq) < 1 or len(rangeq['rfilter']) < 1)):
-                runner = snquery.RunExternalQueryEngine(snapconf.TABIX,interval,rangeq,set(),region_args=ra)
-            else:
-                runner = snquery.RunExternalQueryEngine(snapconf.SQLITE,interval,rangeq,set(),region_args=ra)
+            runner = determine_index_to_use(interval,rangeq,ra)
             (ids,sids) = runner.run_query()
         else:
            if gc is None:
                gc = snannotation.GeneCoords()
-           (ids,sids) = search_by_gene_name(gc,interval,rquery,intron_filters=snaptron_ids,print_header=print_header,region_args=region_args)
+           (ids,sids) = search_by_gene_name(gc,interval,rangeq,rquery,intron_filters=snaptron_ids,print_header=print_header,region_args=region_args)
         print_header = False
         if filtering:
             snaptron_ids_returned.update(ids)
