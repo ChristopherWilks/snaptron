@@ -1,4 +1,4 @@
-#!/bin/sh -x
+#!/bin/bash -x
 
 rsync -av ../*.py ./
 ln -s ../data
