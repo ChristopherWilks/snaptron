@@ -6,5 +6,5 @@ mkfifo ./import
 zcat $2 > ./import  &
 sqlite3 ${1}.sqlite -cmd '.separator "\t"' ".import ./import intron"
 
-sqlite3 ${1}.sqlite "CREATE INDEX samples_count_idx ON intron (samples_count); CREATE INDEX coverage_sum_idx ON intron (coverage_sum); CREATE INDEX coverage_avg_idx ON intron (coverage_avg); CREATE INDEX chrom_start_end_idx ON intron(chrom,start,end); CREATE INDEX length_idx ON intron (length);"
+sqlite3 ${1}.sqlite "CREATE INDEX chrom_start_end_idx ON intron(chrom,start,end);"
 rm ./import
