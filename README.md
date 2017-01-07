@@ -13,7 +13,7 @@ since Snaptron's reliance on SQLite may cause problems on those systems.
 
 To setup an instance based on a particular compilation (srav1, srav2, gtex, tcga):
 
-> ./deploy_snaptron.sh srav1
+	./deploy_snaptron.sh srav1
 
 This process will take at least 10's of minutes and may
 go for an hour or more depending on your bandwidth, storage,
@@ -41,15 +41,14 @@ other bgzip versions in your PATH.
 
 Then run the above script with an additional argument:
 
-> ./deploy_snaptron.sh srav1 1
+	./deploy_snaptron.sh srav1 1
 
 ## Running the Snaptron server ##
 
 within the snaptron working directory:
 
-> source python/bin/activate
-
-> python ./srav1_snaptron_server --no-daemon
+	source python/bin/activate
+	python ./srav1_snaptron_server --no-daemon
 
 The Snaptron server defaults to port 1555 on localhost.
 
@@ -60,15 +59,15 @@ Snaptron has both unit tests and system tests ("round trip testing").
 In a separate terminal in the Snaptron working directory run:
 
 ### Unit Tests ###
-> source ./python/bin/activate
 
-> python ./test_snaptron.py
+	source ./python/bin/activate
+	python ./test_snaptron.py
 
 ### System Tests ###
 
 These require the Snaptron server to be running.
 
-> ./tests.sh 1
+	./tests.sh 1
 
 The system tests use file diffing to determine if
 the services are working correctly.
