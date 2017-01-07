@@ -48,18 +48,20 @@ Then run the above script with an additional argument:
 within the snaptron working directory:
 
 > source python/bin/activate
+
 > python ./srav1_snaptron_server --no-daemon
 
 The Snaptron server defaults to port 1555 on localhost.
 
 ## Tests ##
 
-Snaptron has both unit tests and system tests ("round trip testing")
+Snaptron has both unit tests and system tests ("round trip testing").
 
 In a separate terminal in the Snaptron working directory run:
 
 ### Unit Tests ###
 > source ./python/bin/activate
+
 > python ./test_snaptron.py
 
 ### System Tests ###
