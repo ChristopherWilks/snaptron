@@ -1,4 +1,7 @@
 #modified from http://stackoverflow.com/questions/24278627/building-pylucene-on-ubuntu-14-04trusty-tahr
+#PyLucene REQUIRES ant, g++, python-dev, and Java >=1.8 to already be installed
+#and in the environment; also that we're on an x86_64 machine
+ARCH='x86_64'
 
 source python/bin/activate
 
@@ -7,11 +10,6 @@ wget http://mirror.serversupportforum.de/apache/lucene/pylucene/pylucene-4.10.1-
 tar -zxvf pylucene-4.10.1-1-src.tar.gz
 
 # Install dependencies
-#This REQUIRES ant, g++, python-dev, and Java >=1.7
-#sudo apt-get install ant
-#sudo apt-get install g++
-#sudo apt-get install python-dev
-#sudo apt-get install python3-setuptools
 easy_install pip
 pip install setuptools --upgrade 
 
@@ -21,6 +19,16 @@ python setup.py install
 cd ..
 
 # Build and install pylucene
+#the following assumes "ant" is in the path
+cp Makefile Mafile.bak
+echo 'ANT=ant' >> Makefile.new
+echo 'PYTHON=../python/bin/python' >> Makefile.new
+echo 'JCC=$(PYTHON) -m jcc.__main__ --shared --arch '"${ARCH}" >> Makefile.new
+echo 'NUM_FILES=8' >> Makefile.new
+cat Makefile >> Makefile.new
+mv Makefile.new Makefile
+
 make
-easy_install ./dist/lucene-4.10.1-py2.7-linux-x86_64.egg
+make test
+make install
 cd ..
