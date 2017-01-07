@@ -6,7 +6,7 @@ http://snaptron.cs.jhu.edu
 
 ## Deployment ##
 
-	git clone git@github.com:ChristopherWilks/snaptron.git
+	git clone https://github.com/ChristopherWilks/snaptron.git
 
 NOTE: Avoid setting Snaptron up on a Lustre or NFS filesystem
 since Snaptron's reliance on SQLite may cause problems on those systems.
