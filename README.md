@@ -22,6 +22,12 @@ and compute capacity.
 It has to build all the dependencies, download all the source data, 
 and create multiple indices.
 
+For the largest of the compilations (srav2) the final data
+footprint will be ~75 gigabytes on disk.  About 54 gigabytes
+of this is in the SQLite database which is 
+created locally once the raw data has been downloaded from 
+the Snaptron server.  The data transfer is therefore ~20 gigabytes.
+
 The PyLucene install in particular requires extensive 
 dependencies and several minutes to build.  Through
 it will display various errors and warnings.  These
