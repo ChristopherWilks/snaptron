@@ -55,6 +55,7 @@ The Snaptron server defaults to port 1555 on localhost.
 ## Tests ##
 
 Snaptron has both unit tests and system tests ("round trip testing").
+These only work for the SRAv1 and SRAv2 compilations.
 
 In a separate terminal in the Snaptron working directory run:
 
