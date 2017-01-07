@@ -34,9 +34,9 @@ echo "+++Linking config files for ${1} compilation"
 ./setup_configs.sh ${1}
 
 #grab data
-#mkdir data
+mkdir data
 cd data
-echo "+++Downloading snaptron data, this make take a while..."
+#echo "+++Downloading snaptron data, this make take a while..."
 wget http://snaptron.cs.jhu.edu/data/${1}/samples.tsv
 wget http://snaptron.cs.jhu.edu/data/${1}/junctions.bgz
 wget http://snaptron.cs.jhu.edu/data/${1}/all_transcripts.gtf.bgz
@@ -57,13 +57,16 @@ cat samples.tsv | perl ../scripts/infer_sample_metadata_field_types.pl > samples
 cat samples.tsv | python ../lucene_indexer.py samples.tsv.type_inference > run_indexer 2>&1
 
 echo "+++Creating Tabix index on junctions file"
-if [ $2 == 1 ]; then
+if [ -z ${2+v} ]; then
+        echo "sticking with compressed junctions file"
+        ln -s junctions.bgz junctions_uncompressed.bgz
+else
 #The compress_level=0 modified bgzf must be in your path before any standard bgzf binaries
         echo "creating uncompressed junctions file"
         zcat junctions.bgz | bgzip > junctions_uncompressed.bgz
-else
-        echo "sticking with compressed junctions file"
-        ln -s junctions.bgz junctions_uncompressed.bgz
 fi
+
 tabix -s 2 -b 3 -e 4 junctions_uncompressed.bgz
 
+cd ../
+ln -s data/lucene_indexed_numeric_types.tsv
