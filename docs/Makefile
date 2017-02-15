@@ -54,6 +54,8 @@ clean:
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	cat $(BUILDDIR)/html/index.html | perl insert_ga_script.pl > $(BUILDDIR)/html/index.html.new
+	mv $(BUILDDIR)/html/index.html.new $(BUILDDIR)/html/index.html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
