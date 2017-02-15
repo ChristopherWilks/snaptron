@@ -16,27 +16,64 @@ Christopher Wilks, Phani Gaddipati, Abhinav Nellore, Ben Langmead
 .. toctree::
    :maxdepth: 2
 
-SnaptronUI
-----------
 
-As an example of a downstream interface that can be built on top of the Snaptron web service interface there is the SnaptronUI for which there are several instances for various datasets:
+Snaptron Client Quickstart
+--------------------------
 
-TCGA (~11K samples, ~36M junctions):
-  http://snaptron.cs.jhu.edu:8090
+https://github.com/ChristopherWilks/snaptron-experiments
 
-GTEx (~10K samples, ~30M junctions):
-  http://snaptron.cs.jhu.edu:8000
+The Snaptron command-line client is a lightweight Python
+interface for querying the Snaptron web services which are documented in detail below.
 
-SRAv2 (~50K samples, ~81M junctions):
-  http://snaptron.cs.jhu.edu:8443
+To run the client (assuming Python is in the path): ::
 
-SRAv1 (~21K samples, ~42M junctions):
-  http://snaptron.cs.jhu.edu:8100
+        git clone https://github.com/ChristopherWilks/snaptron-experiments.git
+        cd snaptron-experiments
+        ./qs
 
-Caveat emptor, these instances are provided as examples only for the time being.  While they serve real data and may prove useful for investigations, they are not guaranteed to be stable/performant in any way.
+The following are examples of using the Snaptron client, some of which are from the Snaptron preprint.
+The default data compilation is SRAv2 (~50K samples, ~81M junctions).
 
-RESTful WSI Quickstart
-----------------------
+To get all splice junctions which fall fully within the BRCA1 gene extent with a sample count of at least 100 which are
+included in at least one annotation (both splice sites): ::
+
+        ./qs --region "BRCA1" --contains 1 --filters "samples_count>=100&annotated=1"
+
+If instead you have a coordinate-defined region rather than a gene, you could do the following to look for junctions which overlap the region and are potentially novel but also have significant sample and read support: ::
+        
+        ./qs --region "chr2:29446395-30142858" --filters "samples_count>=100&coverage_sum>=50"
+
+You can further limit queries by searching for keywords in the sample-associated metadata.
+The following query returns all junctions which overlap the region of the KMT2E gene which occur in at least 5 samples which also contain the keyword "cortex" in their description field: ::
+        
+        ./qs --region "KMT2E" --filters "samples_count>=5" --metadata "description:cortex"
+
+This query will return all junctions (no filtering) that overlap the gene TP53 from the TCGA (cancer-related) data compilation: ::
+        
+        ./qs --region "TP53" --datasrc tcga
+
+The following will return all sample metadata for those samples which contain the keyword "brain" in their description field ranked by a TF-IDF score determining that sample's relevance to the query: ::
+
+        ./qs --metadata "description:brain"
+
+The analyses from the Snaptron preprint can be recreated as a whole with the following command: ::
+
+        ./run_all.sh
+
+Individual commands from the Snaptron preprint are as follows (except SSC due to its length).
+These are also documented in the scripts/ directory of the snaptron-experiments repository.
+
+1) Tissue specificity (TS) for repetitive element loci (REL) junctions analysis (assumes Rscript is in the path): ::
+        
+        ./qs --query-file ./data/rel_splices.hg38.snap.tsv --function ts --datasrc gtex | tee ./rel_ts_list.tsv | Rscript ./scripts/tissue_specificty_testing.R
+
+2) Junction inclusion ratio (JIR) with additional filtering for total coverage: ::
+
+        ./qs --query-file data/alk_alt_tss.hg19.snap.tsv --function jir --datasrc srav1 | perl -ne 'chomp; $s=$_; if($s=~/jir_score/) { print "$s\n"; next}; @f=split(/\t/,$_); next if($f[1]+$f[2] < 50); print "".join("\t",@f)."\n";' > alk_alt_tss.hg19.srav1.jir_results.tsv
+
+
+RESTful Web Services Interface Quickstart
+-----------------------------------------
 
 First, we will present an example query and then break it down to allow the impatient users to get on with their research and skip the longer explanation of the details: ::
 
@@ -310,6 +347,25 @@ Table 5. Complete list of Snaptron Fields In Return Format
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
 
 \* this field always starts with a ``,``; this is due to how it is searched when samples are used to filter a junction query (R+M or R+F+M)
+
+Mock Graphical User Interface
+-----------------------------
+
+As a limited example of a downstream interface that can be built on top of the Snaptron web service interface there is the Snaptron GUI for which there are several instances for various datasets:
+
+TCGA (~11K samples, ~36M junctions):
+  http://snaptron.cs.jhu.edu:8090
+
+GTEx (~10K samples, ~30M junctions):
+  http://snaptron.cs.jhu.edu:8000
+
+SRAv2 (~50K samples, ~81M junctions):
+  http://snaptron.cs.jhu.edu:8443
+
+SRAv1 (~21K samples, ~42M junctions):
+  http://snaptron.cs.jhu.edu:8100
+
+Caveat emptor, these instances are provided as examples only for the time being.  While they serve real data and may prove useful for investigations, they are not guaranteed to be stable/performant in any way.
 
 * :ref:`genindex`
 * :ref:`modindex`
