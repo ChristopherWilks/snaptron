@@ -142,6 +142,11 @@ will return a list of samples which have a RIN value > 8. ::
 will return a list of junctions and their list of summary stats calcuated from the intersection of the region and rfilter
 predicates and which contain at least one sample in the list of samples which have "cortex" in their description field.
 
+Further, you can also query by sample ID to simply return all the metadata for the submitted set of sample IDs: ::
+
+  curl "http://snaptron.cs.jhu.edu/srav2/samples?ids=0,2,500"
+
+
 A complete list of all sample metadata fields and types stored and indexed by Snaptron are available for each compilation:
 
 - TCGA
