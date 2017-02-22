@@ -1,6 +1,10 @@
 # Snaptron
 fast webservices based query tool for searching exon-exon splice junctions and related sample metadata
 
+**Ask questions in the project's**
+
+[![Join the chat at https://gitter.im/snaptron/Lobby](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/snaptron/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 ## User Guide ##
 http://snaptron.cs.jhu.edu
 
