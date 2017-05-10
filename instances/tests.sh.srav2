@@ -1,5 +1,5 @@
 #!/bin/bash -x
-export PORT=1556
+export PORT=1580
 export HOST=localhost
 export PATH_=''
 
@@ -56,8 +56,16 @@ diff test_wc lucene_range_ids.test
 #curl "http://$HOST:$PORT/$PATH_/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:100&rfilter=coverage_sum>:1000&sfilter=description:cortex" 2>/dev/null | cut -f 2 | egrep -v -e 'id' | sort -u > test_15_ids
 #diff test_s2i_ids_15.snaptron_ids test_15_ids 
 
+echo "32" > expected_wc
+curl "http://$HOST:$PORT/$PATH_/samples?sfilter=description:cortex" 2>/dev/null | wc -l > test_wc
+diff test_wc expected_wc
+#cut -f 3 test_cortex_ids | perl -ne 'chomp; $s=$_; next if($s=~/intropolis_sample_id/); print "$s,"; END { print "\n";}' | perl -ne '$_=~s/,$//; print "$_\n";' > test_cortex_ids.flat
+
 curl "http://$HOST:$PORT/$PATH_/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:7&rfilter=coverage_sum>:10&sfilter=description:cortex" 2>/dev/null | cut -f 2 | egrep -v -e 'id' | sort -u > test_3_ids
 diff test_s2i_ids_3.snaptron_ids test_3_ids 
+
+curl "http://$HOST:$PORT/$PATH_/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count>:7&rfilter=coverage_sum>:10&sids=31219,2799,15180,27751,711,25730,24689,39848,268,43885,27320,28894,45197,29354,18194,5345,35385,34319,2309,42350,22857,34835,33340,26346,2230,15834,38870,22314,31852,31352,21294" 2>/dev/null | cut -f 2 | egrep -v -e 'id' | sort -u > test_3_ids2
+diff test_s2i_ids_3.snaptron_ids test_3_ids2
 
 echo "4" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/samples?ids=0,4,10" 2>/dev/null | wc -l > test_wc

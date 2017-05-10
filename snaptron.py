@@ -259,14 +259,14 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
 
 
 def process_params(input_,region_args=default_region_args):
-    params = {'regions':[],'ids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','either':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1'}
+    params = {'regions':[],'ids':[],'sids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','either':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1'}
     params_ = input_.split('&')
     for param_ in params_:
         (key,val) = param_.split("=")
         if key not in params:
             sys.stderr.write("unknown parameter %s, exiting\n" % key)
             sys.exit(-1)
-        if key == 'regions' or key == 'ids':
+        if key == 'regions' or key == 'ids' or key == 'sids':
             subparams = val.split(',')
             for subparam in subparams:
                 params[key].append(subparam)
@@ -287,7 +287,7 @@ def process_params(input_,region_args=default_region_args):
                 params[key].append(val) 
             else:
                 params[key]=val
-    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),either=(int(params['either'])),exact=bool(int(params['exact'])),score_by=params['score_by'],print_header=bool(int(params['header'])),return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'])
+    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),either=(int(params['either'])),exact=bool(int(params['exact'])),score_by=params['score_by'],print_header=bool(int(params['header'])),return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'],sids=params['sids'])
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'],ra)
 
 
@@ -302,14 +302,14 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
         query_ids(idq,snaptron_ids)
 
     #if we have any sample related queries, do them to get filter set for later jx querying
-    if len(sampleq) >= 1:
+    if len(sampleq) > 0 or len(ra.sids) > 0:
         sid_search_automaton = snample.query_samples_fast(sampleq,sample_map,snaptron_ids,ra)
         ra = ra._replace(sid_search_object=sid_search_automaton)
 
     #end result here is that we have a list of snaptron_ids to filter by
     #or if no snaptron_ids were found we're done, in keeping with the strict AND policy (currently)
     #TODO: update this when we start supporting OR in the POSTs, this will need to change
-    if len(snaptron_ids) == 0 and ra.sid_search_object is None and (len(idq) >=1 or len(sampleq) >= 1):
+    if len(snaptron_ids) == 0 and ra.sid_search_object is None and (len(idq) >=1 or len(sampleq) >= 1 or len(ra.sids) >= 1):
         return
 
     #NOW start normal query processing between: 1) interval 2) range or 3) or just snaptron ids

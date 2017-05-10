@@ -297,10 +297,17 @@ def intron_ids_from_samples(sample_ids,snaptron_ids,rquery,filtering=False):
 
 def query_samples_fast(sampleq,sample_map,snaptron_ids,ra,stream_sample_metadata=False):
     sample_ids = set()
-    search_samples_lucene(sample_map,sampleq,sample_ids,ra,stream_sample_metadata=stream_sample_metadata)
-    #search_samples_sqlite(sample_map,sampleq,sample_ids,stream_sample_metadata=stream_sample_metadata)
-    if DEBUG_MODE:
-        sys.stderr.write("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
+    #maybe the user wants to pass in sample IDs directly
+    if len(ra.sids) > 0:
+        sample_ids = set(ra.sids)
+        if DEBUG_MODE:
+            sys.stderr.write("user submitted %d sample IDs\n" % (len(sample_ids)))
+    #otherwise search via metadata
+    else:
+        search_samples_lucene(sample_map,sampleq,sample_ids,ra,stream_sample_metadata=stream_sample_metadata)
+        #search_samples_sqlite(sample_map,sampleq,sample_ids,stream_sample_metadata=stream_sample_metadata)
+        if DEBUG_MODE:
+            sys.stderr.write("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
     sid_search_automaton = None
     if not stream_sample_metadata and len(sample_ids) > 0:
         sid_search_automaton = snquery.build_sid_ahoc_queries(sample_ids)
