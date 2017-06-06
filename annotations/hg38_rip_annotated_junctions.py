@@ -102,6 +102,8 @@ if __name__ == '__main__':
         else:
             annotated_junctions = annotated_junctions_hg19
         if 'gencode' in junction_file:
+            #extract_splice_sites_path prints 0-based, exon coords around junctions
+            #hence the +2 for the start here
             extract_process = subprocess.Popen(' '.join([
                                             sys.executable,
                                             extract_splice_sites_path,

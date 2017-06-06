@@ -13,3 +13,6 @@ gzip -cd /data2/gigatron2/gtex/consolidated_gtex_junctions.tsv.gz | pypy /data/g
 
 #sraV2 (50k), old 3-source (but still HG38) annotation version
 gzip -cd /data2/gigatron2/intropolis.v2.hg38.tsv.gz | pypy /data/gigatron/snaptron/process_introns.py --annotation gencode.v24.annotation.gtf Homo_sapiens.GRCh38.84.gtf refGene_20160314.gtf | perl -ne 'BEGIN {$data_source_id=0;} chomp; $s=$_; @f=split(/\t/,$s); @f1=split(/,/,$f[11]); @f2=split(/,/,$f[12]); $f1=scalar @f1; $f2=scalar @f2; $s2=0; map { $s2+=$_; } @f2; $avg=$s2/$f2; $median=-1; $m_=$f2/2; $m_=int($m_); @f2a=sort {$a<=>$b} @f2; if(($f2 % 2)==0) { $m2_=$f2/2; $m2_-=1; $median=($f2a[$m_]+$f2a[$m2_])/2; } else { $median=$f2a[$m_]; }  printf("$s\t$f1\t$s2\t%.3f\t%.3f\t$data_source_id\n",$avg,$median);' | bgzip > /data/gigatron/intropolis.v2.hg38.tsv.snaptron.bgzip
+
+#mouse10 (mm10 only)
+python ./rip_annotated_junctions.py --extract-script-dir ../ --annotations /data3/snaptron/mouse95_data/annotations > mouse10_ripped_annotations.tsv | sort -k1,1 -k2,2n -k3,3n | gzip > mouse10_ripped_annotations.tsv.gz
