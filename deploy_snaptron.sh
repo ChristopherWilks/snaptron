@@ -23,7 +23,7 @@ cd virtualenv-13.1.2
 python virtualenv.py ../python
 cd ..
 source ./python/bin/activate
-pip install -r dependencies.txt
+pip install -r requirements.txt
 
 echo "+++Setting up PyLucene and dependencies (this requires sudo)"
 #this requires additional packages at the system level
