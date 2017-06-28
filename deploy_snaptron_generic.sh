@@ -40,7 +40,7 @@ echo "+++Linking config files for ${1} compilation"
 #link config file(s)
 #YOU WILL NEED TO TAILOR THIS FILE TO YOUR COMPILATION's specific settings
 ln -fs ./snaptron_server ./${1}_snaptron_server
-rsync -av instances/snapconf.py.srav2 instances/snapconf.py.${1}
+rsync -av instances/snapconf.py.default instances/snapconf.py.${1}
 ln -f instances/snapconf.py.${1} ./snapconf.py
 
 #setup data
