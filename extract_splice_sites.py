@@ -65,13 +65,13 @@ def extract_splice_sites(gtf_file, verbose=False):
         else:
             trans[transcript_id][2].append([left, right])
 
-    # Sort exons and merge where separating introns are <=5 bps
+    # Sort exons and fix coord overlap
     for tran, [chrom, strand, exons] in trans.items():
             exons.sort()
             tmp_exons = [exons[0]]
             for i in range(1, len(exons)):
-                if exons[i][0] - tmp_exons[-1][1] <= 5:
-                    tmp_exons[-1][1] = exons[i][1]
+                if exons[i][0] - tmp_exons[-1][1] < 2:
+                    tmp_exons[-1][1] = max(tmp_exons[-1][1], exons[i][1])
                 else:
                     tmp_exons.append(exons[i])
             trans[tran] = [chrom, strand, tmp_exons]
