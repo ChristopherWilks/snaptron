@@ -1,5 +1,6 @@
 #modified from http://stackoverflow.com/questions/24278627/building-pylucene-on-ubuntu-14-04trusty-tahr
 #PyLucene REQUIRES ant, g++, python-dev, and Java >=1.8 to already be installed
+#for the Java requirement, you may be able to use java-7-openjdk-amd64 or a variant
 #and in the environment; also that we're on an x86_64 machine
 ARCH='x86_64'
 
