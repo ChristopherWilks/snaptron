@@ -26,6 +26,8 @@ import snapconf
 EITHER_START=1
 EITHER_END=2
 
+BULK_QUERY_DELIMITER='\|\|\|'
+
 #return formats:
 TSV='0'
 UCSC_BED='1'

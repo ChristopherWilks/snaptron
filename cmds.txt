@@ -235,3 +235,9 @@ cat lucene_indexed_numeric_types.tsv | perl -ne 'BEGIN { %h=("t"=>"text","s"=>"s
 #source for recalculation rfilter test
 python ./snaptron.py "regions=ALK&rfilter=coverage_avg>:5&rfilter=samples_count:10" > h4
 python ./snaptron.py "regions=ALK&rfilter=coverage_avg>:6&sfilter=intropolis_sample_id:47852" > h5
+
+echo `base64 <(echo 'group=r2&regions=CD99\ngroup=r3&contains=1&regions=chr2:29446395-30142858&rfilter=samples_count>:100&rfilter=annotated:1')`
+
+s1="groups=`base64 <(echo 'group=r2&regions=CD99\ngroup=r3&contains=1&regions=chr2:29446395-30142858&rfilter=samples_count>:100&rfilter=annotated:1')`"
+
+s1="groups=`base64 -w 0 <(echo -n 'group=r2&regions=CD99|||group=r3&contains=1&regions=chr2:29446395-30142858&rfilter=samples_count>:100&rfilter=annotated:1')`"

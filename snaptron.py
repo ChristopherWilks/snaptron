@@ -260,13 +260,20 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
 
 def process_params(input_,region_args=default_region_args):
     params = {'regions':[],'ids':[],'sids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','either':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1'}
+    prefix=region_args.prefix
+    header=region_args.header
+
     params_ = input_.split('&')
     for param_ in params_:
         (key,val) = param_.split("=")
-        if key not in params:
+        #only expect one group per query
+        if key == 'group':
+            prefix = val
+            header = "Group\t%s"
+        elif key not in params:
             sys.stderr.write("unknown parameter %s, exiting\n" % key)
             sys.exit(-1)
-        if key == 'regions' or key == 'ids' or key == 'sids':
+        elif key == 'regions' or key == 'ids' or key == 'sids':
             subparams = val.split(',')
             for subparam in subparams:
                 params[key].append(subparam)
@@ -287,7 +294,7 @@ def process_params(input_,region_args=default_region_args):
                 params[key].append(val) 
             else:
                 params[key]=val
-    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),either=(int(params['either'])),exact=bool(int(params['exact'])),score_by=params['score_by'],print_header=bool(int(params['header'])),return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'],sids=params['sids'])
+    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),either=(int(params['either'])),exact=bool(int(params['exact'])),score_by=params['score_by'],print_header=bool(int(params['header'])),return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'],sids=params['sids'],prefix=prefix,header=header)
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'],ra)
 
 
@@ -366,7 +373,12 @@ def main():
         sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
     #make copy of the region_args tuple
     ra = default_region_args
-    if '[' in input_:
+    #bulk query mode
+    if input_[:6] == 'group=' or 'group=' in input_:
+        for query in re.split(snapconfshared.BULK_QUERY_DELIMITER,input_):
+            (intervalq,idq,rangeq,sampleq,ra) = process_params(query)
+            run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=sample_map,ra=ra)
+    elif '[' in input_:
         (or_intervals,or_ranges,or_samples,or_ids,ra) = process_post_params(input_)
         #(intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
         for idx in (xrange(0,len(or_intervals))):
