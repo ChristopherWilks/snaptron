@@ -266,7 +266,7 @@ def process_post(environ, start_response):
         raise ValueError('no \"fields\" or \"group\" parameter in POST')
     if 'groups' in post_data:
         print post_data['groups'].value
-        return basic_cleansing(base64.b64decode(post_data['groups'].value))
+        return basic_cleansing(base64.b64decode(post_data['groups'].value.rstrip()).rstrip())
         #return basic_cleansing('&'.join(['='.join([k,post_data[k].value]) for k in post_data.keys()]))
     jstring = post_data['fields'].value
     #only need to pass on the json string
