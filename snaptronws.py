@@ -20,6 +20,7 @@ from fcntl import fcntl, F_GETFL, F_SETFL
 from os import O_NONBLOCK, read
 import errno
 import time
+import base64
 
 #assume we're in the same dir as snapconf.py
 import snapconf
@@ -261,10 +262,12 @@ def process_post(environ, start_response):
     post_data = cgi.FieldStorage(fp=environ['wsgi.input'],environ=penv,keep_blank_values=False)
     if not post_data or len(post_data) == 0:
         raise ValueError('no parameters in GET or POST')    
-    if 'fields' not in post_data and 'group' not in post_data:
+    if 'fields' not in post_data and 'groups' not in post_data:
         raise ValueError('no \"fields\" or \"group\" parameter in POST')
-    if 'group' in post_data:
-        return basic_cleansing('&'.join(['='.join([k,post_data[k].value]) for k in post_data.keys()]))
+    if 'groups' in post_data:
+        print post_data['groups'].value
+        return basic_cleansing(base64.b64decode(post_data['groups'].value))
+        #return basic_cleansing('&'.join(['='.join([k,post_data[k].value]) for k in post_data.keys()]))
     jstring = post_data['fields'].value
     #only need to pass on the json string
     return jstring
