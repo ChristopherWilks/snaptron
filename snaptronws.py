@@ -261,12 +261,22 @@ def process_post(environ, start_response):
     post_data = cgi.FieldStorage(fp=environ['wsgi.input'],environ=penv,keep_blank_values=False)
     if not post_data or len(post_data) == 0:
         raise ValueError('no parameters in GET or POST')    
-    if 'fields' not in post_data:
-        raise ValueError('no \"fields\" parameter in POST')
+    if 'fields' not in post_data and 'group' not in post_data:
+        raise ValueError('no \"fields\" or \"group\" parameter in POST')
+    if 'group' in post_data:
+        return basic_cleansing('&'.join(['='.join([k,post_data[k].value]) for k in post_data.keys()]))
     jstring = post_data['fields'].value
     #only need to pass on the json string
     return jstring
 
+def basic_cleansing(query_string):
+    #first log message (outside of errors) so put in a newline
+    logger.info("\nQUERY_STRING %s" % query_string)
+    query_string = urllib.unquote(query_string)
+    query_string = query_string.replace("'","")
+    query_string = query_string.replace('"','')
+    query = urlparse.parse_qs(query_string)
+    return query_string
 
 def generic_endpoint(environ, start_response, endpoint_app):
     http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}
@@ -277,21 +287,13 @@ def generic_endpoint(environ, start_response, endpoint_app):
         urlpath = urlpath.rstrip(r'/').lstrip(r'/')
         query_string = "ids=" + urlpath
 
-    query = {}
     if len(query_string) == 0:
         try:
-            query_string=process_post(environ, start_response)
+            query_string = process_post(environ, start_response)
         except ValueError, ve:
             return bad_request(start_response, ve)
     else:
-        #first log message (outside of errors) so put in a newline
-        logger.info("\nQUERY_STRING %s" % query_string)
-        query_string = urllib.unquote(query_string)
-        query_string = query_string.replace("'","")
-        query_string = query_string.replace('"','')
-        query = urlparse.parse_qs(query_string)
-
-    add_checksum = False
+        query_string = basic_cleansing(query_string)
 
     logger.debug("REQUEST ENVIRONMENT:")
     for (key, val) in environ.iteritems():
