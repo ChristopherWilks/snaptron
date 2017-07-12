@@ -12,6 +12,8 @@
 #1) path to Rail's cross-sample junction call file (junctions.tsv.gz)
 #2) path to bowtie index of origin genome
 #3) path to directory of already downloaded annotation GTFs from UCSC's table browser
+#	or the path to a already ripped annotations file 
+#	(must be gzipped with .gz at the end of the filename)
 #4) new data source ID (check current set of compilations to know which to use)
 
 #5) [optional] argument to use the uncompressed version of Tabix (pass a 1)
@@ -39,7 +41,16 @@ paste j1a j1b > samples.tsv
 #1) select each of the various annotations you want from the UCSC genome browser table browser interface 
 #2) choose GTF as output format)
 #3) then save them all to the path for --annotations specified below
-python $root/annotations/rip_annotated_junctions.py --extract-script-dir $root --annotations $3 | gzip > ripped_annotations.tsv.gz
+
+#check to see if the user passed in a pre-ripped collected annotations file
+#if so, just symlink that and run the next step
+p=`perl -e '$s="'$3'"; @p=split(/\./,$s); $p=pop(@p); print "$p\n";'`
+echo $p
+if [ $p == 'gz' ]; then
+	ln -s $3 ./ripped_annotations.tsv.gz
+else
+	python $root/annotations/rip_annotated_junctions.py --extract-script-dir $root --annotations $3 | gzip > ripped_annotations.tsv.gz
+fi
 
 #annotate and build final snaptron
 zcat junctions.tsv.snap.bgz | cut -f2,3,4,6,8,9,12- | pypy $root/annotations/process_introns.py --annotations ripped_annotations.tsv.gz | bgzip > junctions.bgz
