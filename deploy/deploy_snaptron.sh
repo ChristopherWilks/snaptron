@@ -7,7 +7,7 @@
 #To use the uncompressed version of Tabix, pass a "1" into this
 #script following the compilation name, e.g.:
 
-#./deploy_snaptron.sh srav2 1
+#./deploy/deploy_snaptron.sh srav2 1
 
 #our modified version of bgzip must also be present in the PATH
 #before any other bgzip binaries
@@ -27,11 +27,11 @@ pip install -r requirements.txt
 
 echo "+++Setting up PyLucene and dependencies (this requires sudo)"
 #this requires additional packages at the system level
-./install_pylucene.sh
+./deploy/install_pylucene.sh
 
 echo "+++Linking config files for ${1} compilation"
 #link config file(s)
-./setup_configs.sh ${1}
+./deploy/setup_configs.sh ${1}
 
 #grab data
 mkdir data
@@ -49,12 +49,12 @@ tabix -s 1 -b 4 -e 5 all_transcripts.gtf.bgz
 
 echo "+++Creating SQLite DB of junctions"
 #creation of sqlite junction db
-../scripts/build_sqlite_junction_db.sh junctions junctions.bgz
+../deploy/build_sqlite_junction_db.sh junctions junctions.bgz
 
 echo "+++Creating Lucene indices"
 #run lucene indexer on metadata
-cat samples.tsv | perl ../scripts/infer_sample_metadata_field_types.pl > samples.tsv.type_inference
-cat samples.tsv | python ../lucene_indexer.py samples.tsv.type_inference > run_indexer 2>&1
+cat samples.tsv | perl ../deploy/infer_sample_metadata_field_types.pl > samples.tsv.type_inference
+cat samples.tsv | python ../deploy/lucene_indexer.py samples.tsv.type_inference > run_indexer 2>&1
 
 echo "+++Creating Tabix index on junctions file"
 if [ -z ${2+v} ]; then

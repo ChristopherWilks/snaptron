@@ -14,7 +14,7 @@
 
 #7) [optional] argument to use the uncompressed version of Tabix (pass a 1)
 
-#./deploy_snaptron_generic.sh supermouse ./junctions.tsv.gz /data3/indexes/mm10/genome ./annotations 6 ./samples.tsv 1
+#./deploy/deploy_snaptron_generic.sh supermouse ./junctions.tsv.gz /data3/indexes/mm10/genome ./annotations 6 ./samples.tsv 1
 
 #our modified version of bgzip must also be present in the PATH
 #before any other bgzip binaries
@@ -34,7 +34,7 @@ pip install -r requirements.txt
 
 echo "+++Setting up PyLucene and dependencies (this requires sudo)"
 #this requires additional packages at the system level
-./install_pylucene.sh
+./deploy/install_pylucene.sh
 
 echo "+++Linking config files for ${1} compilation"
 #link config file(s)
@@ -47,7 +47,7 @@ ln -f instances/snapconf.py.${1} ./snapconf.py
 mkdir data
 rsync -av $6 data/samples.tsv
 cd data
-../scripts/setup_generic_snaptron_instance.sh $2 $3 $4 $5 $7
+../deploy/setup_generic_snaptron_instance.sh $2 $3 $4 $5 $7
 #echo "+++Downloading snaptron data, this make take a while..."
 wget http://snaptron.cs.jhu.edu/data/srav2/all_transcripts.gtf.bgz
 wget http://snaptron.cs.jhu.edu/data/srav2/refseq_transcripts_by_hgvs.tsv

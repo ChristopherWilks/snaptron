@@ -19,6 +19,7 @@
 #5) [optional] argument to use the uncompressed version of Tabix (pass a 1)
 
 #get the snaptron checkout root dir (assuming the script is called from there)
+#should be the deploy subdirectory
 scripts=`perl -e '@f=split(/\//,"'${0}'"); pop(@f); print "".join("/",@f)."\n";'`
 root=$scripts/../
 source $root/python/bin/activate
@@ -75,4 +76,4 @@ $scripts/build_sqlite_junction_db.sh junctions junctions.bgz
 
 #build Lucene metadata indices (assumes samples.tsv is present)
 cat samples.tsv | perl $scripts/infer_sample_metadata_field_types.pl > samples.tsv.inferred
-cat samples.tsv | python $root/lucene_indexer.py samples.tsv.inferred > lucene.indexer.run 2>&1 &
+cat samples.tsv | python $scripts/lucene_indexer.py samples.tsv.inferred > lucene.indexer.run 2>&1 &
