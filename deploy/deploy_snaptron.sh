@@ -54,7 +54,7 @@ echo "+++Creating SQLite DB of junctions"
 echo "+++Creating Lucene indices"
 #run lucene indexer on metadata
 cat samples.tsv | perl ../deploy/infer_sample_metadata_field_types.pl > samples.tsv.type_inference
-cat samples.tsv | python ../deploy/lucene_indexer.py samples.tsv.type_inference > run_indexer 2>&1
+cat samples.tsv | python ../lucene_indexer.py samples.tsv.type_inference > run_indexer 2>&1
 
 echo "+++Creating Tabix index on junctions file"
 if [ -z ${2+v} ]; then

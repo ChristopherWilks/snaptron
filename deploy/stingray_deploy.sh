@@ -1,12 +1,12 @@
 #!bin/bash
 
-./deploy/create_data_links.sh $2 $3
+#./deploy/create_data_links.sh ${2} ${3}
 
-ln -s ../snaptron/python
+ln -fs ../snaptron/python
 source ./python/bin/activate
 
-ln -s $3 ./data
-ln -s data/lucene_indexed_numeric_types.tsv
+ln -fs ${3} ./data
+ln -fs data/lucene_indexed_numeric_types.tsv
 
 #link config file(s)
 #YOU WILL NEED TO TAILOR THIS FILE TO YOUR COMPILATION's specific settings
