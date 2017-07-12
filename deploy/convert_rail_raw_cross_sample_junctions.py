@@ -243,7 +243,10 @@ def main():
                 with open(args.input_file + ".samples2ids","w") as fout:
                     fout.write("rail_id\tRun\n")
                     for (idx,s) in enumerate(samples):
-                        (srp,srr)=s.split("-")
+                        subids = s.split("-")
+                        srr = s
+                        if len(subids) == 2 and subids[0][:3] == 'SRR':
+                            srr = subids[0]
                         fout.write(str(idx)+"\t"+str(srr)+"\n")
                 continue
             (chrom,strand,start,end) = fields[0].split(";")
