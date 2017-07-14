@@ -249,7 +249,6 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
             sample_ids_returned.update(sids)
     return (snaptron_ids_returned,sample_ids_returned)
 
-
 def process_params(input_,region_args=default_region_args):
     params = {'regions':[],'ids':[],'sids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','either':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1'}
     prefix=region_args.prefix
@@ -261,7 +260,7 @@ def process_params(input_,region_args=default_region_args):
         #only expect one group per query
         if key == 'group':
             prefix = val
-            header = "Group\t%s"
+            header = header.replace('DataSource:Type', 'Group') 
         elif key not in params:
             sys.stderr.write("unknown parameter %s, exiting\n" % key)
             sys.exit(-1)
