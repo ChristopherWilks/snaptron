@@ -20,7 +20,6 @@ from fcntl import fcntl, F_GETFL, F_SETFL
 from os import O_NONBLOCK, read
 import errno
 import time
-import base64
 
 #assume we're in the same dir as snapconf.py
 import snapconf
