@@ -217,15 +217,7 @@ def parse_json_query(clause,region_args=default_region_args):
 
 
 def query_ids(idq,snaptron_ids):
-    #(id_type,first_id) = idq[0].split(':')
-    #idq[0] = first_id
-    #sample_ids = set()
-    #if id_type == 'snaptron':
     snaptron_ids.update(set(idq))
-    #else:
-    #    sample_ids.update(set(idq))
-    #if len(sample_ids) > 0:
-    #    snample.intron_ids_from_samples(sample_ids,snaptron_ids)
 
 
 def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=default_region_args):
