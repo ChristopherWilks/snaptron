@@ -374,6 +374,9 @@ def main():
     #make copy of the region_args tuple
     ra = default_region_args
     #bulk query mode
+    #somewhat ad hoc, but with the first test
+    #trying to avoid a pattern search across the whole input string
+    #which could be large
     if input_[:6] == 'group=' or 'group=' in input_:
         for query in re.split(snapconfshared.BULK_QUERY_DELIMITER,input_):
             (intervalq,idq,rangeq,sampleq,ra) = process_params(query)
