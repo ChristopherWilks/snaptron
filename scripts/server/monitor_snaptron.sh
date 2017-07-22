@@ -17,4 +17,4 @@ echo 14 > supermouse.expected
 curl 'http://snaptron.cs.jhu.edu/supermouse/snaptron?regions=chrX:9000000-9986868&rfilter=samples_count>:50&rfilter=samples_count<:60' | grep -i "supermouse:I" | grep "chrX" | wc -l > supermouse.test
 diff supermouse.expected supermouse.test > supermouse.test_result
 
-wc -l *.test_result | perl -ne 'chomp; ($diff,$compilation)=split(/\s+/,$_); next if($compilation eq "total"); if($diff != 0) { `mail -s "Snaptron Compilation $compilation returned unexpected results: 0 != $diff" broadsword@gmail.com`; }
+wc -l *.test_result | perl -ne 'chomp; ($t,$diff,$compilation)=split(/\s+/,$_); ($compilation)=split(/\./,$compilation); next if($compilation eq "total"); if($diff != 0) { system("mail -s\"Snaptron Compilation $compilation returned unexpected results: 0 != $diff\" broadsword\@gmail.com -c w2s2o3i8f7c9t9o3\@jhu-genomics.slack.com -c u8z0j1k2u2b8k1n2\@jhu-genomics.slack.com"); }'
