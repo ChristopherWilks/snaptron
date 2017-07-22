@@ -266,8 +266,7 @@ def process_params(input_,region_args=default_region_args):
             sys.exit(-1)
         elif key == 'regions' or key == 'ids' or key == 'sids':
             subparams = val.split(',')
-            for subparam in subparams:
-                params[key].append(subparam)
+            [params[key].append(subparam) for subparam in subparams]
         elif key == 'fields':
             fields = val.split(',')
             for field in fields:
