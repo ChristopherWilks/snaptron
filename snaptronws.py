@@ -218,6 +218,22 @@ def run_command(cmd_and_args):
     fcntl(sproc.stderr, F_SETFL, flgs | O_NONBLOCK)
     return sproc
 
+def run_command_with_pipe(cmd_and_args):
+    logger.info("Running with piped input: %s" % (" ".join(cmd_and_args)))
+    (python_path, endpoint_app, query_string) = cmd_and_args
+    cmd_and_args[2] = "PIPE"
+    sproc = subprocess.Popen(cmd_and_args, bufsize=snapconf.CMD_BUFFER_SIZE, 
+                       stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
+    #we need to make sure that reading from the STDERR pipe 
+    #is NOT going to block since we don't know if we'll get errors, or not
+    #we DO want to block on the STDOUT though
+    #thanks to Hannes Schmidt for his contribution here
+    flgs = fcntl(sproc.stderr, F_GETFL)
+    fcntl(sproc.stderr, F_SETFL, flgs | O_NONBLOCK)
+    sproc.stdin.write(query_string)
+    sproc.stdin.close()
+    return sproc
+
 
 def query(query, add_checksum=True):
 
@@ -289,7 +305,10 @@ def generic_endpoint(environ, start_response, endpoint_app):
         urlpath = urlpath.rstrip(r'/').lstrip(r'/')
         query_string = "ids=" + urlpath
 
+    use_pipe = False
     if len(query_string) == 0:
+        #user sending a post, so we'll need to pipe it
+        use_pipe = True
         try:
             query_string = process_post(environ, start_response)
         except ValueError, ve:
@@ -317,7 +336,11 @@ def generic_endpoint(environ, start_response, endpoint_app):
 
     args=[snapconf.PYTHON_PATH, endpoint_app, query_string]
     #create subprocess run object 
-    sproc = run_command(args)
+    sproc = None
+    if use_pipe:
+        sproc = run_command_with_pipe(args)
+    else:
+        sproc = run_command(args)
 
     #do the response 
     status = "200 OK"

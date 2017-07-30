@@ -131,6 +131,9 @@ diff test_annot_full.test test_annot_full
 
 rm test_wc expected_wc
 
+curl --data-urlencode groups@bulk_test_large_samples.txt.2.b64 http://$HOST:$PORT/$PATH_/snaptron > bulk_test_large_samples.txt.2.b64.output.test
+diff bulk_test_large_samples.txt.2.b64.output.test bulk_test_large_samples.txt.2.b64.output
+
 echo "all tests run"
 
 #FP comparison test

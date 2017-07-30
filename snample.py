@@ -334,10 +334,12 @@ def query_by_sample_ids(idq,sample_map,ra):
     stream_samples(set(idq),sample_map,ra) 
 
 def main():
-    global DEBUG_MODE
     input_ = sys.argv[1]
+    global DEBUG_MODE
     if len(sys.argv) > 2:
        DEBUG_MODE=True
+    if input_ == "PIPE":
+        input_ = sys.stdin.read()
     (intervalq,rangeq,sampleq,idq) = (None,None,None,None)
     ra = snaptron.default_region_args
     sys.stderr.write("INPUT_ %s\n" % input_)

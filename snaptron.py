@@ -354,9 +354,10 @@ def main():
        FORCE_SQLITE=True
     if len(sys.argv) == 5:
        FORCE_TABIX=True
+    if input_ == "PIPE":
+        input_ = sys.stdin.read()
     (intervalq,rangeq,idq) = (None,None,None)
     sampleq = []
-    #(intervalq,rangeq,sampleq,idq) = ([],[],[],[])
     sys.stderr.write("%s\n" % input_)
     sample_map = snample.load_sample_metadata(snapconf.SAMPLE_MD_FILE)
     if DEBUG_MODE_:
@@ -367,13 +368,16 @@ def main():
     #somewhat ad hoc, but with the first test
     #trying to avoid a pattern search across the whole input string
     #which could be large
+    change_header_print_status=False
     if input_[:6] == 'group=' or 'group=' in input_:
         for query in re.split(snapconfshared.BULK_QUERY_DELIMITER,input_):
             (intervalq,idq,rangeq,sampleq,ra) = process_params(query)
+            if change_header_print_status:
+                ra=ra._replace(print_header=False)
             run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=sample_map,ra=ra)
+            change_header_print_status = True
     elif '[' in input_:
         (or_intervals,or_ranges,or_samples,or_ids,ra) = process_post_params(input_)
-        #(intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
         for idx in (xrange(0,len(or_intervals))):
             run_toplevel_AND_query(or_intervals[idx],or_ranges[idx],or_samples[idx],or_ids[idx],sample_map=sample_map,ra=ra)
             ra=ra._replace(print_header=False)
