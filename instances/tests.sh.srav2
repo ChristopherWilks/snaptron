@@ -11,7 +11,7 @@ fi
 
 #system tests (roundtrip)
 
-echo "10035" > expected_wc
+echo "10034" > expected_wc
 #"groups=`base64 -w 0 <(echo -n 'group=r2&regions=CD99|||group=r3&contains=1&regions=chr2:29446395-30142858&rfilter=samples_count>:100&rfilter=annotated:1')`"
 curl --data 'groups=Z3JvdXA9cjImcmVnaW9ucz1DRDk5fHx8Z3JvdXA9cjMmY29udGFpbnM9MSZyZWdpb25zPWNocjI6Mjk0NDYzOTUtMzAxNDI4NTgmcmZpbHRlcj1zYW1wbGVzX2NvdW50PjoxMDAmcmZpbHRlcj1hbm5vdGF0ZWQ6MQ==' http://$HOST:$PORT/$PATH_/snaptron | wc -l > test_wc
 diff test_wc expected_wc
