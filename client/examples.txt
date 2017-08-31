@@ -1,7 +1,0 @@
-python query_snaptron.py --query-file alk.tsv --function jir
-python query_snaptron.py --query-file CCDC6_RET_breakpoint.tsv --function jir
-python query_snaptron.py --region "chr2:29446395-30142858" --contains 1 --thresholds "samples_count>=100&annotated=1"
-python query_snaptron.py --region EML4-ALK
-python query_snaptron.py --region COSF463
-python query_snaptron.py --region "chr11:82970135-82997450" --contains 1 --thresholds "samples_count>=100&coverage_sum>=1000" --filters "description:cortex" | wc -l
-python query_snaptron.py --region "chr2:29446395-30142858" --contains 1 --function exon --exon-length 57-57

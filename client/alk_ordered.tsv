@@ -1,3 +1,0 @@
-region	contains	thresholds	group
-ALK:1-19	1	samples_count>=100&annotated=1	groupA
-ALK:20-28	1	samples_count>=100&annotated=1	groupB
