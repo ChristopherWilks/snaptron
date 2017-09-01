@@ -13,11 +13,14 @@ Snaptron User Guide
 ===================
 Christopher Wilks, Phani Gaddipati, Abhinav Nellore, Ben Langmead
 
+The published Snaptron paper is here:
+
+https://doi.org/10.1093/bioinformatics/btx547
+
 .. toctree::
    :maxdepth: 2
 
-
-Ask questions in the project's Gitter channel_.
+Questions can be asked in the project's Gitter channel_.
 
 .. _channel: https://gitter.im/snaptron/Lobby
 
