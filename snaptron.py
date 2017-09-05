@@ -358,7 +358,8 @@ def main():
         input_ = sys.stdin.read()
     (intervalq,rangeq,idq) = (None,None,None)
     sampleq = []
-    sys.stderr.write("%s\n" % input_)
+    #caused a deadlock on larger bulk queries
+    #sys.stderr.write("%s\n" % input_)
     sample_map = snample.load_sample_metadata(snapconf.SAMPLE_MD_FILE)
     if DEBUG_MODE_:
         sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
