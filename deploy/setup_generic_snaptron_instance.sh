@@ -76,4 +76,4 @@ $scripts/build_sqlite_junction_db.sh junctions junctions.bgz
 
 #build Lucene metadata indices (assumes samples.tsv is present)
 cat samples.tsv | perl $scripts/infer_sample_metadata_field_types.pl > samples.tsv.inferred
-cat samples.tsv | python $scripts/lucene_indexer.py samples.tsv.inferred > lucene.indexer.run 2>&1 &
+cat samples.tsv | python $scripts/../lucene_indexer.py samples.tsv.inferred > lucene.indexer.run 2>&1 &
