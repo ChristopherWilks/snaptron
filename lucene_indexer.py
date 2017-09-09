@@ -19,7 +19,7 @@ from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.util import Version
 
 
-LUCENE_TYPES={'i':LongField,'s':StringField,'t':TextField,'f':FloatField,'NA':TextField}
+LUCENE_TYPES={'i':LongField,'s':StringField,'t':TextField,'f':FloatField,'NA':TextField,'n':TextField}
 LUCENE_TYPE_METHODS={'i':NumericRangeQuery.newLongRange,'f':NumericRangeQuery.newFloatRange}
 PREC_STEP=1
 LUCENE_TYPES_FILE='./lucene_indexed_numeric_types.tsv'
