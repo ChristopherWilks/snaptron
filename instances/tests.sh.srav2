@@ -52,7 +52,9 @@ echo "2" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/samples?sfilter=run_accession:DRR001622" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
-echo "18720" > expected_wc
+#echo "18720" > expected_wc
+#post addition of additional metadata columns from recount
+echo "18785" > expected_wc
 curl "http://$HOST:$PORT/$PATH_/samples?sfilter=all:tissue" 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
