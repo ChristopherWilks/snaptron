@@ -342,12 +342,13 @@ def main():
         input_ = sys.stdin.read()
     (intervalq,rangeq,sampleq,idq) = (None,None,None,None)
     ra = snaptron.default_region_args
-    sys.stderr.write("INPUT_ %s\n" % input_)
+    #sys.stderr.write("INPUT_ %s\n" % input_)
     if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
         (or_intervals,or_ranges,or_samples,or_ids,ra) = snaptron.process_post_params(input_)
         (intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
     else:
-        #just stream back the whole sample metadata file
+        #first, some special cases
+        #1) just stream back the whole sample metadata file
         if 'all=1' in input_:
             #sample_map = load_sample_metadata(snapconf.SAMPLE_MD_FILE)
             cmd = 'cat'
@@ -355,7 +356,12 @@ def main():
                 cmd = 'zcat'
             subp = subprocess.Popen('%s %s' % (cmd,snapconf.SAMPLE_MD_FILE),shell=True,stdin=None,stdout=sys.stdout,stderr=sys.stderr)
             subp.wait()
-            return 
+            return
+        #2) check the date of the source sample metadata file (for client caching purposes)
+        elif 'check_for_update=1' in input_:
+            stats = os.stat(snapconf.SAMPLE_MD_FILE)
+            sys.stdout.write(str(stats.st_mtime) + "\n")
+            return
         #update support simple '&' CGI format
         (intervalq,idq,rangeq,sampleq,ra) = snaptron.process_params(input_)
     #only care about sampleq
