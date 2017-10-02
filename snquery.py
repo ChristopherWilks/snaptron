@@ -113,7 +113,7 @@ class RunExternalQueryEngine:
                     query_ = re.sub('\?',"\'%s\'" % arg_,query_,count=1)
                 else:
                     query_ = re.sub('\?',arg_,query_,count=1)
-            full_cmd_args = [self.cmd, '-separator \'	\'', snapconf.SNAPTRON_SQLITE_DB, '"%s"' % query_]
+            full_cmd_args = [self.cmd, '-separator \'	\'', self.ra.sqlite_db_file, '"%s"' % query_]
             self.full_cmd = " ".join(full_cmd_args)
             full_cmd_args = shlex.split(self.full_cmd)
             #we never going to use additional range filters because R+F+M will go through tabix
