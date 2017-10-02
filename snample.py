@@ -54,11 +54,6 @@ import snaptron
 import snquery
 import lucene_indexer
 
-import sqlite3
-#sconn = sqlite3.connect(snapconf.SAMPLE_SQLITE_DB)
-#sc = sconn.cursor()
-sc=None
-
 DEBUG_MODE=False
 
 BOOLEAN_OCCUR=BooleanClause.Occur.MUST
