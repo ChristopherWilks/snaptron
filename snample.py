@@ -55,8 +55,9 @@ import snquery
 import lucene_indexer
 
 import sqlite3
-sconn = sqlite3.connect(snapconf.SAMPLE_SQLITE_DB)
-sc = sconn.cursor()
+#sconn = sqlite3.connect(snapconf.SAMPLE_SQLITE_DB)
+#sc = sconn.cursor()
+sc=None
 
 DEBUG_MODE=False
 
@@ -81,43 +82,6 @@ def read_lucene_field_types_file(file_in):
                 lucene_type_method =lucene_indexer. LUCENE_TYPE_METHODS[fieldtypechar]
             ftypes[fieldname]=[fieldtypechar, lucene_type_method]
     return ftypes
-
-def sqlite_query_parse(sampleq):
-    select = "SELECT * FROM sample WHERE "
-    select_ = []
-    for query_tuple in sampleq:
-        (field,query) = query_tuple.split(snapconf.SAMPLE_QUERY_FIELD_DELIMITER)
-        select_.append("sample MATCH \'%s : %s\'" % (field,query))
-    return "%s %s" % (select," AND ".join(select_))
-
-def search_samples_sqlite(sample_map,sampleq,sample_set,stream_sample_metadata=False):
-    select = sqlite_query_parse(sampleq)
-    print(select)
-    results = sc2.execute(select)
-    if stream_sample_metadata:
-        sys.stdout.write("DataSource:Type\t%s\n" % (snapconf.SAMPLE_HEADER))
-    for result in results:
-        sid = str(result[snapconf.INTRON_ID_COL])
-        #track the sample ids if asked to
-        if sample_set != None:
-            sample_set.add(sid)
-        #stream back the full sample metadata record from the in-memory dictionary
-        if stream_sample_metadata:
-            sys.stdout.write("%s:S\t%s\n" % (snapconf.DATA_SOURCE,sample_map[sid]))
-
-def lucene_sample_query_parse_old(sampleq):
-    fields = []
-    queries = []
-    booleans = []
-    for query_tuple in sampleq:
-        (field,query) = query_tuple.split(snapconf.SAMPLE_QUERY_FIELD_DELIMITER)
-        field_w_type = snapconf.SAMPLE_HEADER_FIELDS_TYPE_MAP[field]
-        fields.append(field_w_type)
-        query = query.replace('AND',' AND ')
-        sys.stderr.write("query + fields: %s %s\n" % (query,field_w_type))
-        queries.append(query)
-        booleans.append(BOOLEAN_OCCUR)
-    return (fields,queries,booleans)
 
 def lucene_range_query_parse(field_w_type, op, val, fieldtypechar, ftype_method):
     '''parse the user's range query string into something pylucene can understand'''
@@ -302,7 +266,6 @@ def query_samples_fast(sampleq,sample_map,snaptron_ids,ra,stream_sample_metadata
     #otherwise search via metadata
     else:
         search_samples_lucene(sample_map,sampleq,sample_ids,ra,stream_sample_metadata=stream_sample_metadata)
-        #search_samples_sqlite(sample_map,sampleq,sample_ids,stream_sample_metadata=stream_sample_metadata)
         if DEBUG_MODE:
             sys.stderr.write("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
     sid_search_automaton = None
@@ -313,7 +276,6 @@ def query_samples_fast(sampleq,sample_map,snaptron_ids,ra,stream_sample_metadata
 def query_samples(sampleq,sample_map,snaptron_ids,ra,stream_sample_metadata=False):
     sample_ids = set()
     search_samples_lucene(sample_map,sampleq,sample_ids,ra,stream_sample_metadata=stream_sample_metadata)
-    #search_samples_sqlite(sample_map,sampleq,sample_ids,stream_sample_metadata=stream_sample_metadata)
     new_snaptron_ids = set()
     if DEBUG_MODE:
         sys.stderr.write("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
