@@ -24,8 +24,6 @@ sc = sconn.cursor()
 DEBUG_MODE=False
 
 def create_junction_grouping_by_sample(introns,samples_group):
-    #for (tid,samples) in introns.iteritems():
-        #(sids_,coverages_) = samples
     for (tid,samples,coverages_) in introns:
         sids = samples.split(',')
         coverages = coverages_.split(',')
@@ -40,10 +38,6 @@ def get_samples_for_snaptron_ids(ids):
     select = 'SELECT snaptron_id,samples,read_coverage_by_sample FROM intron where snaptron_id in'
     results = snaputil.retrieve_from_db_by_ids(sc,select,ids)
     return results
-    #intron2samples={}
-    #for (tid,samples,covs) in snaputil.retrieve_from_db_by_ids(sc,select,ids):
-    #    intron2samples[tid]=[samples,covs]
-    #return intron2samples 
         
 def junction_inclusion_ratio(params):
     ids_a = params['ids_a']
@@ -89,7 +83,6 @@ def junction_inclusion_ratio(params):
 def sorted_cmp_by_array_val(a,b):
     return cmp(a[1][0],b[1][0])
 
-#ORDERINGS={'desc':'descending_all','T':'top_x','B':'bottom_x','asc':'ascending_all')
 def sort_sample_ratios(sample_ratios,order,stream_back=True):
     reverse = True
     limit = None

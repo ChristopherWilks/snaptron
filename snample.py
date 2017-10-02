@@ -252,11 +252,8 @@ def sample_ids2intron_ids_from_db(sample_ids):
     select = 'SELECT snaptron_ids FROM by_sample_id WHERE sample_id in'
     found_snaptron_ids = set()
     results = snaputil.retrieve_from_db_by_ids(sc,select,sample_ids)
-    #ids = [x[0] for x in results]
     for snaptron_ids in results:
         found_snaptron_ids.update(set(snaptron_ids[0].split(',')))
-    #s1=','.join(ids)
-    #found_snaptron_ids.update(s1.split(','))
     if '' in found_snaptron_ids:
         found_snaptron_ids.remove('')
     return found_snaptron_ids
