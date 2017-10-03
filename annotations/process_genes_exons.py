@@ -60,9 +60,6 @@ if __name__ == '__main__':
     gene2coords = load_annotation(args.annot_type, args.annotation)
     srr2ids = load_sample_id_map(args.sample_metadata, args.sample_source)
 
-    #sys.stderr.write('\t'.join(["snaptron_id","chromosome","start","end","length","strand","NA","NA","NA","NA","NA","samples","samples_count","coverage_sum","coverage_avg","coverage_median","\n"]))
-    sys.stderr.write('\t'.join(["snaptron_id","chromosome","start","end","length","strand","NA","NA","NA","NA","NA","samples","\n"]))
-    
     snaptron_id = 0
     sample_id_mapping = []
     for line in sys.stdin:
@@ -79,7 +76,7 @@ if __name__ == '__main__':
         (chrom, start, end, strand) = gene2coords[gene_id]
         length = str((int(end )- int(start)) + 1)
         #need offset of 3 since we have gene_id,length, and symbol before the sample counts
-        sample_ids = [sample_id_mapping[i-3] for i in xrange(3,len(fields)) if fields[i] > 0]
+        sample_ids = [sample_id_mapping[i-3] for i in xrange(3,len(fields))]
         #now join up the samples and their coverages and write out
-        sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", "", "", ","+','.join([sample_ids[i]+":"+fields[i+3] for i in xrange(0,len(sample_ids))])])+"\n")
+        sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", "", "", ','.join(sample_ids),','.join(fields[3:])])+"\n")
         snaptron_id+=1
