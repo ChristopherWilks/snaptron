@@ -171,7 +171,6 @@ if __name__ == '__main__':
         (annotated_junctions, five_p, three_p) = load_preformatted_annotated_junctions(args.annotations[0]) 
     else:
         (annotated_junctions, five_p, three_p) = load_annotations(args, refs, types) 
-    sys.stderr.write('\t'.join(["snaptron_id","chromosome","start","end","length","strand","annotated","left_motif","right_motif","left_annotated","right_annotated","samples","read_coverage_by_sample","samples_count","coverage_sum","coverage_avg","coverage_median","\n"]))
 
     #takes in Abhi's Rail output format (or post-processed rail format)
     snaptron_id = 0
@@ -195,7 +194,7 @@ if __name__ == '__main__':
             three_atype = three_p[(junction[0], junction[2])]
         print '\t'.join([str(snaptron_id), '\t'.join(junction), str(length), strand,
             ",".join(sorted(annotated)) if len(annotated) > 0 else '0', left_motif, right_motif,
-            "%s:1" % (",".join(sorted(five_atype))) if (junction[0], junction[1]) in five_p else '0',
-            "%s:1" % (",".join(sorted(three_atype))) if (junction[0], junction[2]) in three_p else '0',
+            "%s" % (",".join(sorted(five_atype))) if (junction[0], junction[1]) in five_p else '0',
+            "%s" % (",".join(sorted(three_atype))) if (junction[0], junction[2]) in three_p else '0',
             '\t'.join(additional_fields)])
         snaptron_id+=1
