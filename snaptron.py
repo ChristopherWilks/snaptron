@@ -334,7 +334,7 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
     if ra.result_count:
         sys.stdout.write("%d\n" % (len(found_snaptron_ids)))
 
-
+record_types_map={'junction':(snapconf.TABIX_INTERVAL_DB,snapconf.SNAPTRON_SQLITE_DB,'I'),snapconf.GENES_APP:(snapconf.GENE_TABIX_DB,snapconf.GENE_SQLITE_DB,'G'),snapconf.EXONS_APP:(snapconf.EXON_TABIX_DB,snapconf.EXON_SQLITE_DB,'E')}
 #cases:
 #1) just interval (one function call)
 #2) interval + range query(s) (one tabix function call + field filter(s))
@@ -345,6 +345,11 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
 #6) sample + range query(s) (2 function calls: 1 lucene for sample filter + 1 tabix using snaptron_id filter + field filter)
 def main():
     input_ = sys.argv[1]
+    inputs = input_.split('|')
+    (tabix_db,sqlite_db,prefix) = record_types_map['junction']
+    if inputs[0] in record_types_map:
+        (tabix_db, sqlite_db,prefix) = record_types_map[inputs[0]]
+        input_ = '|'.join(inputs[1:])
     DEBUG_MODE_=DEBUG_MODE
     global FORCE_SQLITE
     global FORCE_TABIX
@@ -365,6 +370,8 @@ def main():
         sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
     #make copy of the region_args tuple
     ra = default_region_args
+    #override defaults for the DB files in case we're doing gene/exon rather than junction queries
+    ra=ra._replace(tabix_db_file=tabix_db,sqlite_db_file=sqlite_db,prefix="%s:%s" % (snapconf.DATA_SOURCE,prefix))
     #bulk query mode
     #somewhat ad hoc, but with the first test
     #trying to avoid a pattern search across the whole input string
@@ -372,7 +379,7 @@ def main():
     change_header_print_status=False
     if input_[:6] == 'group=' or 'group=' in input_:
         for query in re.split(snapconfshared.BULK_QUERY_DELIMITER,input_):
-            (intervalq,idq,rangeq,sampleq,ra) = process_params(query)
+            (intervalq,idq,rangeq,sampleq,ra) = process_params(query,region_args=ra)
             if change_header_print_status:
                 ra=ra._replace(print_header=False)
             run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=sample_map,ra=ra)
@@ -384,7 +391,7 @@ def main():
             ra=ra._replace(print_header=False)
     #update support simple '&' CGI format
     else:
-        (intervalq,idq,rangeq,sampleq,ra) = process_params(input_)
+        (intervalq,idq,rangeq,sampleq,ra) = process_params(input_,region_args=ra)
         run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=sample_map,ra=ra)
 
 

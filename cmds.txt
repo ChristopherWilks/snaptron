@@ -240,3 +240,8 @@ s1="groups=`base64 -w 0 <(echo -n 'group=r2&regions=CD99|||group=r3&contains=1&r
 
 #file w/o groups= at start
 curl --data-urlencode groups@bulk_test_50.txt.b64 http://localhost:1580//snaptron
+
+#large query test (1200 samples)
+perl -e '$s="regions=chr8:46210817-46210817&sids="; $i=0; $s.=join(",",(map {++$i} split(//,"a"x1200))); print "group=r0&$s"; for $x (1..100) { print "|||group=r$x&$s";} END { print "\n";}' > bulk_test_large_samples.txt.100
+base64 -w 0 bulk_test_large_samples.txt.100 > bulk_test_large_samples.txt.100.b64
+curl --data-urlencode groups@bulk_test_large_samples.txt.100.b64 http://localhost:1580//snaptron

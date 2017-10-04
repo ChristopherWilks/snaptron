@@ -218,10 +218,12 @@ def run_command(cmd_and_args):
     fcntl(sproc.stderr, F_SETFL, flgs | O_NONBLOCK)
     return sproc
 
-def run_command_with_pipe(cmd_and_args):
-    logger.info("Running with piped input: %s" % (" ".join(cmd_and_args)))
+def run_command_with_pipe(cmd_and_args,record_type):
+    logger.info("record type = %s; Running with piped input: %s " % (" ".join(cmd_and_args), record_type))
     (python_path, endpoint_app, query_string) = cmd_and_args
-    cmd_and_args[2] = "PIPE"
+    #TODO: fix this up to support gene/exon queries
+    if record_type != 'junction':
+        cmd_and_args[2] = record_type +"|"+"PIPE"
     sproc = subprocess.Popen(cmd_and_args, bufsize=snapconf.CMD_BUFFER_SIZE, 
                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
     #we need to make sure that reading from the STDERR pipe 
@@ -333,12 +335,17 @@ def generic_endpoint(environ, start_response, endpoint_app):
             return bad_request(start_response, "bad read_size in environment")
     logger.info("READ_SIZE=%s" % read_size)
     read_size = int(read_size)
-
+    record_type = 'junction'
+    if endpoint_app in snapconf.pseudo_apps:
+        if not use_pipe:
+            query_string = endpoint_app+"|"+query_string
+        record_type = endpoint_app
+        endpoint_app = snapconf.SNAPTRON_APP
     args=[snapconf.PYTHON_PATH, endpoint_app, query_string]
     #create subprocess run object 
     sproc = None
     if use_pipe:
-        sproc = run_command_with_pipe(args)
+        sproc = run_command_with_pipe(args, record_type)
     else:
         sproc = run_command(args)
 
@@ -361,6 +368,12 @@ def samples_endpoint(environ, start_response):
 
 def annotations_endpoint(environ, start_response):
         return generic_endpoint(environ, start_response, snapconf.ANNOTATIONS_APP)
+
+def genes_endpoint(environ, start_response):
+        return generic_endpoint(environ, start_response, snapconf.GENES_APP)
+
+def exons_endpoint(environ, start_response):
+        return generic_endpoint(environ, start_response, snapconf.EXONS_APP)
 
 #only for basic testing
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
 #####fields that need to be changed for a different instance
 DATA_SOURCE='SRAv2'
 IP='127.0.0.1'
-PORT=1556
+PORT=1580
 SERVER_STRING='http://snaptron.cs.jhu.edu/%s/' % (DATA_SOURCE.lower())
 HG='hg38'
 BIGWIG2WIG="bigWigToWig"
@@ -33,11 +33,15 @@ TABIX_DB_PATH='./data'
 TABIX_GENE_INTERVAL_DB='all_transcripts.gtf.bgz'
 GENE_INTERVAL_DB='%s/transcripts.sqlite' % (TABIX_DB_PATH)
 TABIX_INTERVAL_DB='junctions_uncompressed.bgz'
+GENE_TABIX_DB='genes.bgz'
+EXON_TABIX_DB='exons.bgz'
 ID_START_COL=2
 CUT_START_COL=1
 #sqlite3 dbs
 SAMPLE_SQLITE_DB="%s/sample2junction.sqlite" % (TABIX_DB_PATH)
 SNAPTRON_SQLITE_DB="%s/junctions.sqlite" % (TABIX_DB_PATH)
+GENE_SQLITE_DB="%s/genes.sqlite" % (TABIX_DB_PATH)
+EXON_SQLITE_DB="%s/exons.sqlite" % (TABIX_DB_PATH)
 #Lucene dbs
 LUCENE_STD_SAMPLE_DB="%s/lucene_full_standard/" % (TABIX_DB_PATH)
 LUCENE_WS_SAMPLE_DB="%s/lucene_full_ws/" % (TABIX_DB_PATH)
@@ -57,6 +61,9 @@ LUCENE_WS_ANALYZER=analyzer
 SNAPTRON_APP = "%s/snaptron.py" % (ROOT_DIR)
 SAMPLES_APP = "%s/snample.py" % (ROOT_DIR)
 ANNOTATIONS_APP = "%s/snannotation.py" % (ROOT_DIR)
+GENES_APP='genes'
+EXONS_APP='exons'
+pseudo_apps = set([GENES_APP,EXONS_APP])
 #size for the OS buffer on the input pipe reading from samtools output
 CMD_BUFFER_SIZE = -1
 #a low max for what we want to pass to samtools for start/end coordinates, otherwise samtools will return everything

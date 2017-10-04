@@ -152,7 +152,7 @@ def stream_header(fout,region_args=default_region_args,interval=None):
     if ra.stream_back and ra.print_header and ra.post:
         fout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
 
-def stream_intron(fout,line,fields,region_args=default_region_args):
+def stream_record(fout,line,fields,region_args=default_region_args):
     ra = region_args
     if len(fields) == 0:
         fields = line.split('\t')
@@ -166,7 +166,7 @@ def stream_intron(fout,line,fields,region_args=default_region_args):
     else:
         fout.write("%s\t%s" % (ra.prefix,newline))
 
-return_formats={TSV:(stream_header,stream_intron),UCSC_BED:(ucsc_format_header,ucsc_format_intron),UCSC_URL:(ucsc_url,None)}
+return_formats={TSV:(stream_header,stream_record),UCSC_BED:(ucsc_format_header,ucsc_format_intron),UCSC_URL:(ucsc_url,None)}
 
 #def extract_sids_and_covs_from_search_iter(samples_found_iter, samples_str, num_samples):
 def extract_sids_and_covs_from_search_iter(samples_found_iter, fields):
