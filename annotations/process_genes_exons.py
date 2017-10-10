@@ -7,6 +7,7 @@ import gzip
 gene_id_col_map={'exon':2,'gene':1}
 def load_annotation(annot_type, annotation_file):
     gene2coords = {}
+    gene2num_exons = {}
     #chr1    HAVANA  gene    11869   14409   .       +       .       ID=ENSG00000223972.5;gene_id=ENSG00000223972.5;gene_type=transcribed_unprocessed_pseudogene;gene_status=KNOWN;gene_name=DDX11L1;level=2;havana_gene=OTTHUMG00000000961.2
     with gzip.open(annotation_file,"rb") as f:
         for line in f:
@@ -15,15 +16,21 @@ def load_annotation(annot_type, annotation_file):
                 continue
             fields = line.rstrip().split('\t')
             #only need genes or exons
-            if fields[2] != annot_type:
+            #if genes we can also match exons since we need their count per gene
+            if fields[2] != annot_type and (annot_type == 'exon' or fields[2] != 'exon'):
                 continue
             #keep the 'chr' prefix, need for Tabix
             chrom=fields[0]
             (start,end,strand) = (fields[3],fields[4],fields[6])
-            subfields = fields[8].split(';')
-            (junk,gene_id) = subfields[gene_id_col_map[annot_type]].split('=')
-            gene2coords[gene_id]=[chrom,start,end,strand]
-    return gene2coords
+            subfields=dict([x.split('=') for x in fields[8].split(';')])
+            if fields[2] == 'exon' and annot_type == 'gene':
+                if subfields['gene_id'] not in gene2num_exons:
+                    gene2num_exons[subfields['gene_id']] = 0
+                gene2num_exons[subfields['gene_id']]+=1
+                continue
+            gene2coords[subfields['gene_id']]=[chrom,start,end,strand,subfields['gene_name'],subfields['gene_type']]
+    return (gene2coords, gene2num_exons)
+
 
 sample_id_col_map={'srav2':1,'gtex':1,'tcga':23}
 def load_sample_id_map(sample_file, source):
@@ -57,7 +64,7 @@ if __name__ == '__main__':
         )
     args = parser.parse_args()
    
-    gene2coords = load_annotation(args.annot_type, args.annotation)
+    (gene2coords, gene2num_exons) = load_annotation(args.annot_type, args.annotation)
     srr2ids = load_sample_id_map(args.sample_metadata, args.sample_source)
 
     snaptron_id = 0
@@ -73,10 +80,14 @@ if __name__ == '__main__':
         if gene_id not in gene2coords:
             sys.stderr.write("MISSING_GENE_ID\t"+gene_id+"\n")
             continue
-        (chrom, start, end, strand) = gene2coords[gene_id]
+        (chrom, start, end, strand, gene_name, gene_type) = gene2coords[gene_id]
+        exon_count = gene2num_exons[gene_id]
+        if exon_count == 0:
+            sys.stderr.write("0_EXON_GENE\t"+gene_id+"\n")
+            continue
         length = str((int(end )- int(start)) + 1)
         #need offset of 3 since we have gene_id,length, and symbol before the sample counts
         sample_ids = [sample_id_mapping[i-3] for i in xrange(3,len(fields)) if float(fields[i]) > 0]
         #now join up the samples and their coverages and write out
-        sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", gene_id, symbol, ','.join(sample_ids),','.join([fields[i+3] for i in xrange(0,len(sample_ids))])])+"\n")
+        sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id,gene_name,gene_type,bp_length]), ','.join(sample_ids),','.join([fields[i+3] for i in xrange(0,len(sample_ids))])])+"\n")
         snaptron_id+=1
