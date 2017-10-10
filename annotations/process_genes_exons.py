@@ -17,8 +17,8 @@ def load_annotation(annot_type, annotation_file):
             #only need genes or exons
             if fields[2] != annot_type:
                 continue
-            #drop 'chr' prefix
-            chrom=fields[0][3:]
+            #keep the 'chr' prefix, need for Tabix
+            chrom=fields[0]
             (start,end,strand) = (fields[3],fields[4],fields[6])
             subfields = fields[8].split(';')
             (junk,gene_id) = subfields[gene_id_col_map[annot_type]].split('=')
@@ -76,7 +76,7 @@ if __name__ == '__main__':
         (chrom, start, end, strand) = gene2coords[gene_id]
         length = str((int(end )- int(start)) + 1)
         #need offset of 3 since we have gene_id,length, and symbol before the sample counts
-        sample_ids = [sample_id_mapping[i-3] for i in xrange(3,len(fields))]
+        sample_ids = [sample_id_mapping[i-3] for i in xrange(3,len(fields)) if float(fields[i]) > 0]
         #now join up the samples and their coverages and write out
-        sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", "", "", ','.join(sample_ids),','.join(fields[3:])])+"\n")
+        sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", gene_id, symbol, ','.join(sample_ids),','.join([fields[i+3] for i in xrange(0,len(sample_ids))])])+"\n")
         snaptron_id+=1
