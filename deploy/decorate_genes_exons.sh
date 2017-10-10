@@ -13,7 +13,7 @@
 p=`perl -e '@f=split("/","'$0'"); pop(@f); print "".join("/",@f)."\n";'`
 
 #print header
-perl -e 'print "".join("\t",("snaptron_id","chromosome","start","end","length","strand","NA","NA","NA","NA","NA","samples","samples_count","coverage_sum","coverage_avg","coverage_median","compilation_id"))."\n";'
+perl -e 'print "".join("\t",("snaptron_id","chromosome","start","end","length","strand","NA","NA","NA","gene_id","gene_symbol","samples","samples_count","coverage_sum","coverage_avg","coverage_median","compilation_id"))."\n";'
 
 #this will sort the output by coordinate, but because the snaptron_id has already been assigned by process_genes_exons.py, it will not be in order
-cat - | pypy ${p}/../annotations/process_genes_exons.py --annotation ${1} --sample-source ${2} --sample-metadata ${3} --annot-type gene | sort -k2,2n -k3,3n -k4,4n | ${p}/compute_stats_per_record.sh ${4} | bgzip > ${2}.genes.tsv.bgz
+cat - | pypy ${p}/../annotations/process_genes_exons.py --annotation ${1} --sample-source ${2} --sample-metadata ${3} --annot-type gene | sort -t'	' -k2,2 -k3,3n -k4,4n | ${p}/compute_stats_per_record.sh ${4} | bgzip > ${2}.genes.tsv.bgz
