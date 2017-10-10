@@ -260,7 +260,7 @@ def process_params(input_,region_args=default_region_args):
         #only expect one group per query
         if key == 'group':
             prefix = val
-            header = header.replace('DataSource:Type', 'Group') 
+            header = header.replace(snapconf.DATA_SOURCE_HEADER, 'Group') 
         elif key not in params:
             sys.stderr.write("unknown parameter %s, exiting\n" % key)
             sys.exit(-1)
@@ -274,7 +274,7 @@ def process_params(input_,region_args=default_region_args):
                     #only provide the total count of results
                     params['result_count'] = True
                     continue
-                snaputil.REQ_FIELDS.append(snapconf.INTRON_HEADER_FIELDS_MAP[field])
+                snaputil.REQ_FIELDS.append(snapconfshared.INTRON_HEADER_FIELDS_MAP[field])
         elif key == 'rfilter':
             #url decode the rfilters:
             val = urllib.unquote(val)
@@ -334,7 +334,7 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
     if ra.result_count:
         sys.stdout.write("%d\n" % (len(found_snaptron_ids)))
 
-record_types_map={'junction':(snapconf.TABIX_INTERVAL_DB,snapconf.SNAPTRON_SQLITE_DB,'I'),snapconf.GENES_APP:(snapconf.GENE_TABIX_DB,snapconf.GENE_SQLITE_DB,'G'),snapconf.EXONS_APP:(snapconf.EXON_TABIX_DB,snapconf.EXON_SQLITE_DB,'E')}
+record_types_map={'junction':(snapconf.TABIX_INTERVAL_DB,snapconf.SNAPTRON_SQLITE_DB,snapconfshared.INTRON_HEADER,'I'),snapconf.GENES_APP:(snapconf.GENE_TABIX_DB,snapconf.GENE_SQLITE_DB,snapconfshared.GENE_HEADER,'G'),snapconf.EXONS_APP:(snapconf.EXON_TABIX_DB,snapconf.EXON_SQLITE_DB,snapconfshared.EXON_HEADER,'E')}
 #cases:
 #1) just interval (one function call)
 #2) interval + range query(s) (one tabix function call + field filter(s))
@@ -346,9 +346,9 @@ record_types_map={'junction':(snapconf.TABIX_INTERVAL_DB,snapconf.SNAPTRON_SQLIT
 def main():
     input_ = sys.argv[1]
     inputs = input_.split('|')
-    (tabix_db,sqlite_db,prefix) = record_types_map['junction']
+    (tabix_db,sqlite_db,header,prefix) = record_types_map['junction']
     if inputs[0] in record_types_map:
-        (tabix_db, sqlite_db,prefix) = record_types_map[inputs[0]]
+        (tabix_db, sqlite_db,header,prefix) = record_types_map[inputs[0]]
         input_ = '|'.join(inputs[1:])
     DEBUG_MODE_=DEBUG_MODE
     global FORCE_SQLITE
@@ -371,7 +371,7 @@ def main():
     #make copy of the region_args tuple
     ra = default_region_args
     #override defaults for the DB files in case we're doing gene/exon rather than junction queries
-    ra=ra._replace(tabix_db_file=tabix_db,sqlite_db_file=sqlite_db,prefix="%s:%s" % (snapconf.DATA_SOURCE,prefix))
+    ra=ra._replace(tabix_db_file=tabix_db,sqlite_db_file=sqlite_db,header="%s\t%s" % (snapconf.DATA_SOURCE_HEADER,header), prefix="%s:%s" % (snapconf.DATA_SOURCE,prefix))
     #bulk query mode
     #somewhat ad hoc, but with the first test
     #trying to avoid a pattern search across the whole input string

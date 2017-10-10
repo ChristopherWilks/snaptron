@@ -125,7 +125,7 @@ def ucsc_format_header(fout,region_args=default_region_args,interval=None):
 def ucsc_format_intron(fout,line,fields,region_args=default_region_args):
     ra = region_args
     new_line = list(fields[1:4])
-    new_line.extend(["junc",fields[snapconf.INTRON_HEADER_FIELDS_MAP[ra.score_by]],fields[snapconf.STRAND_COL]])
+    new_line.extend(["junc",fields[snapconfshared.INTRON_HEADER_FIELDS_MAP[ra.score_by]],fields[snapconf.STRAND_COL]])
     #adjust for UCSC BED start-at-0 coordinates
     new_line[snapconf.INTERVAL_START_COL-1] = str(int(new_line[snapconf.INTERVAL_START_COL-1]) - 1)
     fout.write("%s\n" % ("\t".join([str(x) for x in new_line])))
@@ -144,13 +144,13 @@ def stream_header(fout,region_args=default_region_args,interval=None):
     custom_header = ra.header
     #if the user asks for specific fields they only get those fields, no data source
     if len(REQ_FIELDS) > 0:
-        custom_header = "DataSource:Type\t%s" % ("\t".join([snapconf.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
+        custom_header = "DataSource:Type\t%s" % ("\t".join([snapconfshared.INTRON_HEADER_FIELDS[x] for x in sorted(REQ_FIELDS)]))
         ra = ra._replace(prefix=None)
     if ra.stream_back and ra.print_header:
         if not ra.result_count:
             fout.write("%s\n" % (custom_header))
     if ra.stream_back and ra.print_header and ra.post:
-        fout.write("datatypes:%s\t%s\n" % (str.__name__,snapconf.INTRON_TYPE_HEADER))
+        fout.write("datatypes:%s\t%s\n" % (str.__name__,snapconfshared.INTRON_TYPE_HEADER))
 
 def stream_record(fout,line,fields,region_args=default_region_args):
     ra = region_args
@@ -204,10 +204,10 @@ def filter_by_ranges(fields,rquerys):
     skip=False
     for rfield in rquerys.keys():
         (op,rval)=rquerys[rfield]
-        if rfield not in snapconf.INTRON_HEADER_FIELDS_MAP:
+        if rfield not in snapconfshared.INTRON_HEADER_FIELDS_MAP:
             sys.stderr.write("bad field %s in range query,exiting\n" % (rfield))
             sys.exit(-1)
-        fidx = snapconf.INTRON_HEADER_FIELDS_MAP[rfield]
+        fidx = snapconfshared.INTRON_HEADER_FIELDS_MAP[rfield]
         (ltype,ptype,qtype) = snapconf.LUCENE_TYPES[rfield]
         if rfield == 'annotated':
             val = str(fields[fidx])
