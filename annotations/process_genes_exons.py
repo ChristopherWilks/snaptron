@@ -68,11 +68,16 @@ if __name__ == '__main__':
     srr2ids = load_sample_id_map(args.sample_metadata, args.sample_source)
 
     snaptron_id = 0
-    sample_id_mapping = []
+    sample_id_mapping = {}
+    sample_id_cols = []
     for line in sys.stdin:
         fields = line.strip().split('\t')
         if fields[0] == 'gene_id':
-            sample_id_mapping = [srr2ids[sample] for sample in fields[3:]]
+            for (i,sample) in enumerate(fields[3:]):
+                if sample not in srr2ids:
+                    sys.stderr.write("SAMPLE_NOT_PRESENT\t"+sample+"\t"+str(i+3)+"\n")
+                    continue
+                sample_id_mapping[i+3]=srr2ids[sample]
             continue
         gene_id = fields[0]
         bp_length = fields[1]
@@ -87,7 +92,7 @@ if __name__ == '__main__':
             continue
         length = str((int(end )- int(start)) + 1)
         #need offset of 3 since we have gene_id,length, and symbol before the sample counts
-        sample_ids = [sample_id_mapping[i-3] for i in xrange(3,len(fields)) if float(fields[i]) > 0]
+        sample_ids = [sample_id_mapping[i] for i in xrange(3,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping]
         #now join up the samples and their coverages and write out
-        sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id,gene_name,gene_type,bp_length]), ','.join(sample_ids),','.join([fields[i+3] for i in xrange(0,len(sample_ids))])])+"\n")
+        sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id,gene_name,gene_type,bp_length]), ','.join(sample_ids),','.join([fields[i] for i in xrange(3,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping])])+"\n")
         snaptron_id+=1
