@@ -11,11 +11,6 @@ Generated on |date| at |time|.
 ===================
 Snaptron User Guide
 ===================
-Christopher Wilks, Phani Gaddipati, Abhinav Nellore, Ben Langmead
-
-The published Snaptron paper is here:
-
-https://doi.org/10.1093/bioinformatics/btx547
 
 .. toctree::
    :maxdepth: 2
@@ -23,6 +18,14 @@ https://doi.org/10.1093/bioinformatics/btx547
 Questions can be asked in the project's Gitter channel_.
 
 .. _channel: https://gitter.im/snaptron/Lobby
+
+
+To cite Snaptron:
+
+        Christopher Wilks, Phani Gaddipati, Abhinav Nellore, Ben Langmead;
+        Snaptron: querying splicing patterns across tens of thousands of RNA-seq samples, 
+        Bioinformatics, (2017), btx547,
+        https://doi.org/10.1093/bioinformatics/btx547
 
 
 Snaptron Client Quickstart
