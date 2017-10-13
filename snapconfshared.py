@@ -20,6 +20,7 @@
 
 from collections import namedtuple
 import snapconf
+import re
 
 #to force the overlap to have either the start within the interval or the end
 #useful for avoiding overlaps which only contain the query interval
@@ -32,6 +33,9 @@ BULK_QUERY_DELIMITER='\|\|\|'
 TSV='0'
 UCSC_BED='1'
 UCSC_URL='2'
+
+GENCODE_ANNOTATION='gencode.v25.annotation.gff3.gz'
+GENE_ID_PATTERN=re.compile(r'ENSG\d+\.\d+')
 
 #setup headers for both the original intron list and the sample metadata list
 INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated	left_motif	right_motif	left_annotated	right_annotated	samples	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'

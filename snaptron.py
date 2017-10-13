@@ -240,9 +240,12 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
             runner = determine_index_to_use(interval,rangeq,ra)
             (ids,sids) = runner.run_query()
         else:
-           if gc is None:
-               gc = snannotation.GeneCoords()
-           (ids,sids) = search_by_gene_name(gc,interval,rangeq,rquery,intron_filters=snaptron_ids,print_header=print_header,region_args=region_args)
+            if gc is None:
+                gc = snannotation.GeneCoords()
+            #if we're searching for a specific gene_id (e.g. ENSG*.2) then we need to require an exact coordinate match
+            if snapconfshared.GENE_ID_PATTERN.search(interval):
+                region_args = region_args._replace(exact=True)
+            (ids,sids) = search_by_gene_name(gc,interval,rangeq,rquery,intron_filters=snaptron_ids,print_header=print_header,region_args=region_args)
         print_header = False
         if filtering:
             snaptron_ids_returned.update(ids)
@@ -348,7 +351,7 @@ def main():
     inputs = input_.split('|')
     (tabix_db,sqlite_db,header,prefix) = record_types_map['junction']
     if inputs[0] in record_types_map:
-        (tabix_db, sqlite_db,header,prefix) = record_types_map[inputs[0]]
+        (tabix_db,sqlite_db,header,prefix) = record_types_map[inputs[0]]
         input_ = '|'.join(inputs[1:])
     DEBUG_MODE_=DEBUG_MODE
     global FORCE_SQLITE
