@@ -66,7 +66,7 @@ class GeneCoords(object):
         if load_refseq:
             gene_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.REFSEQ_ANNOTATION)
             gencode_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconfshared.GENCODE_ANNOTATION)
-            gene_pickle_file = "refseq_gencode.pkl"
+            gene_pickle_file = "%s/refseq_gencode.pkl" % snapconf.TABIX_DB_PATH
             self.gene_map = snaputil.load_cpickle_file(gene_pickle_file)
             if not self.gene_map:
                 self.load_gene_coords(gene_file)
@@ -91,10 +91,10 @@ class GeneCoords(object):
             snaputil.store_cpickle_file(transcript_pickle_file,self.transcript_map)
 
     def extend_gene_coords(self, gencode_file):
-        with open(gencode_file,"r") as f:
+        with gzip.open(gencode_file,"r") as f:
             #chr1    HAVANA  gene    11869   14409   .       +       .       ID=ENSG00000223972.5;gene_id=ENSG00000223972.5;gene_type=transcribed_unprocessed_pseudogene;gene_status=KNOWN;gene_name=DDX11L1;level=2;havana_gene=OTTHUMG00000000961.2
             for line in f:
-                if line[0]:
+                if line[0] == '#':
                     continue
                 fields = line.rstrip().split('\t')
                 if fields[2] != 'gene':
