@@ -305,7 +305,11 @@ Table 4. Query Filter Fields ("rfilter" parameter)
 +===================+=================+======================+===========================================================================================+
 | length            | 1-500K          | intron_length<:5000  | length of exon-exon junction (intron)                                                     |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
-| annotated         | 0 or 1          | annotated:1          | whether both left and right splice sites in one or more annotations (default is both)     |
+| annotated*        | 0 or 1          | annotated:1          | whether both left and right splice sites in one or more annotations (default is both)     |
++-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
+| left_annotated*   | 0 or 1          | left_annotated:1     | whether the left splice site is in one or more annotations                                |
++-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
+| right_annotated*  | 0 or 1          | right_annotated:1    | whether the right splice site is in one or more annotations                               |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
 | strand            | ``+`` or ``-``  | strand:+             | which strand to require (default is both)                                                 |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
@@ -317,6 +321,9 @@ Table 4. Query Filter Fields ("rfilter" parameter)
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
 | coverage_median   | 1.0-Inf         | coverage_median>:6.0 | median of read coverage across all samples the junction appears in                        |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
+
+\* these fields are treated as booleans for the purpose of searching but as Strings when returned since if they are not 0, they will be a list of one or more annotation source abbreviations.  Also, importantly, if each splice site of a junction (left/right) is annotated separately (not connected), ``annotated`` will be 0 but BOTH the left and right annotated fields will not be 0.
+
 
 Exact HUGO (HGNC) gene symbols can be searched in snaptron SRA instance in lieu of actual coordinates.   If the gene symbol had multiple coordinate ranges that were either on different chromosomes or more than 10,000 bases apart, Snaptron will do multiple tabix lookups and will stream them back in coordinate order per chromosome (the chromosome order itself is sorted via default python sorted which is not 1-22,X,Y,M).
 
@@ -358,15 +365,15 @@ Table 5. Complete list of Snaptron Fields In Return Format
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
 | 7           | Yes      | strand            | Single Character                                | Orientation of intron (Watson or Crick)                                                                                 |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
-| 8           | Yes      | annotated         | Boolean Integer                                 | If both ends of the intron are annotated as a splice site in some annotation                                            |
+| 8           | Yes      | annotated         | String                                          | If both ends of the intron are annotated as a splice site in some annotation                                            |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
 | 9           | No       | left_motif        | String                                          | Splice site sequence bases at the left end of the intron                                                                |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
 | 10          | No       | right_motif       | String                                          | Splice site sequence bases at the right end of the intron                                                               |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
-| 11          | No       | left_annotated    | String                                          | If the left end splice site is annotated or not and which annotations it appears in (maybe more than once)              |
+| 11          | Yes      | left_annotated    | String                                          | If the left end splice site is annotated or not and which annotations it appears in (maybe more than once)              |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
-| 12          | No       | right_annotated   | String                                          | If the right end splice site is in an annotated or not, same as left_annotated                                          |
+| 12          | Yes      | right_annotated   | String                                          | If the right end splice site is in an annotated or not, same as left_annotated                                          |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
 | 13          | No       | samples*          | Comma separated list of tuples: integer:integer | The list of samples which had one or more reads covering the intron and their coverages. IDs are from the IntropolisDB. |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
