@@ -102,9 +102,9 @@ def sqlite3_range_query_parse(rquery,where,arguments):
             if op not in snapconf.operators_old:
                 sys.stderr.write("bad operator %s in range query,exiting\n" % (str(op)))
                 sys.exit(-1)
-            if col == 'annotated':
+            if col in snapconfshared.annotated_columns:
                 val = str(val)
-                #special casing for the annotated field since it's a mix of integer and string
+                #special casing for the annotated fields since they're a mix of integer and string
                 if (len(val) > 1 or val == '1'):
                     val = '0'
                     op='!='
