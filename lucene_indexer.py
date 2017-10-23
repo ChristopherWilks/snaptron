@@ -1,4 +1,4 @@
-#!/usr/bin/env Python2.7
+#!/usr/bin/env python2.7
 
 #based on the example code at
 #http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
