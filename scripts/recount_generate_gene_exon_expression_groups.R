@@ -104,10 +104,6 @@ save(mexons,file="mouse_exons_gencodev15.Rdata")
 library('rtracklayer')
 export(unlist(mexons), con = 'Gencode-mm-v15.exons.bed', format='BED')
 
-###do the BWtool runs against the BigWIgs here, and then load in the summed file
-
-
-
 ## Save how the exons are related, for speeding up the tsv -> count matrix step
 ## Group counts by gene
 n <- elementNROWS(mexons)
@@ -116,6 +112,15 @@ cg<-as.matrix(count_groups)
 rownames(cg)<-rep(names(n), n)
 write.table(cg,file="./mouse_count_groups.tsv",quote=FALSE,sep="\t",col.names=FALSE)
 
+###now do the BWtool runs against the BigWigs here, and then load in the summed file
+#look at:
+#https://github.com/leekgroup/recount-website/blob/master/generate_sums.sh
+#and
+#https://github.com/leekgroup/recount-website/blob/master/sum.sh
+
+
+#the following is DEPRECATED
+#use summarize_disjoint_exon_counts_to_gene_level.py instead to do the counts per gene summary
 #now get gene expression counts summed over the disjoint exons
 tsvFile<-'/home-1/cwilks3@jhu.edu/work/jling/gene_expression/coverage/all_disjoint_exon_expression_counts.tsv'
 disjoint_exon_exp <- read.table(tsvFile, header = FALSE, colClasses = list('character', 'numeric', 'numeric', 'numeric'))
