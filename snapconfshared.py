@@ -51,6 +51,7 @@ INTRON_TYPE_HEADER = "\t".join(INTRON_TYPE_HEADER_)
 
 GENE_HEADER='snaptron_id	chromosome	start	end	length	strand	NA	NA	NA	exon_count	gene_id:gene_name:gene_type:bp_length	samples	samples_count	coverage_sum	coverage_avg	coverage_median	compilation_id'
 EXON_HEADER=''
+annotated_columns=set(['annotated','left_annotated','right_annotated'])
 
 RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col region_start_col region_end_col contains either exact result_count return_format score_by post original_input_string coordinate_string sample_fields sid_search_object sids additional_cmd sqlite_db_file debug')
 
