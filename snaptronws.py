@@ -219,9 +219,9 @@ def run_command(cmd_and_args):
     return sproc
 
 def run_command_with_pipe(cmd_and_args,record_type):
-    logger.info("record type = %s; Running with piped input: %s " % (" ".join(cmd_and_args), record_type))
+    #logger.info("record type = %s; Running with piped input: %s " % (" ".join(cmd_and_args), record_type))
     (python_path, endpoint_app, query_string) = cmd_and_args
-    #TODO: fix this up to support gene/exon queries
+    cmd_and_args[2] = "PIPE"
     if record_type != 'junction':
         cmd_and_args[2] = record_type +"|"+"PIPE"
     sproc = subprocess.Popen(cmd_and_args, bufsize=snapconf.CMD_BUFFER_SIZE, 
