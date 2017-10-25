@@ -123,6 +123,7 @@ echo "3" > expected_wc
 curl --data 'fields=[{"ids":["7465808"],"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":"100"}],"coverage_sum":[{"op":">:","val":"1000"}]}]' http://snaptron.cs.jhu.edu/srav1/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
 
+rm test_wc expected_wc
 echo "6" > expected_wc
 curl --data 'fields=[{"ids":["7465808"],"intervals":["chr11:82970135-82997450"],"samples_count":[{"op":">:","val":"100"}],"coverage_sum":[{"op":">:","val":"1000"}]},{"ids":["33401865","33401867","33401868"]}]' http://snaptron.cs.jhu.edu/srav1/snaptron 2>/dev/null | wc -l > test_wc
 diff test_wc expected_wc
@@ -130,11 +131,19 @@ diff test_wc expected_wc
 curl "http://$HOST:$PORT/$PATH_/snaptron?contains=1&regions=chr2:29446395-30142858&rfilter=samples_count>:100&rfilter=annotated:1" 2>/dev/null > test_annot_full.test
 diff test_annot_full.test test_annot_full
 
+#gene expression tests
+curl "http://$HOST:$PORT/genes?regions=ALK&sids=40099,40100" > gene_exp.alk_sids_test.test
+diff gene_exp.alk_sids_test.test instances/srav2.gene_exp.alk_sids_test.expected
 
-rm test_wc expected_wc
-
+#bulk query tests
 curl --data-urlencode groups@bulk_test_large_samples.txt.2.b64 http://$HOST:$PORT/$PATH_/snaptron > bulk_test_large_samples.txt.2.b64.output.test
 diff bulk_test_large_samples.txt.2.b64.output.test bulk_test_large_samples.txt.2.b64.output
+
+#larger bulk query test (has found deadlock problems in the past)
+rm jons_breaking_bulk_query.test
+base64 -w 0 instances/srav2.jons_breaking_bulk_query_test > jons_breaking_bulk_query.b64
+curl --data-urlencode groups@jons_breaking_bulk_query.b64 http://$HOST:$PORT//snaptron > jons_breaking_bulk_query.test
+diff jons_breaking_bulk_query.test instances/srav2.jons_breaking_bulk_query_test.expected
 
 echo "all tests run"
 
