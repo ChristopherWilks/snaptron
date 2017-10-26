@@ -33,8 +33,6 @@ reproduce_ranges <- function(level = 'both', db = 'Gencode.mm.v15') {
   stopifnot(level %in% c('gene', 'exon', 'both'))
   stopifnot(db %in% c('Gencode.v25', 'EnsDb.Hsapiens.v79','Gencode.mm.v15'))
   
-  
-  
   ## Load required packages
   .load_install('GenomicFeatures')
   if (db == 'Gencode.v25') {
@@ -97,11 +95,17 @@ source("https://bioconductor.org/biocLite.R")
 biocLite("org.Hs.eg.db")
 biocLite("org.Mm.eg.db")
 library(GenomicRanges)
-library("org.Mm.eg.db")
-library("org.Hs.eg.db")
+library(org.Mm.eg.db)
+library(org.Hs.eg.db)
+mgenes<-reproduce_ranges(level='gene')
 mexons<-reproduce_ranges(level='exon')
+  
+save(mgenes,file="mouse_genes_gencodev15.Rdata")
 save(mexons,file="mouse_exons_gencodev15.Rdata")
 library('rtracklayer')
+export(unlist(mgenes), con = 'Gencode-mm-v15.genes.bed', format='BED')
+#symbols<-lapply(mgenes$symbol,function(x) { if(length(x) > 1) { return(paste(x,sep=":")) } else { return(x) } })
+write.table(mgenes$bp_length,file="Gencode-mm-v15.gene_names.bed",sep="\t",quote=FALSE,col.names=FALSE)
 export(unlist(mexons), con = 'Gencode-mm-v15.exons.bed', format='BED')
 
 ## Save how the exons are related, for speeding up the tsv -> count matrix step
