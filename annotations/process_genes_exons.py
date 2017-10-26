@@ -32,7 +32,7 @@ def load_annotation(annot_type, annotation_file):
     return (gene2coords, gene2num_exons)
 
 
-sample_id_col_map={'srav2':1,'gtex':1,'tcga':23}
+sample_id_col_map={'srav2':1,'gtex':1,'tcga':23,'supermouse':0}
 def load_sample_id_map(sample_file, source):
     #we want the SRR accession2rail_id mapping
     sample2ids = {}
@@ -93,6 +93,9 @@ if __name__ == '__main__':
         length = str((int(end )- int(start)) + 1)
         #need offset of 3 since we have gene_id,length, and symbol before the sample counts
         sample_ids = [sample_id_mapping[i] for i in xrange(3,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping]
+        #skip any with no samples
+        if len(sample_ids) == 0:
+            continue
         #now join up the samples and their coverages and write out
         sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id,gene_name,gene_type,bp_length]), ','.join(sample_ids),','.join([fields[i] for i in xrange(3,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping])])+"\n")
         snaptron_id+=1
