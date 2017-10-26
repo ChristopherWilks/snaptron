@@ -1,7 +1,7 @@
 #!/bin/bash
 #assumes bgzip is in PATH, dumps output to working directory
 #reads from STDIN of raw tab-delimited genes/exon expression format: gene_id,bp_length,symbol,tab delimited list of summarized raw read counts for samples
-#plus 3 arguments required:
+#plus 4 arguments required:
 #1) full path to annotation mapping gene_id/exon_id to genomic coordinates
 #2) source compilation (GTEx,SRA,TCGA,etc...)
 #3) full path to file containing sample metadata from Rail for this compilation (/data/snaptron_data/<compilation>/samples.tsv)
