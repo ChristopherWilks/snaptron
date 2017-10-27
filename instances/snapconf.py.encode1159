@@ -41,11 +41,15 @@ TABIX_DB_PATH='./data'
 TABIX_GENE_INTERVAL_DB='all_transcripts.gtf.bgz'
 GENE_INTERVAL_DB='%s/transcripts.sqlite' % (TABIX_DB_PATH)
 TABIX_INTERVAL_DB='junctions_uncompressed.bgz'
+GENE_TABIX_DB='genes.bgz'
+EXON_TABIX_DB='exons.bgz'
 ID_START_COL=2
 CUT_START_COL=1
 #sqlite3 dbs
 SAMPLE_SQLITE_DB="%s/sample2junction.sqlite" % (TABIX_DB_PATH)
 SNAPTRON_SQLITE_DB="%s/junctions.sqlite" % (TABIX_DB_PATH)
+GENE_SQLITE_DB="%s/genes.sqlite" % (TABIX_DB_PATH)
+EXON_SQLITE_DB="%s/exons.sqlite" % (TABIX_DB_PATH)
 #Lucene dbs
 LUCENE_STD_SAMPLE_DB="%s/lucene_full_standard/" % (TABIX_DB_PATH)
 LUCENE_WS_SAMPLE_DB="%s/lucene_full_ws/" % (TABIX_DB_PATH)
@@ -64,6 +68,9 @@ LUCENE_WS_ANALYZER=analyzer
 SNAPTRON_APP = "%s/snaptron.py" % (ROOT_DIR)
 SAMPLES_APP = "%s/snample.py" % (ROOT_DIR)
 ANNOTATIONS_APP = "%s/snannotation.py" % (ROOT_DIR)
+GENES_APP='genes'
+EXONS_APP='exons'
+pseudo_apps = set([GENES_APP,EXONS_APP])
 #size for the OS buffer on the input pipe reading from samtools output
 CMD_BUFFER_SIZE = -1
 #a low max for what we want to pass to samtools for start/end coordinates, otherwise samtools will return everything
@@ -129,21 +136,9 @@ MAX_DISTANCE_BETWEEN_IDS=1000
 #INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
 #SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
 
+DATA_SOURCE_HEADER='DataSource:Type'
 #GENE_ANNOTATION_HEADER (GTF)
-GENE_ANNOTATION_HEADER = "DataSource:Type\treference\tannotation_source\tfeature_type\tstart\tend\tscore\tstrand\tunused\tattributes";
-
-#setup headers for both the original intron list and the sample metadata list
-INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated	left_motif	right_motif	left_annotated	right_annotated	samples	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'
-INTRON_TYPE_HEADER_MAP={'snaptron_id':int,'chromosome':str,'start':int,'end':int,'length':int,'strand':str,'annotated':bool,'left_motif':str,'right_motif':str,'left_annotated':str,'right_annotated':str,'samples':str,'samples_count':int,'coverage_sum':int,'coverage_avg':float,'coverage_median':float,'source_dataset_id':str}
-
-
-INTRON_HEADER_FIELDS=INTRON_HEADER.split('\t')
-INTRON_HEADER_FIELDS_MAP={}
-INTRON_TYPE_HEADER_=[]
-for (i,field) in enumerate(INTRON_HEADER_FIELDS):
-   INTRON_HEADER_FIELDS_MAP[field]=i
-   INTRON_TYPE_HEADER_.append(INTRON_TYPE_HEADER_MAP[field].__name__)
-INTRON_TYPE_HEADER = "\t".join(INTRON_TYPE_HEADER_)
+GENE_ANNOTATION_HEADER = DATA_SOURCE_HEADER + "\treference\tannotation_source\tfeature_type\tstart\tend\tscore\tstrand\tunused\tattributes";
 
 SAMPLE_HEADER_FIELDS=SAMPLE_HEADER.split('\t')
 SAMPLE_HEADER_FIELDS_MAP={}
