@@ -34,6 +34,7 @@ import re
 import gzip
 
 import snapconf
+import snapconfshared
 import snaputil
 import snaptron
 import snquery
@@ -61,12 +62,16 @@ class GeneCoords(object):
 
     def __init__(self,load_refseq=True,load_canonical=True,load_transcript=False):
         self.ensembl_id_patt = re.compile('(ENST\d+)')
+        #this is the main gene2coordinate map we use for servicing HUGO gene symbol queries (RefSeq)
         if load_refseq:
             gene_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.REFSEQ_ANNOTATION)
-            gene_pickle_file = "%s.pkl" % (gene_file)
+            gencode_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconfshared.GENCODE_ANNOTATION)
+            gene_pickle_file = "%s/refseq_gencode.pkl" % snapconf.TABIX_DB_PATH
             self.gene_map = snaputil.load_cpickle_file(gene_pickle_file)
             if not self.gene_map:
                 self.load_gene_coords(gene_file)
+                #add additional annotations (w/ different gene names)
+                self.extend_gene_coords(gencode_file)
             snaputil.store_cpickle_file(gene_pickle_file,self.gene_map)
         if load_canonical:
             canonical_gene_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.CANONICAL_ANNOTATION)
@@ -84,6 +89,19 @@ class GeneCoords(object):
             if not self.transcript_map:
                 self.load_transcripts(transcript_file)
             snaputil.store_cpickle_file(transcript_pickle_file,self.transcript_map)
+
+    def extend_gene_coords(self, gencode_file):
+        with gzip.open(gencode_file,"r") as f:
+            #chr1    HAVANA  gene    11869   14409   .       +       .       ID=ENSG00000223972.5;gene_id=ENSG00000223972.5;gene_type=transcribed_unprocessed_pseudogene;gene_status=KNOWN;gene_name=DDX11L1;level=2;havana_gene=OTTHUMG00000000961.2
+            for line in f:
+                if line[0] == '#':
+                    continue
+                fields = line.rstrip().split('\t')
+                if fields[2] != 'gene':
+                    continue
+                (chrom,st,en) = (fields[0],int(fields[3]),int(fields[4]))
+                subfields=dict([x.split('=') for x in fields[8].split(';')])
+                self.gene_map[subfields['gene_id'].upper()]={chrom:[[st,en]]}
 
     def load_gene_coords(self,filepath):
         gene_map = {}

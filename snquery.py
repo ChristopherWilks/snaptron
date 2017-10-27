@@ -96,7 +96,7 @@ class RunExternalQueryEngine:
             self.end = end
             snaputil.sqlite3_range_query_parse(rangeq,where,arguments)
             #force sqlite3 to 3 decimal places
-            select_fields = snapconf.INTRON_HEADER_FIELDS
+            select_fields = snapconfshared.INTRON_HEADER_FIELDS
             select_fields[snapconf.CHROM_COL]='chrom'
             select_fields[snapconf.DONOR_COL]='donor'
             select_fields[snapconf.ACCEPTOR_COL]='acceptor'

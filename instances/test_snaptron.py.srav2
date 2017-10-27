@@ -6,6 +6,7 @@ from StringIO import StringIO
 import unittest
 
 import snapconf
+import snapconfshared
 import snaputil
 import snaptron
 import snannotation
@@ -138,10 +139,10 @@ class TestTabixCalls(unittest.TestCase):
         snaputil.REQ_FIELDS=[]
         snaputil.stream_header(sout,region_args=snaptron.default_region_args)
         hfields = sout.getvalue().split("\n")[0].rstrip().split("\t")
-        self.assertEqual(len(hfields),len(snapconf.INTRON_HEADER_FIELDS)+1)
+        self.assertEqual(len(hfields),len(snapconfshared.INTRON_HEADER_FIELDS)+1)
 
         req_field = 'snaptron_id'
-        snaputil.REQ_FIELDS=[snapconf.INTRON_HEADER_FIELDS_MAP[req_field]]
+        snaputil.REQ_FIELDS=[snapconfshared.INTRON_HEADER_FIELDS_MAP[req_field]]
 
         sout = StringIO()
         snaputil.stream_header(sout,region_args=snaptron.default_region_args)

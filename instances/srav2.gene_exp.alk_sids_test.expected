@@ -1,0 +1,3 @@
+DataSource:Type	snaptron_id	chromosome	start	end	length	strand	NA	NA	NA	exon_count	gene_id:gene_name:gene_type:bp_length	samples	samples_count	coverage_sum	coverage_avg	coverage_median	compilation_id
+SRAv2:G	12977	chr2	29192774	29921566	728793	-				77	ENSG00000171094.15:ALK:protein_coding:6932	,40099:12258,40100:461	2	12719	6359.5	6359.5	2
+SRAv2:G	17507	chr2	29899597	29907199	7603	+				2	ENSG00000197644.2:AC106870.2:antisense:200	,40099:23	1	23	23.0	23.0	2
