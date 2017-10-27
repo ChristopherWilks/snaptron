@@ -139,6 +139,11 @@ diff test_annot_full.test test_annot_full
 curl "http://$HOST:$PORT/genes?regions=ALK&sids=40099,40100" > gene_exp.alk_sids_test.test
 diff gene_exp.alk_sids_test.test instances/srav2.gene_exp.alk_sids_test.expected
 
+#ALK exactness via gene_id test
+echo "2" > expected_wc
+curl 'http://localhost:1556/genes?regions=ENSG00000171094.15' | wc -l > test_wc
+diff test_wc expected_wc
+
 #bulk query tests
 curl --data-urlencode groups@bulk_test_large_samples.txt.2.b64 http://$HOST:$PORT/$PATH_/snaptron > bulk_test_large_samples.txt.2.b64.output.test
 diff bulk_test_large_samples.txt.2.b64.output.test bulk_test_large_samples.txt.2.b64.output
