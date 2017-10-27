@@ -213,7 +213,6 @@ r1	72070990	chr8	46207804	46231744	23941	+	0	GC	AG	0	0	,186:1	1	1	1.0	1.0	2
 r1	72071060	chr8	46208531	46228009	19479	-	0	GC	AG	0	0	,45:1	1	1	1.0	1.0	2
 r1	72071207	chr8	46209366	46235960	26595	-	0	GC	AG	0	0	,1005:1	1	1	1.0	1.0	2
 r1	72071338	chr8	46210342	46214252	3911	-	0	GC	AG	0	0	,1166:1	1	1	1.0	1.0	2
-Group	snaptron_id	chromosome	start	end	length	strand	annotated	left_motif	right_motif	left_annotated	right_annotated	samples	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id
 r2	72058413	chr8	45974934	46345697	370764	-	0	AT	AC	0	0	,1027:2	1	2	2.0	2.0	2
 r2	72058828	chr8	45991435	46367714	376280	-	0	GC	AG	0	0	,186:2,1005:1,1006:1,1083:1	4	5	1.25	1.0	2
 r2	72059143	chr8	46007579	46326395	318817	-	0	GT	AG	0	0	,137:7	1	7	7.0	7.0	2

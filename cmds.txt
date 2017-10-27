@@ -240,3 +240,19 @@ s1="groups=`base64 -w 0 <(echo -n 'group=r2&regions=CD99|||group=r3&contains=1&r
 
 #file w/o groups= at start
 curl --data-urlencode groups@bulk_test_50.txt.b64 http://localhost:1580//snaptron
+
+#large query test (1200 samples)
+perl -e '$s="regions=chr8:46210817-46210817&sids="; $i=0; $s.=join(",",(map {++$i} split(//,"a"x1200))); print "group=r0&$s"; for $x (1..100) { print "|||group=r$x&$s";} END { print "\n";}' > bulk_test_large_samples.txt.100
+base64 -w 0 bulk_test_large_samples.txt.100 > bulk_test_large_samples.txt.100.b64
+curl --data-urlencode groups@bulk_test_large_samples.txt.100.b64 http://localhost:1580//snaptron
+
+#selection of junctions limiting by multiple samples (ORing the sample IDs)
+#TCGA
+curl 'http://localhost:1591/genes?regions=ALK&sids=50099,50100'
+#SRAV2
+curl 'http://localhost:1580/genes?regions=ALK&sids=40099,40100'
+
+curl --data-urlencode groups@jons_breaking_bulk_query.b64 http://localhost:1580//snaptron
+
+#get total: # of junctions, #coverage sum, and average coverage for each sample
+time zcat junctions.bgz | cut -f 12 | perl -ne 'chomp; @f=split(/,/,$_); shift(@f); for $f (@f) { ($f,$c)=split(/:/,$f); $count{$f}++; $cov{$f}+=$c; } END { for $f (keys %count) { $avg=$cov{$f}/$count{$f}; print "$f\t".$count{$f}."\t".$cov{$f}."\t$avg\n";}}' > sample_summary_stats.tsv &

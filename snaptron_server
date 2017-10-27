@@ -18,6 +18,8 @@ import cherrypy
 from snaptronws import snaptron_endpoint
 from snaptronws import samples_endpoint
 from snaptronws import annotations_endpoint
+from snaptronws import genes_endpoint
+from snaptronws import exons_endpoint
 
 import snapconf
 
@@ -80,6 +82,14 @@ def sample_service(environ, start_response):
 def annotation_service(environ, start_response):
     environ['read_size'] = options.read_size
     return annotations_endpoint(environ, start_response)
+
+def gene_service(environ, start_response):
+    environ['read_size'] = options.read_size
+    return genes_endpoint(environ, start_response)
+
+def exon_service(environ, start_response):
+    environ['read_size'] = options.read_size
+    return exons_endpoint(environ, start_response)
 
 def density_service(environ, start_response):
     environ['read_size'] = options.read_size
@@ -166,11 +176,9 @@ def run_server():
     cherrypy.tree.graft(snaptron_service, "/snaptron")
     cherrypy.tree.graft(sample_service, "/samples")
     cherrypy.tree.graft(annotation_service, "/annotations")
-    #cherrypy.tree.graft(density_service, "/density")
+    cherrypy.tree.graft(gene_service, "/genes")
+    cherrypy.tree.graft(exon_service, "/exons")
 
-    #cherrypy.config.update({'server.socket_host': "127.0.0.1", 'server.socket_port': 1555, 'server.thread_pool': 30})
-    #cherrypy.config.update({'server.socket_host': "10.1.1.50", 'server.socket_port': 1555, 'server.thread_pool': 30})
-    #TODO: put real static IP here
     cherrypy.config.update({'server.socket_host': snapconf.IP, 'server.socket_port': snapconf.PORT, 'server.thread_pool': 30})
 
     cherrypy.engine.start()

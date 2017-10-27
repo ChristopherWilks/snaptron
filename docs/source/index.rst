@@ -11,11 +11,6 @@ Generated on |date| at |time|.
 ===================
 Snaptron User Guide
 ===================
-Christopher Wilks, Phani Gaddipati, Abhinav Nellore, Ben Langmead
-
-The published Snaptron paper is here:
-
-https://doi.org/10.1093/bioinformatics/btx547
 
 .. toctree::
    :maxdepth: 2
@@ -23,6 +18,14 @@ https://doi.org/10.1093/bioinformatics/btx547
 Questions can be asked in the project's Gitter channel_.
 
 .. _channel: https://gitter.im/snaptron/Lobby
+
+
+To cite Snaptron:
+
+        Christopher Wilks, Phani Gaddipati, Abhinav Nellore, Ben Langmead;
+        Snaptron: querying splicing patterns across tens of thousands of RNA-seq samples, 
+        Bioinformatics, (2017), btx547,
+        https://doi.org/10.1093/bioinformatics/btx547
 
 
 Snaptron Client Quickstart
@@ -141,11 +144,11 @@ Query metadata and sample metadata text is converted to lower case before indexi
 
 Both sample-only searches and junction searches limited by a sample predicate can be performed: ::
 
-  curl "http://snaptron.cs.jhu.edu/gtex/samples?sfilter=sfilter=SMRIN>8"
+  curl "http://snaptron.cs.jhu.edu/gtex/samples?sfilter=SMRIN>8"
 
 will return a list of samples which have a RIN value > 8. ::
 
-  curl "http://snaptron.cs.jhu.edu/srav1/snaptron?regions=chr6:1-514015&rfilter=samples_count:100&sfilter=description:cortex"
+  curl "http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr6:1-10714015&rfilter=samples_count>:10&sfilter=description:cortex"
 
 will return a list of junctions and their list of summary stats calcuated from the intersection of the region and rfilter
 predicates and which contain at least one sample in the list of samples which have "cortex" in their description field.
@@ -237,18 +240,23 @@ Query Type      Description                                                     
 Region          chromosome based coordinates range (1-based); HUGO gene name     1            chr(1-22,X,Y,M):1-size of chromosome; gene_name chr21:1-500; CD99
 Filter          range over summary statistic column values                       1 or more    column_name(>:,<:,:)number (integer or float)   coverage_avg>:10
 Sample Metadata keyword and numeric range search over sample metadata            1 or more    fieldname(>:,<:,:)keyword                       description:cortex; SMRIN>:8
-Snaptron IDs    one or more snaptron_ids                                         1 or more    ids=\d+[,\d+]*                                  ids=5,7,8
-Sample IDs      one or more sample_ids                                           1 or more    ids=\d+[,\d+]*                                  ids=20,40,100
+Sample IDs      limits results to only junctions found in specified samples IDs  1            sids=\\d+[,\\d+]*                                 sids=2,40,50,100
+Snaptron IDs    one or more snaptron_ids                                         1            ids=\\d+[,\\d+]*                                  ids=5,7,8
+Sample IDs      one or more sample_ids                                           1            ids=\\d+[,\\d+]*                                  ids=20,40,100
 =============== ================================================================ ============ =============================================== ==================
+
+The ``Region`` query type is required to be present if the ``Filter``, ``Sample Metadata``, and or ``Sample IDs`` types are used.
 
 Table 2.  List of Snaptron Parameters
 -------------------------------------
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Parameter | WSI Endpoints     | Values                               | # Occurrences                                                             | Example                                                     | Description                                                                                                                                                    |
 +===========+===================+======================================+===========================================================================+=============================================================+================================================================================================================================================================+
-| regions   | snaptron          | chr[1-22XYM]:\d+-\d+; HUGO gene name | 1 but can take multiple arguments separated by a comma representing an OR | chr1:1-5000;DRD4                                            | coordinate intervals and/or HUGO gene names                                                                                                                    |
+| regions   | snaptron          | chr[1-22XYM]:\\d+-\\d+;HUGO gene     | 1 but can take multiple arguments separated by a comma representing an OR | chr1:1-5000;DRD4                                            | coordinate intervals and/or HUGO gene names                                                                                                                    |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ids*      | snaptron; samples | ids=\d+[,\d+]*                       | 1                                                                         | ids=5,6,7                                                   | ID filter for snaptron_id (endpoint=snaptron) and sample_id (endpoint=samples)                                                                                 |
+| sids      | snaptron          | sids=\\d+[,\\d+]*                    | 1                                                                         | sids=30,100,150                                             | additional query filter to only include junctions from one or more samples in this list; uses the samples' rail_ids                                            |
++-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ids*      | snaptron; samples | ids=\\d+[,\\d+]*                     | 1                                                                         | ids=5,6,7                                                   | ID filter for snaptron_id (endpoint=snaptron) and rail_id (endpoint=samples); this only returns the specific records with those IDs                            |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | rfilter   | snaptron          | fieldname[><!:]value                 | 0 or more                                                                 | rfilter=samples_count>:5&rfilter=coverage_sum:3             | point range filter (inclusion)                                                                                                                                 |
 +-----------+-------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -271,12 +279,17 @@ Table 2.  List of Snaptron Parameters
 
 Individual records for junctions can be accessed via the Snaptron ID directly as: ::
         
-        curl "http://snaptron.cs.jhu.edu/srav1/snaptron/5"
+        curl "http://snaptron.cs.jhu.edu/srav2/snaptron/5"
 
 and for a sample record through its Rail ID: ::
 
-        curl "http://snaptron.cs.jhu.edu/srav1/samples/10"
+        curl "http://snaptron.cs.jhu.edu/srav2/samples/10"
 
+In contrast, the ``sids`` filter can be used to constrain a query to return only junctions that have read coverage in the specified samples: ::
+
+        curl "http://snaptron.cs.jhu.edu/srav2/snaptron?regions=ALK&sids=40099,40100"
+
+Here we ask for 
 
 Tables 3 and 4 show the queryable fields for region and range query types respectively.
 Fields from tables 3 and 4 can be mixed together in the same query though only one region predicate is allowed per query as specified in Table 1 above.
@@ -302,7 +315,11 @@ Table 4. Query Filter Fields ("rfilter" parameter)
 +===================+=================+======================+===========================================================================================+
 | length            | 1-500K          | intron_length<:5000  | length of exon-exon junction (intron)                                                     |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
-| annotated         | 0 or 1          | annotated:1          | whether both left and right splice sites in one or more annotations (default is both)     |
+| annotated*        | 0 or 1          | annotated:1          | whether both left and right splice sites in one or more annotations (default is both)     |
++-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
+| left_annotated*   | 0 or 1          | left_annotated:1     | whether the left splice site is in one or more annotations                                |
++-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
+| right_annotated*  | 0 or 1          | right_annotated:1    | whether the right splice site is in one or more annotations                               |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
 | strand            | ``+`` or ``-``  | strand:+             | which strand to require (default is both)                                                 |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
@@ -314,6 +331,9 @@ Table 4. Query Filter Fields ("rfilter" parameter)
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
 | coverage_median   | 1.0-Inf         | coverage_median>:6.0 | median of read coverage across all samples the junction appears in                        |
 +-------------------+-----------------+----------------------+-------------------------------------------------------------------------------------------+
+
+\* these fields are treated as booleans for the purpose of searching but as Strings when returned since if they are not 0, they will be a list of one or more annotation source abbreviations.  Also, importantly, if each splice site of a junction (left/right) is annotated separately (not connected), ``annotated`` will be 0 but BOTH the left and right annotated fields will not be 0.
+
 
 Exact HUGO (HGNC) gene symbols can be searched in snaptron SRA instance in lieu of actual coordinates.   If the gene symbol had multiple coordinate ranges that were either on different chromosomes or more than 10,000 bases apart, Snaptron will do multiple tabix lookups and will stream them back in coordinate order per chromosome (the chromosome order itself is sorted via default python sorted which is not 1-22,X,Y,M).
 
@@ -355,15 +375,15 @@ Table 5. Complete list of Snaptron Fields In Return Format
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
 | 7           | Yes      | strand            | Single Character                                | Orientation of intron (Watson or Crick)                                                                                 |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
-| 8           | Yes      | annotated         | Boolean Integer                                 | If both ends of the intron are annotated as a splice site in some annotation                                            |
+| 8           | Yes      | annotated         | String                                          | If both ends of the intron are annotated as a splice site in some annotation                                            |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
 | 9           | No       | left_motif        | String                                          | Splice site sequence bases at the left end of the intron                                                                |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
 | 10          | No       | right_motif       | String                                          | Splice site sequence bases at the right end of the intron                                                               |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
-| 11          | No       | left_annotated    | String                                          | If the left end splice site is annotated or not and which annotations it appears in (maybe more than once)              |
+| 11          | Yes      | left_annotated    | String                                          | If the left end splice site is annotated or not and which annotations it appears in (maybe more than once)              |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
-| 12          | No       | right_annotated   | String                                          | If the right end splice site is in an annotated or not, same as left_annotated                                          |
+| 12          | Yes      | right_annotated   | String                                          | If the right end splice site is in an annotated or not, same as left_annotated                                          |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
 | 13          | No       | samples*          | Comma separated list of tuples: integer:integer | The list of samples which had one or more reads covering the intron and their coverages. IDs are from the IntropolisDB. |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
@@ -375,10 +395,14 @@ Table 5. Complete list of Snaptron Fields In Return Format
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
 | 17          | Yes      | coverage_median   | Float                                           | Median coverage across all samples which had at least 1 read covering the intron in the first pass alignment            |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
-| 18          | No       | source_dataset_id | Integer                                         | Snaptron ID for the original dataset used (SRA, GTEx, TCGA)                                                             |
+| 18          | No       | source_dataset_id | Integer                                         | Snaptron ID for the compilation. GTEx=1, SRAv2=2, TCGA=4)                                                               |
 +-------------+----------+-------------------+-------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------+
 
-\* this field always starts with a ``,``; this is due to how it is searched when samples are used to filter a junction query (R+M or R+F+M)
+\* this field always starts with a ``,``; this is due to how it is searched when samples are used to filter a junction query (R+M or R+F+M).
+The format of this field is a comma-delimited list of samples and their raw read coverage in that sample.
+It uses the rail_id of the sample: ``,rail_id1:coverage1,rail_id2:coverage2,...``.
+This rail_id matches the first column in the relevant compilation's ``samples.tsv`` file available
+from the links previously listed in the ``Raw Data and Indices`` section.
 
 Mock Graphical User Interface
 -----------------------------

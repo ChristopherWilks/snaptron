@@ -96,7 +96,7 @@ class RunExternalQueryEngine:
             self.end = end
             snaputil.sqlite3_range_query_parse(rangeq,where,arguments)
             #force sqlite3 to 3 decimal places
-            select_fields = snapconf.INTRON_HEADER_FIELDS
+            select_fields = snapconfshared.INTRON_HEADER_FIELDS
             select_fields[snapconf.CHROM_COL]='chrom'
             select_fields[snapconf.DONOR_COL]='donor'
             select_fields[snapconf.ACCEPTOR_COL]='acceptor'
@@ -113,7 +113,7 @@ class RunExternalQueryEngine:
                     query_ = re.sub('\?',"\'%s\'" % arg_,query_,count=1)
                 else:
                     query_ = re.sub('\?',arg_,query_,count=1)
-            full_cmd_args = [self.cmd, '-separator \'	\'', snapconf.SNAPTRON_SQLITE_DB, '"%s"' % query_]
+            full_cmd_args = [self.cmd, '-separator \'	\'', self.ra.sqlite_db_file, '"%s"' % query_]
             self.full_cmd = " ".join(full_cmd_args)
             full_cmd_args = shlex.split(self.full_cmd)
             #we never going to use additional range filters because R+F+M will go through tabix
