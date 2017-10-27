@@ -32,7 +32,7 @@ def load_annotation(annot_type, annotation_file):
     return (gene2coords, gene2num_exons)
 
 
-sample_id_col_map={'srav2':1,'gtex':1,'tcga':23,'supermouse':0}
+sample_id_col_map={'srav2':1,'gtex':1,'tcga':23,'supermouse':0,'encode1159':0}
 def load_sample_id_map(sample_file, source):
     #we want the SRR accession2rail_id mapping
     sample2ids = {}
