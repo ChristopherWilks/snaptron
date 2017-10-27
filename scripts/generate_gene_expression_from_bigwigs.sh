@@ -11,7 +11,7 @@ recount_generate_gene_exon_expression_groups.R
 find ./coverage_bigwigs -name "*.bw" | grep -v -E "\\.[ACGNT]\\.bw" | grep -v -E "unique|mean|median" > all_bigwigs
 
 #generate a list of bwtool summing jobs, one per BigWig
-cat all_bigwigs | perl -ne 'chomp; $s=$_; print "sh /home-1/cwilks3@jhu.edu/recount-website/sum.sh /home-1/cwilks3@jhu.edu/bwtool-1.0/bwtool /home-1/cwilks3@jhu.edu/scratch/jling/supermouse/Gencode-mm-v15.exons.bed /work-zfs/blangme2/langmead/rail-runs/supermouse/coverage_bigwigs/$s ./coverage 2>./$s.bw.err\n";' > bwtool_sum.jobs
+cat all_bigwigs | perl -ne 'chomp; $s=$_; print "sh /home-1/cwilks3\@jhu.edu/recount-website/sum.sh /home-1/cwilks3\@jhu.edu/bwtool-1.0/bwtool /home-1/cwilks3\@jhu.edu/scratch/jling/supermouse/Gencode-mm-v15.exons.bed /work-zfs/blangme2/langmead/rail-runs/supermouse/coverage_bigwigs/$s ./coverage 2>./$s.bw.err\n";' > bwtool_sum.jobs
 
 module load parallel
 parallel -j $1 < bwtool_sum.jobs
