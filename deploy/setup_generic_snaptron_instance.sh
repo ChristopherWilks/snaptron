@@ -74,7 +74,11 @@ tabix -s 2 -b 3 -e 4 junctions_uncompressed.bgz
 #build junctions.sqlite
 $scripts/build_sqlite_junction_db.sh junctions junctions.bgz
 
-#build Lucene metadata indices (assumes samples.tsv is present)
+#build Lucene metadata indices (assumes samples.tsv is present and is sorted by rail_id in ascending order)
+perl -e 'print "rail_id\tjunction_count\tjunction_coverage\tjunction_avg_coverage\n";' > jx_stats_per_sample.tsv
+zcat junctions.bgz | cut -f 12 | perl -ne 'chomp; @f=split(/,/,$_); shift(@f); for $f (@f) { ($f,$c)=split(/:/,$f); $count{$f}++; $cov{$f}+=$c; } END { for $f (keys %count) { $avg=$cov{$f}/$count{$f}; print "$f\t".$count{$f}."\t".$cov{$f}."\t$avg\n";}}' | sort -t'	' -k1,1n >> jx_stats_per_sample.tsv
+paste samples.tsv <(cut -f 2- jx_stats_per_sample.tsv) > samples.jx.tsv
+mv samples.jx.tsv samples.tsv
 cat samples.tsv | perl $scripts/infer_sample_metadata_field_types.pl > samples.tsv.inferred
 cat samples.tsv | python $scripts/../lucene_indexer.py samples.tsv.inferred > lucene.indexer.run 2>&1 &
 head -1 samples.tsv | perl -ne 'BEGIN { print "index\tfield_name\n";} chomp; for $e (split(/\t/,$_)) { print "".$i++."\t$e\n";}' > samples.fields.tsv
