@@ -152,7 +152,7 @@ Normalization
 
 The Snaptron WSI results will always return raw counts for sample coverages.
 
-However, the Snaptron client will return noramalized counts per sample if
+However, the Snaptron client will return normalized counts per sample if
 ``--normalize recount`` or ``--normalize jxcov`` is passed to it.
 
 In the first case normalization is done by the recount method.
@@ -163,8 +163,16 @@ This is an appropriate method for either gene or junction results.
 In the second case, normalization is done by dividing
 every raw count by the total sum of junction coverage for the sample
 and then multiplying by the average total sum of junction coverage 
-across the SRAv2 samples.
+across the SRAv2 samples (avg. of 3953678 across 43332 samples).
 This method is only appropriate for junction results.
+
+In both cases, normalization includes rounding following
+the IEC 60559 approach for handling "5"s (go to nearest even digit).
+This is to stay compatible with recount's normalization.
+
+Any samples which, after normalization, have 0 count,
+are removed before output and sample summary statistics per row
+are recomputed on the remaining, normalized counts.
 
 IMPORTANT NOTE: In any of the above cases, the sample
 statistic-related query constraints (e.g. samples_count > 10)
@@ -173,7 +181,7 @@ and the WSI.  If normalization is requested in the Snaptron client,
 the constraints are applied before normalization is performed.
 This is due to normalization being currently implemented on the client side, 
 rather than the server.
-This may change in future.
+This may change in the future.
 
 
 Sample Metadata
