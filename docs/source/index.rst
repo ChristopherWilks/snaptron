@@ -42,6 +42,9 @@ https://jhubiostatistics.shinyapps.io/recount/
 Snaptron Client Quickstart
 --------------------------
 
+NOTE: all counts are raw counts unless otherwise specified.
+Please see the Normalization section for more information.
+
 https://github.com/ChristopherWilks/snaptron-experiments
 
 The Snaptron command-line client is a lightweight Python
@@ -143,6 +146,36 @@ Because of how Snaptron parses queries the following characters are not allowed 
 
         ><:!
 
+
+Normalization
+-------------
+
+The Snaptron WSI results will always return raw counts for sample coverages.
+
+However, the Snaptron client will return noramalized counts per sample if
+``--normalize recount`` or ``--normalize jxcov`` is passed to it.
+
+In the first case normalization is done by the recount method.
+Every raw count is divided by the area-under-coverage (AUC) of the sample 
+and then multiplied by a 40M 100bp reads scaling factor.
+This is an appropriate method for either gene or junction results.
+
+In the second case, normalization is done by dividing
+every raw count by the total sum of junction coverage for the sample
+and then multiplying by the average total sum of junction coverage 
+across the SRAv2 samples.
+This method is only appropriate for junction results.
+
+IMPORTANT NOTE: In any of the above cases, the sample
+statistic-related query constraints (e.g. samples_count > 10)
+are always computed on the raw counts, in both the client
+and the WSI.  If normalization is requested in the Snaptron client,
+the constraints are applied before normalization is performed.
+This is due to normalization being currently implemented on the client side, 
+rather than the server.
+This may change in future.
+
+
 Sample Metadata
 ---------------
 
@@ -219,6 +252,8 @@ NOTE: Lucene stores the input field as a float, but range queries need to be spe
 
 If a metadata field for a particular sample is empty/NA or is a string and the field type is numeric, that particular entry is set to NULL in Lucene.
 
+
+
 -------------------
 Example WSI Queries
 -------------------
@@ -239,6 +274,8 @@ Results: 27; Time: 0m1.129s: ::
   curl "http://snaptron.cs.jhu.edu/srav2/snaptron?regions=KMT2E&rfilter=samples_count>:5&sfilter=description:cortex"
 
 .. Add list of sample metadata columns for each compilation
+
+
 
 Reference Tables
 ----------------
