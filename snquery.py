@@ -57,8 +57,8 @@ class RunExternalQueryEngine:
         self.snaptron_ids = snaptron_ids
         #this trumps whatever stream_back instructions we were given
         if self.ra.result_count:
-            self.ra = ra._replace(stream_back=False)
-            self.ra = ra._replace(save_introns=True)
+            self.ra = self.ra._replace(stream_back=False)
+            self.ra = self.ra._replace(save_introns=True)
 
         self.filter_by_introns = (self.ra.intron_filter != None and len(self.ra.intron_filter) > 0)
         self.filter_by_samples = (self.ra.sample_filter != None and len(self.ra.sample_filter) > 0)

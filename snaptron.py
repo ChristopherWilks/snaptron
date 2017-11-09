@@ -244,7 +244,7 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
             #if we're searching for a specific gene_id (e.g. ENSG*.2) then we need to require an exact coordinate match
             if snapconfshared.GENE_ID_PATTERN.search(interval):
                 region_args = region_args._replace(exact=True)
-            (ids,sids) = search_by_gene_name(gc,interval,rangeq,rquery,intron_filters=snaptron_ids,print_header=print_header,region_args=region_args)
+            (ids,sids) = search_by_gene_name(gc,interval,rangeq,rquery,intron_filters=snaptron_ids,save_introns=filtering,print_header=print_header,region_args=region_args)
         print_header = False
         if filtering:
             snaptron_ids_returned.update(ids)
