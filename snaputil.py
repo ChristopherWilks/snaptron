@@ -144,7 +144,6 @@ def stream_header(fout,region_args=default_region_args,interval=None):
     custom_header = ra.header
     #if the user asks for specific fields they only get those fields, no data source
     if len(REQ_FIELDS) > 0:
-        #custom_header = "DataSource:Type\t%s" % ("\t".join([ra.fields_list[x] for x in sorted(REQ_FIELDS)]))
         custom_header = "DataSource:Type\t%s" % ("\t".join([ra.fields_list[x] for x in REQ_FIELDS]))
         ra = ra._replace(prefix=None)
     if ra.stream_back and ra.print_header:

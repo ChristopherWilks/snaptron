@@ -270,15 +270,11 @@ def process_params(input_,region_args=default_region_args):
             subparams = val.split(',')
             [params[key].append(subparam) for subparam in subparams]
         elif key == 'fields':
-            fields = val.split(',')
-            for field in fields:
-                if field == 'rc':
-                    #only provide the total count of results
-                    params['result_count'] = True
-                    continue
-                #snaputil.REQ_FIELDS.append(snapconfshared.INTRON_HEADER_FIELDS_MAP[field])
-                #TODO: make this less hacky as we're injecting REQ_FIELDS in another module
-                snaputil.REQ_FIELDS.append(ra.field_map[field])
+            if val == 'rc':
+                #only provide the total count of results
+                params['result_count'] = True
+                continue
+            snaputil.REQ_FIELDS = [region_args.fields_map[field] for field in val.split(',')]
         elif key == 'rfilter':
             #url decode the rfilters:
             val = urllib.unquote(val)
