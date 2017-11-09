@@ -20,7 +20,7 @@ analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
 #####fields that need to be changed for a different instance
 DATA_SOURCE='SRAv2'
 IP='127.0.0.1'
-PORT=1556
+PORT=1580
 SERVER_STRING='http://snaptron.cs.jhu.edu/%s/' % (DATA_SOURCE.lower())
 HG='hg38'
 BIGWIG2WIG="bigWigToWig"
@@ -35,6 +35,7 @@ GENE_INTERVAL_DB='%s/transcripts.sqlite' % (TABIX_DB_PATH)
 TABIX_INTERVAL_DB='junctions_uncompressed.bgz'
 GENE_TABIX_DB='genes.bgz'
 EXON_TABIX_DB='exons.bgz'
+BASE_TABIX_DB='bases.bgz'
 ID_START_COL=2
 CUT_START_COL=1
 #sqlite3 dbs
@@ -63,13 +64,16 @@ SAMPLES_APP = "%s/snample.py" % (ROOT_DIR)
 ANNOTATIONS_APP = "%s/snannotation.py" % (ROOT_DIR)
 GENES_APP='genes'
 EXONS_APP='exons'
-pseudo_apps = set([GENES_APP,EXONS_APP])
+BASES_APP='bases'
+pseudo_apps = set([GENES_APP,EXONS_APP,BASES_APP])
 #size for the OS buffer on the input pipe reading from samtools output
 CMD_BUFFER_SIZE = -1
 #a low max for what we want to pass to samtools for start/end coordinates, otherwise samtools will return everything
 MAX_COORDINATE_DIGITS = 11
 #size of samtools read,can impact performance in a major way
-READ_SIZE = 16777216
+#lowering it here helps queries which have smaller per-record sizes respond faster
+#but too low, and larger queries will suffer, set to 1MiB
+READ_SIZE = 1048576
 #for test read much smaller chunks
 #READ_SIZE=32
 RANGE_PATTERN = re.compile(r'^[0-9a-zA-Z_\-]+:\d+-\d+$')
@@ -136,9 +140,14 @@ GENE_ANNOTATION_HEADER = DATA_SOURCE_HEADER + "\treference\tannotation_source\tf
 SAMPLE_HEADER='rail_id	run_accession	sample_accession	experiment_accession	study_accession	submission_accession	sra_ID	run_ID	run_alias	run_date	updated_date	spots	bases	run_center	experiment_name	run_attribute	experiment_ID	experiment_alias	experiment_title	study_name	sample_name	design_description	library_name	library_strategy	library_source	library_selection	library_layout	library_construction_protocol	read_spec	platform	instrument_model	platform_parameters	experiment_url_link	experiment_attribute	sample_ID	sample_alias	taxon_id	common_name	description	sample_url_link	sample_attribute	study_ID	study_alias	study_title	study_type	study_abstract	center_project_name	study_description	study_url_link	study_attribute	related_studies	primary_study	submission_ID	submission_comment	submission_center	submission_lab	submission_date	sradb_updated	layout	cell_type	tissue	cell_line	strain	age	disease	population	sex	source_name	project	sample	experiment	run	read_count_as_reported_by_sra	reads_downloaded	proportion_of_reads_reported_by_sra_downloaded	paired_end	sra_misreported_paired_end	mapped_read_count	auc	sharq_beta_tissue	sharq_beta_cell_type	biosample_submission_date	biosample_publication_date	biosample_update_date	avg_read_length	geo_accession	bigwig_file	title	characteristics	junction_count	junction_coverage	junction_avg_coverage	all'
 
 SAMPLE_HEADER_FIELDS=SAMPLE_HEADER.split('\t')
-SAMPLE_HEADER_FIELDS_MAP={}
-SAMPLE_HEADER_FIELDS_TYPE_MAP={}
-for (i,field) in enumerate(SAMPLE_HEADER_FIELDS):
-   SAMPLE_HEADER_FIELDS_MAP[field]=i
-   field_wo_type = field
-   SAMPLE_HEADER_FIELDS_TYPE_MAP[field_wo_type]=field
+SAMPLE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(SAMPLE_HEADER_FIELDS)}
+SAMPLE_HEADER_FIELDS_TYPE_MAP={field:field for field in SAMPLE_HEADER_FIELDS}
+
+#below numbers are sample rail_ids
+BASE_HEADER='chromosome	start	end	308	189	25	657	361	113	32	525	186	540	160	106	449	51	318	358	153	469	54	142	375	348	380	510	6	560	678	585	250	80	576	75	69	646	594	307	225	495	331	151	356	320	108	447	158	462	223	67	623	604	648	578	441	248	680	558	283	512	99	382	722	514	144	377	49	471	273	245	584	651	58	230	299	440	689	268	209	402	121	497	395	665	523	258	34	147	556	363	27	191	18	413	612	275	167	17	192	28	98	557	148	33	259	528	166	611	412	298	231	59	583	652	244	664	496	394	403	122	208	433	269	690	249	74	577	603	647	66	624	222	272	470	376	143	349	721	515	257	513	383	100	282	559	157	36	107	321	355	152	332	494	463	185	602	548	530	340	314	663	482	119	46	505	709	11	673	136	295	129	368	169	179	699	411	91	290	532	682	0	566	714	600	84	639	630	174	177	201	39	724	487	545	574	175	631	279	544	573	486	723	200	38	713	567	681	291	92	410	640	538	599	369	130	294	131	672	12	710	504	698	178	168	432	601	47	531	120	483	662	315	339	549	170	180	237	696	63	708	254	14	133	444	703	214	551	337	481	95	313	52	605	418	310	431	350	202	326	488	633	457	277	65	312	536	408	90	289	476	389	715	521	537	716	520	388	477	288	533	89	409	543	489	426	622	203	618	64	278	456	632	480	338	550	430	419	311	606	62	697	236	181	215	445	132	13	707	628	460	613	655	265	701	686	365	729	126	212	390	500	16	668	570	240	637	590	61	302	235	416	452	20	116	24	658	171	635	421	325	351	19	103	199	44	146	436	428	493	329	85	405	379	284	281	2	720	625	650	534	653	296	401	9	691	270	439	112	247	693	581	165	610	554	29	334	260	429	41	464	274	609	261	333	30	555	271	692	10	582	246	184	442	719	280	1	285	378	145	404	86	297	649	626	654	614	461	629	330	492	423	109	198	70	78	226	535	88	406	287	3	717	45	196	490	156	328	359	317	627	459	620	616	541	553	479	97	335	427	40	617	607	435	182	694	398	706	8	467	446	111	695	183	443	110	466	7	705	399	424	336	478	96	552	434	608	316	360	327	155	491	524	197	188	542	615	458	276	227	77	71	718	4	286	407	87	453	204	161	677	563	345	387	509	255	519	139	372	217	474	43	643	595	253	81	475	42	216	373	140	518	386	508	346	562	676	252	644	596	219	420	634	162	205	454	104	352	324	400	417	659	53	21	115	451	571	669	15	391	501	213	730	125	364	685	704	264	234	303	60	589	636	241	526	117	23	193	342	661	484	415	437	239	638	72	587	305	232	134	262	683	127	728	366	211	503	393	711	671	569	221	598	642	83	580	702	674	564	344	516	506	256	384	371	138	93	218	292	473	149	547	322	354	37	102	726	164	172	422	163	725	101	455	353	323	546	150	173	579	82	597	641	220	48	472	293	94	522	137	370	507	385	517	343	565	675	233	304	588	73	238	700	568	670	712	502	392	210	367	529	128	727	684	135	263	485	660	341	194	450	118	22	35	176	438	414	679	561	5	381	511	347	374	141	468	55	224	309	645	593	68	575	76	251	586	539	187	154	357	319	50	448	105	159	425	306	621	527	31	195	114	362	26	656	190	688	465	267	206	124	731	396	498	666	572	79	242	57	592	229	300	667	397	499	123	207	266	687	301	228	591	56	243	619'
+
+BASE_HEADER_FIELDS=BASE_HEADER.split('\t')
+#BASE_HEADER_FIELDS_ORDERED=['chromosome','start','end']
+BASE_HEADER_FIELDS_ORDERED=BASE_HEADER_FIELDS[:3]
+BASE_HEADER_FIELDS_ORDERED.extend([str(x) for x in range(0,len(BASE_HEADER_FIELDS)-3)])
+BASE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(BASE_HEADER_FIELDS)}

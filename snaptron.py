@@ -274,6 +274,7 @@ def process_params(input_,region_args=default_region_args):
                 #only provide the total count of results
                 params['result_count'] = True
                 continue
+            #note likely due to buffering, a smaller record size will delay first output by ~15 seconds
             snaputil.REQ_FIELDS = [region_args.fields_map[field] for field in val.split(',')]
         elif key == 'rfilter':
             #url decode the rfilters:
