@@ -37,6 +37,9 @@ UCSC_URL='2'
 GENCODE_ANNOTATION='gencode.v25.annotation.gff3.gz'
 GENE_ID_PATTERN=re.compile(r'ENSG\d+\.\d+')
 
+SAMPLE_GROUP_FILE="%s/%s" % (snapconf.TABIX_DB_PATH,'samples.groups.tsv')
+SAMPLE_GROUP_IDS_COL=3
+
 #setup headers for both the original intron list and the sample metadata list
 INTRON_HEADER='snaptron_id	chromosome	start	end	length	strand	annotated	left_motif	right_motif	left_annotated	right_annotated	samples	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id'
 INTRON_TYPE_HEADER_MAP={'snaptron_id':int,'chromosome':str,'start':int,'end':int,'length':int,'strand':str,'annotated':bool,'left_motif':str,'right_motif':str,'left_annotated':str,'right_annotated':str,'samples':str,'samples_count':int,'coverage_sum':int,'coverage_avg':float,'coverage_median':float,'source_dataset_id':str}

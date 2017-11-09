@@ -61,6 +61,17 @@ def store_cpickle_file(filepath, ds, compress=False):
         return True
     return False
 
+def load_sample_group_map():
+    sgfile = snapconfshared.SAMPLE_GROUP_FILE
+    ds = load_cpickle_file(sgfile+".pkl")
+    if ds is None:
+        with open(sgfile,"rb") as fin:
+            fall = fin.read().split('\n')
+            fall=fall[:-1]
+            ds = {f.split('\t')[0]:f.split('\t')[snapconfshared.SAMPLE_GROUP_IDS_COL] for f in fall}
+            store_cpickle_file(sgfile+".pkl", ds)
+    return ds
+
 def retrieve_from_db_by_ids(dbh,select,ids):
     #bug from snaptronUI
     ids.discard("snaptron_id")

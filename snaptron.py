@@ -269,7 +269,15 @@ def process_params(input_,region_args=default_region_args):
             sys.exit(-1)
         elif key == 'regions' or key == 'ids' or key == 'sids':
             subparams = val.split(',')
-            [params[key].append(subparam) for subparam in subparams]
+            if key == 'sids' and not subparams[0].isdigit():
+                #load compilation specific group_id2sample_ids map
+                sample_group_map = snaputil.load_sample_group_map()
+                try:
+                    [params[key].extend(sample_group_map[sgroup].split(',')) for sgroup in subparams]
+                except KeyError as e:
+                    raise Exception("one or more sample groupings not found: %s\n" % (str(e)))
+            else:
+                params[key].extend(subparams)
         elif key == 'fields':
             fields = val.split(',')
             for field in fields:
