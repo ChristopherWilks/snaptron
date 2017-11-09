@@ -375,6 +375,9 @@ def genes_endpoint(environ, start_response):
 def exons_endpoint(environ, start_response):
         return generic_endpoint(environ, start_response, snapconf.EXONS_APP)
 
+def bases_endpoint(environ, start_response):
+        return generic_endpoint(environ, start_response, snapconf.BASES_APP)
+
 #only for basic testing
 if __name__ == '__main__':
     rquery=r'chr6:1-10000000|samples_countEQ5|'

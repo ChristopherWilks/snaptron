@@ -130,7 +130,6 @@ def search_by_gene_name(gc,geneq,rangeq,rquery,intron_filters=None,save_introns=
         for coord_tuple in coord_tuples:
             (st,en) = coord_tuple
             ra = region_args._replace(range_filters=rquery,intron_filter=intron_filters,print_header=print_header,save_introns=save_introns)
-            #runner = snquery.RunExternalQueryEngine(snapconf.TABIX,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra)
             runner = determine_index_to_use("%s:%d-%d" % (chrom,st,en), rangeq, ra)
             (iids_,sids_) = runner.run_query()
             print_header = False
@@ -277,7 +276,9 @@ def process_params(input_,region_args=default_region_args):
                     #only provide the total count of results
                     params['result_count'] = True
                     continue
-                snaputil.REQ_FIELDS.append(snapconfshared.INTRON_HEADER_FIELDS_MAP[field])
+                #snaputil.REQ_FIELDS.append(snapconfshared.INTRON_HEADER_FIELDS_MAP[field])
+                #TODO: make this less hacky as we're injecting REQ_FIELDS in another module
+                snaputil.REQ_FIELDS.append(ra.field_map[field])
         elif key == 'rfilter':
             #url decode the rfilters:
             val = urllib.unquote(val)
@@ -337,7 +338,7 @@ def run_toplevel_AND_query(intervalq,rangeq,sampleq,idq,sample_map=[],ra=default
     if ra.result_count:
         sys.stdout.write("%d\n" % (len(found_snaptron_ids)))
 
-record_types_map={'junction':(snapconf.TABIX_INTERVAL_DB,snapconf.SNAPTRON_SQLITE_DB,snapconfshared.INTRON_HEADER,'I'),snapconf.GENES_APP:(snapconf.GENE_TABIX_DB,snapconf.GENE_SQLITE_DB,snapconfshared.GENE_HEADER,'G'),snapconf.EXONS_APP:(snapconf.EXON_TABIX_DB,snapconf.EXON_SQLITE_DB,snapconfshared.EXON_HEADER,'E')}
+record_types_map={'junction':(snapconf.TABIX_INTERVAL_DB,snapconf.SNAPTRON_SQLITE_DB,snapconfshared.INTRON_HEADER,'I'),snapconf.GENES_APP:(snapconf.GENE_TABIX_DB,snapconf.GENE_SQLITE_DB,snapconfshared.GENE_HEADER,'G'),snapconf.EXONS_APP:(snapconf.EXON_TABIX_DB,snapconf.EXON_SQLITE_DB,snapconfshared.EXON_HEADER,'E'),snapconf.BASES_APP:(snapconf.BASE_TABIX_DB,None,snapconf.BASE_HEADER,'B')}
 #cases:
 #1) just interval (one function call)
 #2) interval + range query(s) (one tabix function call + field filter(s))
@@ -375,6 +376,12 @@ def main():
     ra = default_region_args
     #override defaults for the DB files in case we're doing gene/exon rather than junction queries
     ra=ra._replace(tabix_db_file=tabix_db,sqlite_db_file=sqlite_db,header="%s\t%s" % (snapconf.DATA_SOURCE_HEADER,header), prefix="%s:%s" % (snapconf.DATA_SOURCE,prefix))
+    #if doing a base-level query, switch the snaptron_id,start,end fields to be appropriate, we re-use the start col for the ID field to be an integer
+    if inputs[0] == snapconf.BASES_APP:
+        ra=ra._replace(id_col=snapconfshared.BASE_START_COL,region_start_col=snapconfshared.BASE_START_COL,region_end_col=snapconfshared.BASE_END_COL,fields_map=snapconf.BASE_HEADER_FIELDS_MAP,fields_list=snapconf.BASE_HEADER_FIELDS)
+        #for field in xrange(0,len(snapconf.BASE_HEADER_FIELDS)):
+        #    snaputil.REQ_FIELDS.append(ra.field_map[field])
+        snaputil.REQ_FIELDS = [snapconf.BASE_HEADER_FIELDS_MAP[field] for field in snapconf.BASE_HEADER_FIELDS_ORDERED]
     #bulk query mode
     #somewhat ad hoc, but with the first test
     #trying to avoid a pattern search across the whole input string
