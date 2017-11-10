@@ -345,7 +345,6 @@ In contrast, the ``sids`` filter can be used to constrain a query to return only
 
         curl "http://snaptron.cs.jhu.edu/srav2/snaptron?regions=ALK&sids=40099,40100"
 
-Here we ask for 
 
 Tables 3 and 4 show the queryable fields for region and range query types respectively.
 Fields from tables 3 and 4 can be mixed together in the same query though only one region predicate is allowed per query as specified in Table 1 above.
