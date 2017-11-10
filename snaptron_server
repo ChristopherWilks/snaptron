@@ -20,6 +20,7 @@ from snaptronws import samples_endpoint
 from snaptronws import annotations_endpoint
 from snaptronws import genes_endpoint
 from snaptronws import exons_endpoint
+from snaptronws import bases_endpoint
 
 import snapconf
 
@@ -52,7 +53,7 @@ parser.add_option('--log-spill', action="store", type='string', dest="log_spill"
                   help="[default: ./%s.log] The path of the file to which the daemon's stderr and stdout will be "
                        "redirected. Most of the diagnostic output will go to syslog but some might spill over to "
                        "stderr or stdout, especially on errors during daemonization." % exec_name)
-parser.add_option("--no-daemon", dest="daemonize", action="store_false", default=True,
+parser.add_option("--no-daemon", dest="daemonize", action="store_false", default=False,
                   help="don't daemonize if specified")
 
 (options, args) = parser.parse_args()
@@ -90,6 +91,10 @@ def gene_service(environ, start_response):
 def exon_service(environ, start_response):
     environ['read_size'] = options.read_size
     return exons_endpoint(environ, start_response)
+
+def base_service(environ, start_response):
+    environ['read_size'] = options.read_size
+    return bases_endpoint(environ, start_response)
 
 def density_service(environ, start_response):
     environ['read_size'] = options.read_size
@@ -178,6 +183,7 @@ def run_server():
     cherrypy.tree.graft(annotation_service, "/annotations")
     cherrypy.tree.graft(gene_service, "/genes")
     cherrypy.tree.graft(exon_service, "/exons")
+    cherrypy.tree.graft(base_service, "/bases")
 
     cherrypy.config.update({'server.socket_host': snapconf.IP, 'server.socket_port': snapconf.PORT, 'server.thread_pool': 30})
 

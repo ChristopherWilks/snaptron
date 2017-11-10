@@ -57,8 +57,8 @@ class RunExternalQueryEngine:
         self.snaptron_ids = snaptron_ids
         #this trumps whatever stream_back instructions we were given
         if self.ra.result_count:
-            self.ra = ra._replace(stream_back=False)
-            self.ra = ra._replace(save_introns=True)
+            self.ra = self.ra._replace(stream_back=False)
+            self.ra = self.ra._replace(save_introns=True)
 
         self.filter_by_introns = (self.ra.intron_filter != None and len(self.ra.intron_filter) > 0)
         self.filter_by_samples = (self.ra.sample_filter != None and len(self.ra.sample_filter) > 0)
@@ -83,6 +83,9 @@ class RunExternalQueryEngine:
             if len(self.ra.additional_cmd) > 0:
                 additional_cmd = " | %s" % (self.ra.additional_cmd)
             #self.full_cmd = "%s %s %s | cut -f %d- %s" % (cmd,self.ra.tabix_db_file,self.qargs,self.ra.cut_start_col,additional_cmd)
+            #NOTE: we use shell=True due to the ease of including "additional_cmd" which is only used by snannotation to limit gene models returned by tabix
+            #maybe we should consider doing this differently, however, self.qargs is enforced to be a strict chr:start-end pattern,
+            #and the rest of the arguments are set internally, so I think we avoid potential injection attacks here
             self.full_cmd = "%s %s %s %s" % (cmd,self.ra.tabix_db_file,self.qargs,additional_cmd)
             self.extern_proc = subprocess.Popen(self.full_cmd, stdout=subprocess.PIPE, shell=True, bufsize=-1)
 
@@ -131,7 +134,7 @@ class RunExternalQueryEngine:
             return (ids_found,sample_set)
         for line in self.extern_proc.stdout:
             fields = line.rstrip().split(self.delim)
-            snaptron_id = str(fields[snapconf.INTRON_ID_COL])
+            snaptron_id = str(fields[self.ra.id_col])
             lstart = int(fields[self.ra.region_start_col])
             lend = int(fields[self.ra.region_end_col])
             #first attempt to filter by violation of containment (if in effect)
@@ -148,6 +151,7 @@ class RunExternalQueryEngine:
                 continue
             #filter by M (sample IDs), recalculate summaries from subset of samples, and update fields
             samples_found_iter = None
+            #TODO: support sample filtering for base-level data?
             if self.ra.sid_search_object is not None:
                 samples_found_iter = self.ra.sid_search_object.iter(fields[snapconf.SAMPLE_IDS_COL])
                 #check to see if this jx has one or more of the sample IDs
