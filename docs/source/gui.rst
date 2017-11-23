@@ -20,7 +20,4 @@ GTEx (~10K samples, ~30M junctions):
 SRAv2 (~50K samples, ~81M junctions):
   http://snaptron.cs.jhu.edu:8443
 
-SRAv1 (~21K samples, ~42M junctions):
-  http://snaptron.cs.jhu.edu:8100
-
 Caveat emptor, these instances are provided as examples only for the time being.  While they serve real data and may prove useful for investigations, they are not guaranteed to be stable/performant in any way.
