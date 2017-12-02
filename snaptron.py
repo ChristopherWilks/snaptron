@@ -376,9 +376,8 @@ def main():
     #if doing a base-level query, switch the snaptron_id,start,end fields to be appropriate, we re-use the start col for the ID field to be an integer
     if inputs[0] == snapconf.BASES_APP:
         ra=ra._replace(id_col=snapconfshared.BASE_START_COL,region_start_col=snapconfshared.BASE_START_COL,region_end_col=snapconfshared.BASE_END_COL,fields_map=snapconf.BASE_HEADER_FIELDS_MAP,fields_list=snapconf.BASE_HEADER_FIELDS)
-        #for field in xrange(0,len(snapconf.BASE_HEADER_FIELDS)):
-        #    snaputil.REQ_FIELDS.append(ra.field_map[field])
-        snaputil.REQ_FIELDS = [snapconf.BASE_HEADER_FIELDS_MAP[field] for field in snapconf.BASE_HEADER_FIELDS_ORDERED]
+        if snapconf.DATA_SOURCE == 'supermouse':
+            snaputil.REQ_FIELDS = [snapconf.BASE_HEADER_FIELDS_MAP[field] for field in snapconf.BASE_HEADER_FIELDS_ORDERED]
     #bulk query mode
     #somewhat ad hoc, but with the first test
     #trying to avoid a pattern search across the whole input string
