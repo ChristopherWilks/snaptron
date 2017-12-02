@@ -3,6 +3,7 @@
 import sys
 import gzip
 import argparse
+import re
 
 """
 Reformats raw cross sample Rail junctions
@@ -211,11 +212,65 @@ class BowtieIndexReference(object):
             stretch.append('N')
         return ''.join(stretch)
 
+def write_sample_ID_map(args, junction_line):
+    fields = junction_line.rstrip().split("\t")
+    samples = fields[1:]
+    with open(args.input_file + ".samples2ids","w") as fout:
+        fout.write("rail_id\tRun\n")
+        for (idx,s) in enumerate(samples):
+            subids = s.split("-")
+            srr = s
+            if len(subids) == 2 and subids[0][:3] == 'SRR':
+                srr = subids[0]
+            fout.write(str(idx)+"\t"+str(srr)+"\n")
+    return samples
+
+
+#need to support the format of both second and first pass junctions
+junction_parser_map={True:re.compile(r'^(chr\d?[\dXYM]);([+-]);(\d+);(\d+)'), False: re.compile(r'^(chr\d?[\dXYM])([+-])\t(\d+)\t(\d+)\t([\d,]+)\t([\d,]+)$')}
+def process_junction_fields(args, junction_line):
+    fields = junction_line.rstrip().split("\t")
+    junction_parser = junction_parser_map[args.second_pass]
+    m = junction_parser.search(junction_line)
+    (chrom,strand,start,end) = (m.group(1),m.group(2),m.group(3),m.group(4))
+    sample_fields = []
+    covs = []
+    sum_ = 0
+    covs_temp = []
+    sids = []
+    if args.second_pass:
+        covs_temp = fields[1:]
+        sids = xrange(0,len(covs_temp))
+    else:
+        sids = m.group(5).split(',')
+        covs_temp = m.group(6).split(',')
+    for (idx,cov) in enumerate(covs_temp):
+        cov_ = int(cov)
+        sid = str(sids[idx])
+        if cov_ > 0:
+            sample_fields.append(sid+":"+cov)
+            covs.append(cov_)
+            sum_ += cov_
+    return (chrom,strand,start,end,sample_fields,sum_,covs)
+
+
+def sample_summary_stats(sum_, covs):
+    covs = sorted(covs)
+    count = len(covs)
+    median = int(count/2)
+    if count % 2 == 0:
+        median = round((covs[median-1] + covs[median])/2.0, 3)
+    else:
+        median = covs[median]
+    avg = round(sum_/float(count), 3)
+    return (count, avg, median)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, 
             formatter_class=argparse.RawDescriptionHelpFormatter)
-    #parser.add_argument('--bowtie-idx', type=str, required=True,
-    #    help='path to Bowtie index basename')
+    parser.add_argument('--second-pass', action='store_const', const=True, default=False,
+        help='if running on the second pass junctions produced by Rail')
     parser.add_argument('--input-file', type=str, required=True,
         help='path to Rail junctions file')
     parser.add_argument('--data-src', type=str, required=False, default="0", 
@@ -236,38 +291,12 @@ def main():
     with gzip.open(args.input_file) as f:
         snaptron_id = 0
         for line in f:
-            line = line.rstrip()
-            fields = line.split("\t")
-            if len(samples) == 0:
-                samples = fields[1:]
-                with open(args.input_file + ".samples2ids","w") as fout:
-                    fout.write("rail_id\tRun\n")
-                    for (idx,s) in enumerate(samples):
-                        subids = s.split("-")
-                        srr = s
-                        if len(subids) == 2 and subids[0][:3] == 'SRR':
-                            srr = subids[0]
-                        fout.write(str(idx)+"\t"+str(srr)+"\n")
+            if args.second_pass and len(samples) == 0:
+                samples = write_sample_ID_map(args, line)
                 continue
-            (chrom,strand,start,end) = fields[0].split(";")
+            (chrom,strand,start,end,sample_fields,sum_,covs) = process_junction_fields(args, line)
+            (count, avg, median) = sample_summary_stats(sum_, covs)
             jlength = (int(end) - int(start)) + 1
-            sample_fields = []
-            covs = []
-            sum_ = 0
-            for (idx,cov) in enumerate(fields[1:]):
-                cov = int(cov)
-                if cov > 0:
-                    sample_fields.append(str(idx)+":"+str(cov))
-                    covs.append(cov)
-                    sum_ += cov
-            covs = sorted(covs)
-            count = len(covs)
-            median = int(count/2)
-            if count % 2 == 0:
-                median = round((covs[median-1] + covs[median])/2.0, 3)
-            else:
-                median = round(covs[median], 3)
-            avg = round(sum_/float(count), 3)
             sample_fields = ","+",".join(sample_fields)
             #will annotate in a later script
             annotated = 0
