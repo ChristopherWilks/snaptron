@@ -293,6 +293,15 @@ def process_params(input_,region_args=default_region_args):
                 params[key].append(val) 
             else:
                 params[key]=val
+    #make sure we copy the list of samples over from sids to REQ_FIELDS if this is a bases query
+    #bases queries don't support the normal sample IDs filtering mechanism
+    if region_args.app == snapconf.BASES_APP and len(params['sids']) > 0:
+        #pick up chromosome,start,end columns first
+        snaputil.REQ_FIELDS = [0,1,2]
+        snaputil.REQ_FIELDS.extend(region_args.fields_map[field] for field in params['sids'])
+        #clear the sample IDs so we don't invoke the normal sample filter processing
+        params['sids']=[]
+
     ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),either=(int(params['either'])),exact=bool(int(params['exact'])),score_by=params['score_by'],print_header=bool(int(params['header'])),return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'],sids=params['sids'],prefix=prefix,header=header)
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'],ra)
 
@@ -383,7 +392,7 @@ def main():
     ra=ra._replace(tabix_db_file=tabix_db,sqlite_db_file=sqlite_db,header="%s\t%s" % (snapconf.DATA_SOURCE_HEADER,header), prefix="%s:%s" % (snapconf.DATA_SOURCE,prefix))
     #if doing a base-level query, switch the snaptron_id,start,end fields to be appropriate, we re-use the start col for the ID field to be an integer
     if inputs[0] == snapconf.BASES_APP:
-        ra=ra._replace(id_col=snapconfshared.BASE_START_COL,region_start_col=snapconfshared.BASE_START_COL,region_end_col=snapconfshared.BASE_END_COL,fields_map=snapconf.BASE_HEADER_FIELDS_MAP,fields_list=snapconf.BASE_HEADER_FIELDS)
+        ra=ra._replace(id_col=snapconfshared.BASE_START_COL,region_start_col=snapconfshared.BASE_START_COL,region_end_col=snapconfshared.BASE_END_COL,fields_map=snapconf.BASE_HEADER_FIELDS_MAP,fields_list=snapconf.BASE_HEADER_FIELDS,app=snapconf.BASES_APP)
         if snapconf.DATA_SOURCE == 'supermouse':
             snaputil.REQ_FIELDS = [snapconf.BASE_HEADER_FIELDS_MAP[field] for field in snapconf.BASE_HEADER_FIELDS_ORDERED]
     #bulk query mode
