@@ -30,7 +30,7 @@ declare -a insts=( "abmv1b" "abmv1a")
 for x in "${insts[@]}"
 do
 	echo "testing $x junctions"
-	curl 'http://snaptron.cs.jhu.edu/abmv1b/snaptron?regions=chr1:1-20854861' 2>/dev/null| grep -i "${x}:I" | head -1 | cut -f 1-10
+	curl "http://snaptron.cs.jhu.edu/${x}/snaptron?regions=chr1:1-20854861" 2>/dev/null| grep -i "${x}:I" | head -1 | cut -f 1-10
 	#test ALK region
 	echo "testing $x genes"
 	curl "http://snaptron.cs.jhu.edu/${x}/genes?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:G" | head -1 | cut -f 1-10
