@@ -1,0 +1,156 @@
+#!/usr/bin/env python2.7
+import operator
+import re
+
+import lucene
+from org.apache.lucene.analysis.standard import StandardAnalyzer
+from org.apache.lucene.analysis.core import WhitespaceAnalyzer
+from org.apache.lucene.document import Field, IntField, FloatField, StringField, TextField
+from org.apache.lucene.index import Term
+from org.apache.lucene.search import NumericRangeQuery
+from org.apache.lucene.util import Version
+
+#setup lucene reader for sample related searches
+lucene.initVM()
+#use this for GTEx sample metadata
+analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
+#use this for SRAvX sample metadata
+analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
+
+#####fields that should be changed for a different instance
+#compilation source name
+DATA_SOURCE='abmv1a'
+#internal port to serve one, must be unique per compilation
+PORT=1588
+#genome build version
+HG='mm10'
+#change to metadata specific
+SAMPLE_HEADER='rail_id	Run	ReleaseDate	LoadDate	spots	bases	spots_with_mates	avgLength	size_MB	AssemblyName	download_path	Experiment	LibraryName	LibraryStrategy	LibrarySelection	LibrarySource	LibraryLayout	InsertSize	InsertDev	Platform	Model	SRAStudy	BioProject	Study_Pubmed_id	ProjectID	Sample	BioSample	SampleType	TaxID	ScientificName	SampleName	g1k_pop_code	source	g1k_analysis_group	Subject_ID	Sex	Disease	Tumor	Affection_Status	Analyte_Type	Histological_Type	Body_Site	CenterName	Submission	dbgap_study_accession	Consent	RunHash	ReadHash	junction_count	junction_coverage	junction_avg_coverage'
+
+#####fields which could change, but usually don't (when run on Stingray at least)
+IP='127.0.0.1'
+SAMPLE_ID_FIELD_NAME='rail_id'
+SERVER_STRING='http://snaptron.cs.jhu.edu/%s/' % (DATA_SOURCE.lower())
+BIGWIG2WIG="bigWigToWig"
+ROOT_DIR='./'
+PYTHON_PATH="python"
+TABIX="tabix"
+SQLITE="sqlite3"
+#tabix related
+TABIX_DB_PATH='./data'
+TABIX_GENE_INTERVAL_DB='all_transcripts.gtf.bgz'
+GENE_INTERVAL_DB='%s/transcripts.sqlite' % (TABIX_DB_PATH)
+TABIX_INTERVAL_DB='junctions_uncompressed.bgz'
+GENE_TABIX_DB='genes.bgz'
+EXON_TABIX_DB='exons.bgz'
+BASE_TABIX_DB='bases.bgz'
+ID_START_COL=2
+CUT_START_COL=1
+#sqlite3 dbs
+SAMPLE_SQLITE_DB="%s/sample2junction.sqlite" % (TABIX_DB_PATH)
+SNAPTRON_SQLITE_DB="%s/junctions.sqlite" % (TABIX_DB_PATH)
+GENE_SQLITE_DB="%s/genes.sqlite" % (TABIX_DB_PATH)
+EXON_SQLITE_DB="%s/exons.sqlite" % (TABIX_DB_PATH)
+#Lucene dbs
+LUCENE_STD_SAMPLE_DB="%s/lucene_full_standard/" % (TABIX_DB_PATH)
+LUCENE_WS_SAMPLE_DB="%s/lucene_full_ws/" % (TABIX_DB_PATH)
+#gene annotation related flat files
+REFSEQ_ANNOTATION='refseq_transcripts_by_hgvs.tsv'
+CANONICAL_ANNOTATION='ucsc_known_canonical_transcript.tsv'
+SAMPLE_MD_FILE="%s/samples.tsv" % (TABIX_DB_PATH)
+LUCENE_STD_ANALYZER=analyzer_ws
+LUCENE_WS_ANALYZER=analyzer
+#####END of fields that should/could be changed for a different instance
+
+
+#basic paths to everything (one day replace with inferred directory)
+#used only by snaptron_server
+#mostly used by snaptronws.py
+SNAPTRON_APP = "%s/snaptron.py" % (ROOT_DIR)
+SAMPLES_APP = "%s/snample.py" % (ROOT_DIR)
+ANNOTATIONS_APP = "%s/snannotation.py" % (ROOT_DIR)
+GENES_APP='genes'
+EXONS_APP='exons'
+BASES_APP='bases'
+pseudo_apps = set([GENES_APP,EXONS_APP,BASES_APP])
+#size for the OS buffer on the input pipe reading from samtools output
+CMD_BUFFER_SIZE = -1
+#a low max for what we want to pass to samtools for start/end coordinates, otherwise samtools will return everything
+MAX_COORDINATE_DIGITS = 11
+#size of samtools read,can impact performance in a major way
+READ_SIZE = 1048576
+#for test read much smaller chunks
+#READ_SIZE=32
+RANGE_PATTERN = re.compile(r'^[0-9a-zA-Z_\-]+:\d+-\d+$')
+#cant have anything else in the data path or its probably a security issue
+READ_SIZE_PATTERN = re.compile(r'^\d+$')
+
+TERM = Term
+NIR = NumericRangeQuery.newIntRange
+NFR = NumericRangeQuery.newFloatRange
+
+operators_old={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
+operators={'>:':operator.ge,'<:':operator.le,'>':operator.gt,'<':operator.lt,':':operator.eq,'!:':operator.ne}
+#we overloaded this map to be used for all searchable fields, not just those with TABIX dbs
+TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'intervals':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':None,'samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keyword':'','sample_id':'by_sample_id.gz','ids':'','annotated':'','left_annotated':'','right_annotated':'','strand':''}
+RANGE_FIELDS = ['length','samples_count','coverage_sum','coverage_avg','coverage_median','strand']
+JSON_FIELDS=set(['intervals','genes','ids','metadata_keywords','sample_fields'])
+JSON_FIELDS.update(RANGE_FIELDS)
+SAMPLE_IDS_COL=11
+INTRON_ID_COL=0
+CHROM_COL=1
+INTERVAL_START_COL=2
+INTERVAL_END_COL=3
+GENE_START_COL=3
+GENE_END_COL=4
+STRAND_COL=5
+DONOR_COL=7
+ACCEPTOR_COL=8
+COV_AVG_COL=14
+COV_MED_COL=15
+
+
+#search by gene constants
+TABIX_PATTERN = re.compile(r'^([chrMXY\d]+):(\d+)-(\d+)$')
+INTERVAL_PATTERN = re.compile(r'^(chr[12]?[0-9XYM]):(\d+)-(\d+)$')
+CHROM_PATTERN = re.compile(r'^chr[12]?[0-9XYM]$')
+SNAPTRON_ID_PATT = re.compile(r'snaptron_id')
+MAX_GENE_PROXIMITY = 10000
+
+#set much larger than the total # of introns we expect to have
+LUCENE_MAX_RANGE_HITS=100000000
+#set much larger than the total # of samples we expect to have
+LUCENE_MAX_SAMPLE_HITS=1000000
+
+LUCENE_TYPES={'snaptron_id':[IntField,int,NIR],'strand':[StringField,str,TERM],'annotated':[IntField,int,NIR],'left_motif':[StringField,str,TERM],'right_motif':[StringField,str,TERM],'left_annotated':[TextField,str,TERM],'right_annotated':[TextField,str,TERM],'length':[IntField,int,NIR],'samples_count':[IntField,int,NIR],'coverage_sum':[IntField,int,NIR],'coverage_avg':[FloatField,float,NFR],'coverage_median':[FloatField,float,NFR],'source_dataset_id':[IntField,int,NIR],'coverage_avg2':[FloatField,float,NFR],'coverage_median2':[FloatField,float,NFR]}
+
+
+RANGE_QUERY_DELIMITER=','
+RANGE_QUERY_OPS='([:><!]+)'
+RANGE_QUERY_FIELD_PATTERN=re.compile(RANGE_QUERY_OPS)
+SAMPLE_QUERY_DELIMITER='==='
+SAMPLE_QUERY_FIELD_DELIMITER=':' #::
+
+FLOAT_FIELDS=set(['coverage_avg','coverage_median'])
+
+#may have to adjust this parameter for performance (# of tabix calls varies inversely with this number)
+MAX_DISTANCE_BETWEEN_IDS=1000
+#INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
+#SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
+
+DATA_SOURCE_HEADER='DataSource:Type'
+#GENE_ANNOTATION_HEADER (GTF)
+GENE_ANNOTATION_HEADER = DATA_SOURCE_HEADER + "\treference\tannotation_source\tfeature_type\tstart\tend\tscore\tstrand\tunused\tattributes";
+
+SAMPLE_HEADER_FIELDS=SAMPLE_HEADER.split('\t')
+SAMPLE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(SAMPLE_HEADER_FIELDS)}
+SAMPLE_HEADER_FIELDS_TYPE_MAP={field:field for field in SAMPLE_HEADER_FIELDS}
+
+#below numbers are sample rail_ids
+BASE_HEADER='chromosome	start	end	308	189	25	657	361	113	32	525	186	540	160	106	449	51	318	358	153	469	54	142	375	348	380	510	6	560	678	585	250	80	576	75	69	646	594	307	225	495	331	151	356	320	108	447	158	462	223	67	623	604	648	578	441	248	680	558	283	512	99	382	722	514	144	377	49	471	273	245	584	651	58	230	299	440	689	268	209	402	121	497	395	665	523	258	34	147	556	363	27	191	18	413	612	275	167	17	192	28	98	557	148	33	259	528	166	611	412	298	231	59	583	652	244	664	496	394	403	122	208	433	269	690	249	74	577	603	647	66	624	222	272	470	376	143	349	721	515	257	513	383	100	282	559	157	36	107	321	355	152	332	494	463	185	602	548	530	340	314	663	482	119	46	505	709	11	673	136	295	129	368	169	179	699	411	91	290	532	682	0	566	714	600	84	639	630	174	177	201	39	724	487	545	574	175	631	279	544	573	486	723	200	38	713	567	681	291	92	410	640	538	599	369	130	294	131	672	12	710	504	698	178	168	432	601	47	531	120	483	662	315	339	549	170	180	237	696	63	708	254	14	133	444	703	214	551	337	481	95	313	52	605	418	310	431	350	202	326	488	633	457	277	65	312	536	408	90	289	476	389	715	521	537	716	520	388	477	288	533	89	409	543	489	426	622	203	618	64	278	456	632	480	338	550	430	419	311	606	62	697	236	181	215	445	132	13	707	628	460	613	655	265	701	686	365	729	126	212	390	500	16	668	570	240	637	590	61	302	235	416	452	20	116	24	658	171	635	421	325	351	19	103	199	44	146	436	428	493	329	85	405	379	284	281	2	720	625	650	534	653	296	401	9	691	270	439	112	247	693	581	165	610	554	29	334	260	429	41	464	274	609	261	333	30	555	271	692	10	582	246	184	442	719	280	1	285	378	145	404	86	297	649	626	654	614	461	629	330	492	423	109	198	70	78	226	535	88	406	287	3	717	45	196	490	156	328	359	317	627	459	620	616	541	553	479	97	335	427	40	617	607	435	182	694	398	706	8	467	446	111	695	183	443	110	466	7	705	399	424	336	478	96	552	434	608	316	360	327	155	491	524	197	188	542	615	458	276	227	77	71	718	4	286	407	87	453	204	161	677	563	345	387	509	255	519	139	372	217	474	43	643	595	253	81	475	42	216	373	140	518	386	508	346	562	676	252	644	596	219	420	634	162	205	454	104	352	324	400	417	659	53	21	115	451	571	669	15	391	501	213	730	125	364	685	704	264	234	303	60	589	636	241	526	117	23	193	342	661	484	415	437	239	638	72	587	305	232	134	262	683	127	728	366	211	503	393	711	671	569	221	598	642	83	580	702	674	564	344	516	506	256	384	371	138	93	218	292	473	149	547	322	354	37	102	726	164	172	422	163	725	101	455	353	323	546	150	173	579	82	597	641	220	48	472	293	94	522	137	370	507	385	517	343	565	675	233	304	588	73	238	700	568	670	712	502	392	210	367	529	128	727	684	135	263	485	660	341	194	450	118	22	35	176	438	414	679	561	5	381	511	347	374	141	468	55	224	309	645	593	68	575	76	251	586	539	187	154	357	319	50	448	105	159	425	306	621	527	31	195	114	362	26	656	190	688	465	267	206	124	731	396	498	666	572	79	242	57	592	229	300	667	397	499	123	207	266	687	301	228	591	56	243	619'
+
+BASE_HEADER_FIELDS=BASE_HEADER.split('\t')
+#BASE_HEADER_FIELDS_ORDERED=['chromosome','start','end']
+BASE_HEADER_FIELDS_ORDERED=BASE_HEADER_FIELDS[:3]
+BASE_HEADER_FIELDS_ORDERED.extend([str(x) for x in range(0,len(BASE_HEADER_FIELDS)-3)])
+BASE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(BASE_HEADER_FIELDS)}
