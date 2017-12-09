@@ -19,9 +19,9 @@ analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
 
 #####fields that should be changed for a different instance
 #compilation source name
-DATA_SOURCE='abmv1a'
+DATA_SOURCE='abmv1b'
 #internal port to serve one, must be unique per compilation
-PORT=1588
+PORT=1589
 #genome build version
 HG='mm10'
 #change to metadata specific
