@@ -44,6 +44,9 @@ TABIX_INTERVAL_DB='junctions_uncompressed.bgz'
 GENE_TABIX_DB='genes.bgz'
 EXON_TABIX_DB='exons.bgz'
 BASE_TABIX_DB='bases.bgz'
+BASE_TAIX_DB_PATH='bases/'
+#split by chromosome for space and performance reasons
+BASE_TABIX_DB_MAP={'chr1':'bases.bgz','chr2':'bases.bgz','chr3':'bases.bgz','chr4':'bases.bgz','chr5':'bases.bgz','chr6':'bases.bgz','chr7':'bases.bgz','chr8':'bases.bgz','chr9':'bases.bgz','chr10':'bases.bgz','chr11':'bases.bgz','chr12':'bases.bgz','chr13':'bases.bgz','chr14':'bases.bgz','chr15':'bases.bgz','chr16':'bases.bgz','chr17':'bases.bgz','chr18':'bases.bgz','chr19':'bases.bgz','chr20':'bases.bgz','chr21':'bases.bgz','chr22':'bases.bgz','chrX':'bases.bgz','chrY':'bases.bgz','chrM':'bases.bgz'}
 ID_START_COL=2
 CUT_START_COL=1
 #sqlite3 dbs

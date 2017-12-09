@@ -72,6 +72,9 @@ ANNOTATIONS_APP = "%s/snannotation.py" % (ROOT_DIR)
 GENES_APP='genes'
 EXONS_APP='exons'
 BASES_APP='bases'
+BASE_TAIX_DB_PATH='bases/'
+#split by chromosome for space and performance reasons
+BASE_TABIX_DB_MAP={'chr1':'bases.bgz','chr2':'bases.bgz','chr3':'bases.bgz','chr4':'bases.bgz','chr5':'bases.bgz','chr6':'bases.bgz','chr7':'bases.bgz','chr8':'bases.bgz','chr9':'bases.bgz','chr10':'bases.bgz','chr11':'bases.bgz','chr12':'bases.bgz','chr13':'bases.bgz','chr14':'bases.bgz','chr15':'bases.bgz','chr16':'bases.bgz','chr17':'bases.bgz','chr18':'bases.bgz','chr19':'bases.bgz','chr20':'bases.bgz','chr21':'bases.bgz','chr22':'bases.bgz','chrX':'bases.bgz','chrY':'bases.bgz','chrM':'bases.bgz'}
 pseudo_apps = set([GENES_APP,EXONS_APP,BASES_APP])
 #size for the OS buffer on the input pipe reading from samtools output
 CMD_BUFFER_SIZE = -1
