@@ -73,11 +73,13 @@ class RunExternalQueryEngine:
         if cmd == snapconf.TABIX:
             self.delim = '\t'
             m = snapconf.TABIX_PATTERN.search(self.qargs)
-            if self.ra.app == snapconf.BASES_APP:
-                chrom = m.group(1)
-                self.ra=self.ra._replace(tabix_db_file=snapconf.BASE_TAIX_DB_PATH+snapconf.BASE_TABIX_DB_MAP[chrom])
             self.start = int(m.group(2))
             self.end = int(m.group(3))
+            if self.ra.app == snapconf.BASES_APP:
+                chrom = m.group(1)
+                #offset for start at 0 in BigWig derived bases
+                self.start-=1
+                self.ra=self.ra._replace(tabix_db_file=snapconf.BASE_TAIX_DB_PATH+snapconf.BASE_TABIX_DB_MAP[chrom])
             self.ra = self.ra._replace(tabix_db_file = "%s/%s" % (snapconf.TABIX_DB_PATH,self.ra.tabix_db_file))
             if self.ra.debug:
                 sys.stderr.write("running %s %s %s\n" % (cmd,self.ra.tabix_db_file,self.qargs))
