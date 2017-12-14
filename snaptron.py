@@ -40,6 +40,9 @@ from org.apache.lucene.search import IndexSearcher
 from org.apache.lucene.search import BooleanQuery
 from org.apache.lucene.index import IndexReader
 
+#do this to avoid full paths to python scripts in tracebacks, for security
+if sys.path[0] != './':
+    sys.path=['./'] + sys.path
 
 import snapconf
 import snaputil
@@ -47,6 +50,7 @@ import snample
 import snannotation
 import snquery
 import snapconfshared 
+
 
 FORCE_SQLITE=False
 FORCE_TABIX=False

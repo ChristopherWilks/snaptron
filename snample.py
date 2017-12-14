@@ -48,6 +48,10 @@ from org.apache.lucene.search import BooleanClause
 from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.util import Version
 
+#do this to avoid full paths to python scripts in tracebacks, for security
+if sys.path[0] != './':
+    sys.path=['./'] + sys.path
+
 
 import snapconf
 import snaputil
