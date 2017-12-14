@@ -52,7 +52,7 @@ def process_params(input_):
     for param_ in params_:
         (key,val) = param_.split("=")
         if key not in params:
-            snaputil.log_error(param, "query parameter, exiting")
+            snaputil.log_error(key, "query parameter, exiting")
             sys.exit(-1)
         if key == 'regions':
             subparams = val.split(',')
