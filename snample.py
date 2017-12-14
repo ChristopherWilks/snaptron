@@ -29,6 +29,7 @@ import subprocess
 import json
 import time
 import re
+import urllib
 
 import gzip
 
@@ -97,7 +98,6 @@ def lucene_range_query_parse(field_w_type, op, val, fieldtypechar, ftype_method)
     if op == '>':
         end = None
         start_inclusive = False
-    #sys.stderr.write("query + fields: %s %s\n" % (query,field))
     return ftype_method(field_w_type, lucene_indexer.PREC_STEP, start, end, start_inclusive, end_inclusive)
 
 
@@ -113,7 +113,7 @@ def lucene_sample_query_parse(sampleq, ftypes):
             continue
         op=m.group(1)
         if op not in snapconf.operators:
-            sys.stderr.write("bad operator %s in range query,exiting\n" % (str(op)))
+            snaputil.log_error(str(op), "range query operator, exiting")
             sys.exit(-1)
         field_w_type = snapconf.SAMPLE_HEADER_FIELDS_TYPE_MAP[field]
         (fieldtypechar, ftype_method) = ftypes[field_w_type]
@@ -130,7 +130,7 @@ def lucene_sample_query_parse(sampleq, ftypes):
         #term query
         else:
             bq.add(TermQuery(Term(field_w_type, value.lower())), BOOLEAN_OCCUR)
-        sys.stderr.write("value + fields: %s %s\n" % (value.lower(), field_w_type))
+        #sys.stderr.write("value + fields: %s %s\n" % (urllib.quote(value.lower()), field_w_type))
     return bq
 
 
@@ -147,7 +147,7 @@ def search_samples_lucene(sample_map,sampleq,sample_set,ra,stream_sample_metadat
     header = ra.print_header
     for searcher in searchers:
         hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
-        sys.stderr.write("%s %s Found %d document(s) that matched query '%s':\n" % (searcher, query, hits.totalHits, sampleq))
+        #sys.stderr.write("%s %s Found %d document(s) that matched query '%s':\n" % (searcher, query, hits.totalHits, sampleq))
         if stream_sample_metadata and header:
             sys.stdout.write("DataSource:Type\tLucene TF-IDF Score\t%s\n" % (snapconf.SAMPLE_HEADER))
             header = False
@@ -246,8 +246,6 @@ def intron_ids_from_samples(sample_ids,snaptron_ids,rquery,filtering=False):
     found_snaptron_ids = sample_ids2intron_ids(sample_ids)
     end = time.time()
     taken=end-start
-    if DEBUG_MODE:
-        sys.stderr.write("s2I\t%s in time %s secs\n" % (str(len(found_snaptron_ids)),str(taken)))
     snaptron_ids.update(found_snaptron_ids)
 
 
@@ -296,7 +294,6 @@ def main():
         input_ = sys.stdin.read()
     (intervalq,rangeq,sampleq,idq) = (None,None,None,None)
     ra = snaptron.default_region_args
-    #sys.stderr.write("INPUT_ %s\n" % input_)
     if input_[0] == '[' or input_[1] == '[' or input_[2] == '[':
         (or_intervals,or_ranges,or_samples,or_ids,ra) = snaptron.process_post_params(input_)
         (intervalq,rangeq,sampleq,idq) = (or_intervals[0],or_ranges[0],or_samples[0],or_ids[0])
@@ -320,7 +317,7 @@ def main():
         (intervalq,idq,rangeq,sampleq,ra) = snaptron.process_params(input_)
     #only care about sampleq
     if len(intervalq) > 0 or len(rangeq['rfilter']) > 0 or snapconf.SNAPTRON_ID_PATT.search(input_):
-        sys.stderr.write("bad input asking for intervals and/or ranges, only take sample queries and/or sample ids, exiting\n")
+        snaputil.log_error(None, "bad input asking for intervals and/or ranges, only take sample queries and/or sample ids, exiting")
         sys.exit(-1) 
     sample_map = load_sample_metadata(snapconf.SAMPLE_MD_FILE)
     if DEBUG_MODE:

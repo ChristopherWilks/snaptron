@@ -18,6 +18,7 @@
 # along with Snaptron.  If not, see 
 # <https://creativecommons.org/licenses/by-nc/4.0/legalcode>.
 
+import sys
 import os
 import re
 import cPickle
@@ -38,6 +39,12 @@ UCSC_BED=snapconfshared.UCSC_BED
 UCSC_URL=snapconfshared.UCSC_URL
 
 REQ_FIELDS=[]
+
+def log_error(passed_in, msg, output=sys.stderr):
+    if passed_in is None:
+        output.write('ERROR: %s\n' % (msg))
+    else:
+        output.write('ERROR: bad argument "%s" for %s\n' % (urllib.quote(passed_in),msg))
 
 def load_cpickle_file(filepath, compressed=False):
     ds = None
@@ -107,11 +114,13 @@ def sqlite3_range_query_parse(rquery,where,arguments):
             m=snapconf.RANGE_QUERY_FIELD_PATTERN.search(query_tuple)
             (col,op_,val)=re.split(snapconf.RANGE_QUERY_OPS,query_tuple)
             if not m or not col or col not in snapconf.LUCENE_TYPES:
-                continue
+                log_error(col, "filter fieldname in range query, exiting")
+                sys.exit(-1)
+                #continue
             op=m.group(1)
             op=op.replace(':','=')
             if op not in snapconf.operators_old:
-                sys.stderr.write("bad operator %s in range query,exiting\n" % (str(op)))
+                log_error(col, "operator in range query, exiting")
                 sys.exit(-1)
             if col in snapconfshared.annotated_columns:
                 val = str(val)
@@ -216,7 +225,7 @@ def filter_by_ranges(fields,rquerys):
     for rfield in rquerys.keys():
         (op,rval)=rquerys[rfield]
         if rfield not in snapconfshared.INTRON_HEADER_FIELDS_MAP:
-            sys.stderr.write("bad field %s in range query,exiting\n" % (rfield))
+            log_error("bad field %s in range query, exiting",rfield)
             sys.exit(-1)
         fidx = snapconfshared.INTRON_HEADER_FIELDS_MAP[rfield]
         (ltype,ptype,qtype) = snapconf.LUCENE_TYPES[rfield]

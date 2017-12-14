@@ -30,6 +30,7 @@ import json
 import time
 import operator
 import re
+import urllib
 
 import gzip
 
@@ -47,7 +48,7 @@ def process_params(input_):
     for param_ in params_:
         (key,val) = param_.split("=")
         if key not in params:
-            sys.stderr.write("unknown parameter %s, exiting\n" % param)
+            snaputil.log_error(param, "query parameter, exiting")
             sys.exit(-1)
         if key == 'regions':
             subparams = val.split(',')
@@ -189,7 +190,7 @@ class GeneCoords(object):
             exon_idxs = exon_idxs_.split(';')
         geneq = geneq.upper()
         if (len(exon_idxs) == 0 and geneq not in self.gene_map) or (len(exon_idxs) > 0 and geneq not in self.canonical_gene_map):
-            sys.stderr.write("ERROR no gene found by name %s\n" % (geneq))
+            snaputil.log_error(geneq, "gene name, exiting")
             sys.exit(-1)
         if len(exon_idxs) > 0:
             chrom = self.canonical_gene_map[geneq][0]
@@ -216,7 +217,7 @@ def query_gene_regions(intervalq,contains=False,either=0,exact=False,limit=20):
     additional_cmd = ""
     ra_additional_cmd = ra
     if limit > 0:
-        sys.stderr.write("limit_filter %s\n" % (limit_filter))
+        sys.stderr.write("limit_filter %s\n" % (urllib.quote(limit_filter)))
         additional_cmd = "%s | head -%d" % (limit_filter,limit)
         ra_additional_cmd = ra._replace(additional_cmd=additional_cmd)
     for interval in intervalq:

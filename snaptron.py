@@ -101,7 +101,7 @@ def range_query_parser(rangeq,snaptron_ids):
             continue
         op=m.group(1)
         if op not in snapconf.operators:
-            sys.stderr.write("bad operator %s in range query,exiting\n" % (str(op)))
+            snaputil.log_error(str(op), "range query operator, exiting")
             sys.exit(-1)
         #queries by id are a different type of query, we simply record the id
         #and then move on, if there is only an id query that will be caught higher up
@@ -110,7 +110,7 @@ def range_query_parser(rangeq,snaptron_ids):
             continue
         (ltype,ptype,qtype) = snapconf.LUCENE_TYPES[col]
         if op != ':' and ptype == str:
-            sys.stderr.write("operator must be '=' for type string comparison in range query (it was %s), exiting\n" % (str(op)))
+            snaputil.log_error(str(op), "operator, which must be '=' for type string comparison in range query, exiting")
             sys.exit(-1)
         if not rquery:
             rquery = {}
@@ -264,7 +264,7 @@ def process_params(input_,region_args=default_region_args):
             prefix = val
             header = header.replace(snapconf.DATA_SOURCE_HEADER, 'Group') 
         elif key not in params:
-            sys.stderr.write("unknown parameter %s, exiting\n" % key)
+            snaputil.log_error(key, "query parameter, exiting")
             sys.exit(-1)
         elif key == 'regions' or key == 'ids' or key == 'sids':
             subparams = val.split(',')
@@ -274,7 +274,7 @@ def process_params(input_,region_args=default_region_args):
                 try:
                     [params[key].extend(sample_group_map[sgroup].split(',')) for sgroup in subparams]
                 except KeyError as e:
-                    raise Exception("one or more sample groupings not found: %s\n" % (str(e)))
+                    raise Exception("one or more sample groupings not found: %s\n" % (urllib.quote(str(e))))
             else:
                 params[key].extend(subparams)
         elif key == 'fields':
@@ -381,11 +381,7 @@ def main():
         input_ = sys.stdin.read()
     (intervalq,rangeq,idq) = (None,None,None)
     sampleq = []
-    #caused a deadlock on larger bulk queries
-    #sys.stderr.write("%s\n" % input_)
     sample_map = snample.load_sample_metadata(snapconf.SAMPLE_MD_FILE)
-    if DEBUG_MODE_:
-        sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
     #make copy of the region_args tuple
     ra = default_region_args
     #override defaults for the DB files in case we're doing gene/exon rather than junction queries

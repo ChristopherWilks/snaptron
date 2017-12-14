@@ -256,3 +256,6 @@ curl --data-urlencode groups@jons_breaking_bulk_query.b64 http://localhost:1580/
 
 #get total: # of junctions, #coverage sum, and average coverage for each sample
 time zcat junctions.bgz | cut -f 12 | perl -ne 'chomp; @f=split(/,/,$_); shift(@f); for $f (@f) { ($f,$c)=split(/:/,$f); $count{$f}++; $cov{$f}+=$c; } END { for $f (keys %count) { $avg=$cov{$f}/$count{$f}; print "$f\t".$count{$f}."\t".$cov{$f}."\t$avg\n";}}' > sample_summary_stats.tsv &
+
+#look for client side injection possibilities in stderr
+grep "stderr" snquery.py snaputil.py snaptron.py snannotation.py snample.py > stderrs
