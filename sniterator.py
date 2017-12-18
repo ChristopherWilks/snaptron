@@ -23,21 +23,25 @@ import subprocess
 import shlex
 
 class SnaptronServerIterator():
-    def __init__(self,cmd,stdout=subprocess.PIPE,shell=False,bufsize=-1):
-        self.cmd = cmd
+    def __init__(self,cmds,stdout=subprocess.PIPE,shell=False,bufsize=-1):
+        self.cmds = cmds
         self.stdout = stdout
         self.shell = shell
         self.bufsize = bufsize
-        self.extern_proc = subprocess.Popen(self.cmd, stdout=self.stdout, shell=self.shell, bufsize=self.bufsize)
+        self.extern_procs = [subprocess.Popen(cmd, stdout=self.stdout, shell=self.shell, bufsize=self.bufsize) for cmd in self.cmds]
+        self.idx = 0
 
     def __iter__(self):
         return self
 
     def next(self):
-        line = self.extern_proc.stdout.readline()
+        line = self.extern_procs[self.idx].stdout.readline()
         if line == '':
-            exitc=self.extern_proc.wait() 
+            exitc=self.extern_procs[self.idx].wait() 
             if exitc != 0:
-                raise RuntimeError("%s returned non-0 exit code\n" % (self.cmd))
-            raise StopIteration
+                raise RuntimeError("%s returned non-0 exit code\n" % (self.cmds[self.idx]))
+            self.idx+=1
+            if self.idx >= len(self.extern_procs):
+                raise StopIteration
+            line = self.extern_procs[self.idx].stdout.readline()
         return line

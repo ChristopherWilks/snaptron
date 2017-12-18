@@ -93,8 +93,7 @@ class RunExternalQueryEngine:
             #maybe we should consider doing this differently, however, self.qargs is enforced to be a strict chr:start-end pattern,
             #and the rest of the arguments are set internally, so I think we avoid potential injection attacks here
             self.full_cmd = "%s %s %s %s" % (cmd,self.ra.tabix_db_file,self.qargs,additional_cmd)
-            #self.extern_proc = subprocess.Popen(self.full_cmd, stdout=subprocess.PIPE, shell=True, bufsize=-1)
-            self.extern_proc = SnaptronServerIterator(self.full_cmd, shell=True)
+            self.extern_proc = SnaptronServerIterator([self.full_cmd], shell=True)
 
         elif cmd == snapconf.SQLITE:
             self.delim = '\t'
@@ -130,8 +129,7 @@ class RunExternalQueryEngine:
             self.range_filters = None
             if self.ra.debug:
                 sys.stderr.write("%s\n" % (self.full_cmd))
-            #self.extern_proc = subprocess.Popen(full_cmd_args, stdout=subprocess.PIPE, shell=False, bufsize=-1)
-            self.extern_proc = SnaptronServerIterator(full_cmd_args, shell=False)
+            self.extern_proc = SnaptronServerIterator([full_cmd_args], shell=False)
 
 
     def run_query(self):
@@ -188,7 +186,4 @@ class RunExternalQueryEngine:
                     self.streamer_method(sys.stdout,line,fields,region_args=self.ra)
             if self.ra.save_introns:
                 ids_found.add(snaptron_id)
-        #exitc=self.extern_proc.wait() 
-        #if exitc != 0:
-        #    raise RuntimeError("%s returned non-0 exit code\n" % (self.full_cmd))
         return (ids_found, sample_set)
