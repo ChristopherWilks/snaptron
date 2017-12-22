@@ -35,9 +35,9 @@ pidfile = piddir + "/" + exec_name + ".pid"
 parser = OptionParser()
 # TODO: change default user/group to snaptron/snaptron
 
-parser.add_option("--user", action="store", type='string', dest="user", default=pwd.getpwuid( os.getuid() )[ 0 ],
+parser.add_option("--user", action="store", type='string', dest="user", default=0,
                   help="specify user to run under")
-parser.add_option("--group", action="store", type='string', dest="group", default=grp.getgrgid( os.getgid() )[ 0 ],
+parser.add_option("--group", action="store", type='string', dest="group", default=0,
                   help="specify group to run under")
 parser.add_option("--init-script", action="store_true", dest="init_script", default=False,
                   help="creates init-script for this script with current options")
@@ -194,14 +194,14 @@ def run_server():
 def main():
     syslog.openlog(os.path.basename(sys.argv[0]), syslog.LOG_PID, syslog.LOG_LOCAL0)
     daemon = None
-    uid = lookup_user(options.user, 'daemon process')
-    gid = lookup_group(options.group, 'daemon process')
     if options.init_script:
         generate_init_script(options)
         return 0
     sys.stderr.write("Logging to syslog\n")
     try:
         if options.daemonize:
+	    uid = lookup_user(options.user, 'daemon process')
+	    gid = lookup_group(options.group, 'daemon process')
             sys.stdout.write("running daemon mode\n")
             daemon = daemonize(uid, gid, options.pid_file, options.log_spill)
         run_server()
