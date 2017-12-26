@@ -7,7 +7,7 @@ ARCH='x86_64'
 source python/bin/activate
 
 # Downloads and extract pylucene
-wget http://mirror.serversupportforum.de/apache/lucene/pylucene/pylucene-4.10.1-1-src.tar.gz
+wget https://www.apache.org/dist/lucene/pylucene/pylucene-4.10.1-1-src.tar.gz
 tar -zxvf pylucene-4.10.1-1-src.tar.gz
 
 # Install dependencies
