@@ -136,12 +136,12 @@ curl "http://$HOST:$PORT/$PATH_/snaptron?contains=1&regions=chr2:29446395-301428
 diff test_annot_full.test test_annot_full
 
 ###Gene expression tests
-curl "http://$HOST:$PORT/genes?regions=ALK&sids=40099,40100" > gene_exp.alk_sids_test.test
+curl "http://$HOST:$PORT/$PATH_/genes?regions=ALK&sids=40099,40100" > gene_exp.alk_sids_test.test
 diff gene_exp.alk_sids_test.test instances/srav2.gene_exp.alk_sids_test.expected
 
 #ALK exactness via gene_id test
 echo "2" > expected_wc
-curl 'http://localhost:1556/genes?regions=ENSG00000171094.15' | wc -l > test_wc
+curl "http://$HOST:$PORT/$PATH_/genes?regions=ENSG00000171094.15" | wc -l > test_wc
 diff test_wc expected_wc
 
 ###Bulk query tests
