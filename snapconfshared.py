@@ -71,7 +71,7 @@ def map_region2files(chrom, start, end):
                 nstart = cstart+1
             if nend > cend:
                 nend = cend
-            regions.append(["%s:%s-%s" % (chrom,nstart,nend),snapconf.BASE_TABIX_DB_PATH+region_file])
+            regions.append(["%s:%s-%s" % (chrom,nstart,nend),snapconf.BASE_TABIX_DB_PATH+region_file+".bgz"])
     return regions
 
 

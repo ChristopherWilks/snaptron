@@ -82,11 +82,11 @@ class RunExternalQueryEngine:
                 additional_cmd = " | %s" % (self.ra.additional_cmd)
             self.ra = self.ra._replace(tabix_db_file = "%s/%s" % (snapconf.TABIX_DB_PATH,self.ra.tabix_db_file))
             self.full_cmd = "%s %s %s %s" % (cmd,self.ra.tabix_db_file,self.qargs,additional_cmd)
-            cmds = []
+            self.cmds = []
             if self.ra.app == snapconf.BASES_APP:
                 #offset for start at 0 in BigWig derived bases
                 self.chrom = m.group(1)
-                qargs_and_region_files = snapconf.map_region2files(self.chrom,self.start,self.end)
+                qargs_and_region_files = snapconfshared.map_region2files(self.chrom,self.start,self.end)
                 self.start-=1
                 for (qargs,region_file) in qargs_and_region_files:
                     #self.ra=self.ra._replace(tabix_db_file=snapconf.BASE_TABIX_DB_PATH+snapconf.BASE_TABIX_DB_MAP[chrom])
@@ -94,13 +94,13 @@ class RunExternalQueryEngine:
                     if self.ra.debug:
                         sys.stderr.write("running %s %s %s\n" % (self.cmds[-1],region_file,qargs))
             else:
-                cmds.append(self.full_cmd)
+                self.cmds.append(self.full_cmd)
             #self.full_cmd = "%s %s %s | cut -f %d- %s" % (cmd,self.ra.tabix_db_file,self.qargs,self.ra.cut_start_col,additional_cmd)
             #NOTE: we use shell=True due to the ease of including "additional_cmd" which is only used by snannotation to limit gene models returned by tabix
             #maybe we should consider doing this differently, however, self.qargs is enforced to be a strict chr:start-end pattern,
             #and the rest of the arguments are set internally, so I think we avoid potential injection attacks here
             #self.extern_proc = SnaptronServerIterator([self.full_cmd], shell=True)
-            self.extern_proc = SnaptronServerIterator(cmds, shell=True)
+            self.extern_proc = SnaptronServerIterator(self.cmds, shell=True)
 
         elif cmd == snapconf.SQLITE:
             self.delim = '\t'
