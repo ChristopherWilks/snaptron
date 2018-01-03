@@ -19,7 +19,7 @@ analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
 
 #####fields that need to be changed for a different instance
 DATA_SOURCE='SRAv2'
-IP='127.0.0.1'
+IP='0.0.0.0'
 PORT=1556
 SERVER_STRING='http://snaptron.cs.jhu.edu/%s/' % (DATA_SOURCE.lower())
 HG='hg38'
