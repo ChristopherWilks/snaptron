@@ -1,0 +1,1 @@
+cat ~/snaptron_instances.txt | perl -ne 'chomp; $e=$_; $e1="snaptron"; $e1=$e."_snaptron" if($e ne "snaptron"); $e2=$e1."_server"; `screen -d -m -S $e ./run_snaptron_compilation.sh /home/cwilks3\@jhu.edu/gigatron/$e1 $e2`;'
