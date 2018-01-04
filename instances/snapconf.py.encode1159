@@ -28,7 +28,7 @@ HG='hg38'
 SAMPLE_HEADER='rail_id	sample accession	File format	Output type	Experiment accession	Assay	Biosample term id	Biosample term name	Biosample type	Biosample life stage	Biosample sex	Biosample Age	Biosample organism	Biosample treatments	Biosample subcellular fraction term name	Biosample phase	Biosample synchronization stage	Experiment target	Antibody accession	Library made from	Library depleted in	Library extraction method	Library lysis method	Library crosslinking method	Experiment date released	Project	RBNS protein concentration	Library fragmentation method	Library size range	Read length	Mapped read length	Run type	Derived from	Lab	Assembly	Platform	File Status	all'
 
 #####fields which could change, but usually don't (when run on Stingray at least)
-IP='127.0.0.1'
+IP='0.0.0.0'
 SAMPLE_ID_FIELD_NAME='rail_id'
 SERVER_STRING='http://snaptron.cs.jhu.edu/%s/' % (DATA_SOURCE.lower())
 BIGWIG2WIG="bigWigToWig"
