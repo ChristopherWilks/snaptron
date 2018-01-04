@@ -158,6 +158,9 @@ diff jons_breaking_bulk_query.test instances/srav2.jons_breaking_bulk_query_test
 curl "http://$HOST:$PORT/$PATH_/snaptron?regions=SF3B1&sids=SRP063493&rfilter=annotated:0&rfilter=left_annotated:0&rfilter=right_annotated:0&rfilter=strand:-" > test.samplegroups1 
 diff instances/test.samplegroups1.out.srav2 test.samplegroups1
 
+###Base tests
+curl "http://$HOST:$PORT/$PATH_/bases?regions=chrM:1-3" 2>/dev/null | cut -f 1-10 
+
 echo "all tests run"
 
 #FP comparison test

@@ -17,20 +17,12 @@ analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
 #use this for SRAvX sample metadata
 analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
 
-#####fields that should be changed for a different instance
-#compilation source name
-DATA_SOURCE='ENCODE1159'
-#internal port to serve one, must be unique per compilation
-PORT=1587
-#genome build version
-HG='hg38'
-#change to metadata specific
-SAMPLE_HEADER='rail_id	sample accession	File format	Output type	Experiment accession	Assay	Biosample term id	Biosample term name	Biosample type	Biosample life stage	Biosample sex	Biosample Age	Biosample organism	Biosample treatments	Biosample subcellular fraction term name	Biosample phase	Biosample synchronization stage	Experiment target	Antibody accession	Library made from	Library depleted in	Library extraction method	Library lysis method	Library crosslinking method	Experiment date released	Project	RBNS protein concentration	Library fragmentation method	Library size range	Read length	Mapped read length	Run type	Derived from	Lab	Assembly	Platform	File Status	all'
-
 #####fields which could change, but usually don't (when run on Stingray at least)
+DATA_SOURCE='ENCODE1159'
 IP='0.0.0.0'
-SAMPLE_ID_FIELD_NAME='rail_id'
+PORT=1587
 SERVER_STRING='http://snaptron.cs.jhu.edu/%s/' % (DATA_SOURCE.lower())
+HG='hg38'
 BIGWIG2WIG="bigWigToWig"
 ROOT_DIR='./'
 PYTHON_PATH="python"
@@ -44,9 +36,9 @@ TABIX_INTERVAL_DB='junctions_uncompressed.bgz'
 GENE_TABIX_DB='genes.bgz'
 EXON_TABIX_DB='exons.bgz'
 BASE_TABIX_DB='bases.bgz'
-BASE_TAIX_DB_PATH='bases/'
 #split by chromosome for space and performance reasons
-BASE_TABIX_DB_MAP={'chr1':'bases.bgz','chr2':'bases.bgz','chr3':'bases.bgz','chr4':'bases.bgz','chr5':'bases.bgz','chr6':'bases.bgz','chr7':'bases.bgz','chr8':'bases.bgz','chr9':'bases.bgz','chr10':'bases.bgz','chr11':'bases.bgz','chr12':'bases.bgz','chr13':'bases.bgz','chr14':'bases.bgz','chr15':'bases.bgz','chr16':'bases.bgz','chr17':'bases.bgz','chr18':'bases.bgz','chr19':'bases.bgz','chr20':'bases.bgz','chr21':'bases.bgz','chr22':'bases.bgz','chrX':'bases.bgz','chrY':'bases.bgz','chrM':'bases.bgz'}
+BASE_TABIX_DB_PATH='%s/bases/' % TABIX_DB_PATH
+BASE_TABIX_DB_MAP={"chr1":[["b",0,248956422]],"chr2":[["b",0,242193529]],"chr3":[["b",0,198295559]],"chr4":[["b",0,190214555]],"chr5":[["b",0,181538259]],"chr6":[["b",0,170805979]],"chr7":[["b",0,159345973]],"chr8":[["b",0,145138636]],"chr9":[["b",0,138394717]],"chr10":[["b",0,133797422]],"chr11":[["b",0,135086622]],"chr12":[["b",0,133275309]],"chr13":[["b",0,114364328]],"chr14":[["b",0,107043718]],"chr15":[["b",0,101991189]],"chr16":[["b",0,90338345]],"chr17":[["b",0,83257441]],"chr18":[["b",0,80373285]],"chr19":[["b",0,58617616]],"chr20":[["b",0,64444167]],"chr21":[["b",0,46709983]],"chr22":[["b",0,50818468]],"chrX":[["b",0,156040895]],"chrY":[["b",0,57227415]],"chrM":[["b",0,16569]]}
 ID_START_COL=2
 CUT_START_COL=1
 #sqlite3 dbs
@@ -61,6 +53,7 @@ LUCENE_WS_SAMPLE_DB="%s/lucene_full_ws/" % (TABIX_DB_PATH)
 REFSEQ_ANNOTATION='refseq_transcripts_by_hgvs.tsv'
 CANONICAL_ANNOTATION='ucsc_known_canonical_transcript.tsv'
 SAMPLE_MD_FILE="%s/samples.tsv" % (TABIX_DB_PATH)
+SAMPLE_ID_FIELD_NAME='rail_id'
 LUCENE_STD_ANALYZER=analyzer_ws
 LUCENE_WS_ANALYZER=analyzer
 #####END of fields that should/could be changed for a different instance
@@ -144,6 +137,8 @@ MAX_DISTANCE_BETWEEN_IDS=1000
 DATA_SOURCE_HEADER='DataSource:Type'
 #GENE_ANNOTATION_HEADER (GTF)
 GENE_ANNOTATION_HEADER = DATA_SOURCE_HEADER + "\treference\tannotation_source\tfeature_type\tstart\tend\tscore\tstrand\tunused\tattributes";
+
+SAMPLE_HEADER='rail_id	sample accession	File format	Output type	Experiment accession	Assay	Biosample term id	Biosample term name	Biosample type	Biosample life stage	Biosample sex	Biosample Age	Biosample organism	Biosample treatments	Biosample subcellular fraction term name	Biosample phase	Biosample synchronization stage	Experiment target	Antibody accession	Library made from	Library depleted in	Library extraction method	Library lysis method	Library crosslinking method	Experiment date released	Project	RBNS protein concentration	Library fragmentation method	Library size range	Read length	Mapped read length	Run type	Derived from	Lab	Assembly	Platform	File Status	all'
 
 SAMPLE_HEADER_FIELDS=SAMPLE_HEADER.split('\t')
 SAMPLE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(SAMPLE_HEADER_FIELDS)}
