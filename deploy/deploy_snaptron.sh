@@ -42,6 +42,7 @@ wget http://snaptron.cs.jhu.edu/data/${1}/junctions.bgz
 wget http://snaptron.cs.jhu.edu/data/${1}/all_transcripts.gtf.bgz
 wget http://snaptron.cs.jhu.edu/data/${1}/refseq_transcripts_by_hgvs.tsv
 wget http://snaptron.cs.jhu.edu/data/${1}/ucsc_known_canonical_transcript.tsv
+wget http://snaptron.cs.jhu.edu/data/${1}/gencode.v25.annotation.gff3.gz
 
 echo "+++Creating Tabix index on transcripts file"
 #creation of Tabix index of all_transcripts
