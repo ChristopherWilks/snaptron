@@ -50,6 +50,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__, 
                 formatter_class=argparse.RawDescriptionHelpFormatter)
     # Add command-line arguments
+    parser.add_argument('--counts-file', type=str, required=True,
+            help='path to file with counts for genes/exons'
+        )
     parser.add_argument('--annotation', type=str, required=True,
             help='path to GTF file of annotation used to produce input gene/exon expressions'
         )
@@ -62,40 +65,82 @@ if __name__ == '__main__':
     parser.add_argument('--sample-source', type=str, required=True,
             help='name of source compilation: "srav2", "gtex", or "tcga"'
         )
+    parser.add_argument('--with-coords', action='store_const', const=True, 
+            default=False, help='input contains chrom,start,end per gene/exon')
+    parser.add_argument('--as-ints', action='store_const', const=True, 
+            default=False, help='convert all floating point to integers (if there is no non-0 decimal part)')
+
     args = parser.parse_args()
    
     (gene2coords, gene2num_exons) = load_annotation(args.annot_type, args.annotation)
     srr2ids = load_sample_id_map(args.sample_metadata, args.sample_source)
 
-    snaptron_id = 0
+    snaptron_id = -1
     sample_id_mapping = {}
     sample_id_cols = []
-    for line in sys.stdin:
+    field_offset = 3
+    current_gene_id = None
+    exon_id = 1
+    if args.with_coords:
+        #no symbol was passed in if we also have coordinates
+        field_offset += 2
+    fin = None
+    if args.counts_file[-2:] == 'gz':
+        fin = gzip.open(args.counts_file, "rb")
+    else:
+        fin = open(args.counts_file, "rb")
+    for line in fin:
         fields = line.strip().split('\t')
-        if fields[0] == 'gene_id':
-            for (i,sample) in enumerate(fields[3:]):
-                if sample not in srr2ids:
-                    sys.stderr.write("SAMPLE_NOT_PRESENT\t"+sample+"\t"+str(i+3)+"\n")
-                    continue
-                sample_id_mapping[i+3]=srr2ids[sample]
+        #header row
+        if snaptron_id == -1:
+            for (i,sample) in enumerate(fields[field_offset:]):
+                if sample[0:3] == 'SRR':
+                    if sample not in srr2ids:
+                        sys.stderr.write("SAMPLE_NOT_PRESENT\t"+sample+"\t"+str(i+field_offset)+"\n")
+                        continue
+                    sample_id_mapping[i+field_offset]=srr2ids[sample]
+                else:
+                    sample_id_mapping[i+field_offset]=sample
+            snaptron_id = 0
             continue
         gene_id = fields[0]
         bp_length = fields[1]
-        symbol = fields[2]
+        if args.annot_type == 'exon':
+            if args.with_coords:
+                gene_id = gene_id.split(':')[0]
+            if gene_id != current_gene_id:
+                exon_id = 1
         if gene_id not in gene2coords:
             sys.stderr.write("MISSING_GENE_ID\t"+gene_id+"\n")
             continue
+        current_gene_id = gene_id
         (chrom, start, end, strand, gene_name, gene_type) = gene2coords[gene_id]
-        exon_count = gene2num_exons[gene_id]
-        if exon_count == 0:
-            sys.stderr.write("0_EXON_GENE\t"+gene_id+"\n")
-            continue
+        #start of sample counts, assuming a symbol was also passed in (ignored)
+        if args.with_coords:
+            #no symbol was passed in if we also have coordinates
+            (chrom, start, end) = fields[field_offset-3:field_offset]
+        exon_count = exon_id
+        #for genes we don't know the total number of disjoint exons, so print nothing
+        if args.annot_type == 'gene':
+            exon_count = ""
+            #exon_count = gene2num_exons[gene_id]
+            #if exon_count == 0:
+            #    sys.stderr.write("0_EXON_GENE\t"+gene_id+"\n")
+            #    continue
         length = str((int(end )- int(start)) + 1)
         #need offset of 3 since we have gene_id,length, and symbol before the sample counts
-        sample_ids = [sample_id_mapping[i] for i in xrange(3,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping]
+        sample_ids = [sample_id_mapping[i] for i in xrange(field_offset,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping]
         #skip any with no samples
         if len(sample_ids) == 0:
+            sys.stderr.write("no samples with counts > 0\t"+gene_id+"\n")
             continue
         #now join up the samples and their coverages and write out
-        sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id,gene_name,gene_type,bp_length]), ','.join(sample_ids),','.join([fields[i] for i in xrange(3,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping])])+"\n")
+        if args.as_ints:
+            sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id,gene_name,gene_type,bp_length]), ','.join(sample_ids),','.join([str(int(float(fields[i]))) for i in xrange(field_offset,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping])])+"\n")
+            #sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id,gene_name,gene_type,bp_length]), ","+','.join([':'.join([sample_id_mapping[i],str(int(float(fields[i])))]) for i in xrange(field_offset,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping])])+"\n")
+        else:
+            sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id,gene_name,gene_type,bp_length]), ','.join(sample_ids),','.join([fields[i] for i in xrange(field_offset,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping])])+"\n")
+            #sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id,gene_name,gene_type,bp_length]), ","+','.join([':'.join([sample_id_mapping[i],fields[i]]) for i in xrange(field_offset,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping])])+"\n")
         snaptron_id+=1
+        exon_id+=1
+    fin.close()
