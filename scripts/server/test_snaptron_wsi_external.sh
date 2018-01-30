@@ -12,6 +12,8 @@ do
 	#test ALK region
 	echo "testing $x genes"
 	curl "http://${HOST}/${x}/genes?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:G" | head -1 | cut -f 1-10
+	echo "testing $x exons"
+	curl "http://${HOST}/${x}/exons?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:E" | head -1 | cut -f 1-10
 	echo "testing $x bases"
 	curl "http://${HOST}/${x}/bases?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:B" | head -1 | cut -f 1-10
 done
@@ -25,6 +27,8 @@ do
 	#test ALK region
 	echo "testing $x genes"
 	curl "http://${HOST}/${x}/genes?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:G" | head -1 | cut -f 1-10
+	echo "testing $x exons"
+	curl "http://${HOST}/${x}/exons?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:E" | head -1 | cut -f 1-10
 	echo "testing $x bases"
 	curl "http://${HOST}/${x}/bases?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:B" | head -1 | cut -f 1-10
 done
@@ -37,6 +41,8 @@ do
 	#test ALK region
 	echo "testing $x genes"
 	curl "http://${HOST}/${x}/genes?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:G" | head -1 | cut -f 1-10
+	echo "testing $x exons"
+	curl "http://${HOST}/${x}/exons?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:E" | head -1 | cut -f 1-10
 	echo "testing $x bases"
 	curl "http://${HOST}/${x}/bases?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:B" | head -1 | cut -f 1-10
 done
