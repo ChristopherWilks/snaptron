@@ -60,8 +60,18 @@ int check_group_boundary(char** group, char** prev_group, column_settings col_de
 	return 0;
 }
 
+void check_chromosome(char** chrm, char** prev_chrm)
+{
+	if(*chrm && *prev_chrm != *chrm)
+	{
+		if(*prev_chrm)
+			free(*prev_chrm);
+		*prev_chrm = *chrm;
+	}
+}
 
-int process_line(char* line, char* delim, char** chrm, long* start, long* end, double** counts, int first, char** group, char** prev_group, int skip_group_check, column_settings col_def)
+
+int process_line(char* line, char* delim, char** chrm, char** prev_chrm, long* start, long* end, double** counts, int first, char** group, char** prev_group, int skip_group_check, column_settings col_def)
 {
 	char* group_line = strdup(line);
 	char* tok = strtok(group_line, delim);
@@ -100,7 +110,7 @@ int process_line(char* line, char* delim, char** chrm, long* start, long* end, d
 		}
 		if(i == col_def.chrm_col)
 		{
-			//this will be freed higher in the stack
+			check_chromosome(chrm, prev_chrm);
 			*chrm=strdup(tok);
 		}
 		if(i == col_def.start_col && *start == 0)
@@ -160,24 +170,19 @@ int main(int argc, char** argv)
 	bytes_read=getline(&line, &length, stdin);
 	while(bytes_read != -1)
 	{
-		if(chrm)
-		{
-			if(prev_chrm)
-				free(prev_chrm);
-			prev_chrm = chrm;
-		}
 		prev_start = start;
 		prev_end = end;
 		int skip_group_check = 0;
-		int num_toks = process_line(strdup(line), "\t", &chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
+		int num_toks = process_line(strdup(line), "\t", &chrm, &prev_chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
 		if(first)
 		{
 			num_counts = num_toks - col_def.base_col_start;
 			//one large calloc up front
 			counts = calloc(num_counts,sizeof(double));
 			first = 0;
-			num_toks = process_line(strdup(line), "\t", &chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
+			num_toks = process_line(strdup(line), "\t", &chrm, &prev_chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
 		}
+		check_chromosome(&chrm, &prev_chrm);
 		if(num_toks == -1)
 		{	
 			bp_length = (end-start)+1;
@@ -194,7 +199,10 @@ int main(int argc, char** argv)
 				free(prev_group);
 			prev_group = group;
 			start = 0;
-			process_line(strdup(line), "\t", &chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
+			process_line(strdup(line), "\t", &chrm, &prev_chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
+			prev_start = start;
+			prev_end = end;
+			check_chromosome(&chrm, &prev_chrm);
 		}
 		fflush(stdout);
 		bytes_read=getline(&line, &length, stdin);
@@ -215,8 +223,6 @@ int main(int argc, char** argv)
 		free(line);
 	if(prev_chrm)
 		free(prev_chrm);
-	if(chrm)
-		free(chrm);
 	if(counts)
 		free(counts);
 	if(prev_group)
