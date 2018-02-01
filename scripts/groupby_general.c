@@ -28,26 +28,33 @@ char* get_subgroup(char* group, column_settings col_def)
 		ttok = strtok(NULL, col_def.subgroup_delim);
 		i++;
 	}
+	if(g)
+		free(g);
 	return NULL;
 }
 
 int check_group_boundary(char** group, char** prev_group, column_settings col_def)
 {
 	if(col_def.subgroup_col != -1)
-		*group = get_subgroup(*group, col_def);
-	if(*prev_group)
-		printf("group %s vs prev_group %s\n",*group,*prev_group);
+	{
+		char* subgroup = get_subgroup(*group, col_def);
+		if(*group)
+			free(*group);
+		*group = subgroup;
+	}
+	/*if(*prev_group)
+		printf("group %s vs prev_group %s\n",*group,*prev_group);*/
 	//first group
-	if(!(*prev_group))
+	if(!*prev_group)
 	{
 		*prev_group = *group;
-		printf("prev_group %s\n",*prev_group);
+		//printf("prev_group %s\n",*prev_group);
 		return 0;
 	}
 	//no subgroup, so just check group
 	if(strcmp(*group, *prev_group)!=0)
 	{
-		printf("groups diff %s vs prev_group %s\n",*group,*prev_group);
+		//printf("groups diff %s vs prev_group %s\n",*group,*prev_group);
 		return -1;
 	}
 	return 0;
@@ -73,7 +80,19 @@ int process_line(char* line, char* delim, char** chrm, long* start, long* end, d
 		{
 			*group = strdup(tok);
 			if(check_group_boundary(group, prev_group, col_def)==-1)
+			{
+				if(group_line)
+					free(group_line);
+				if(line)
+					free(line);
 				return -1;
+			}
+			//if no change to the group, reset
+			if(*group && *prev_group && *group != *prev_group)
+			{
+				free(*group);
+				*group = *prev_group;
+			}
 			skip_group_check = 1;
 			//restart the tokenization process on the original line
 			tok = strtok(line, delim);
@@ -81,11 +100,11 @@ int process_line(char* line, char* delim, char** chrm, long* start, long* end, d
 		}
 		if(i == col_def.chrm_col)
 		{
+			//this will be freed higher in the stack
 			*chrm=strdup(tok);
 		}
 		if(i == col_def.start_col && *start == 0)
-			//offset of +1 for BED starts
-			*start=atol(tok)+1;
+			*start=atol(tok);
 		if(i == col_def.end_col)
 			*end=atol(tok);
 		//assume this always comes after the group/subgroup col.
@@ -94,6 +113,10 @@ int process_line(char* line, char* delim, char** chrm, long* start, long* end, d
 		i++;
 		tok = strtok(NULL,delim);
 	}
+	if(group_line)
+		free(group_line);
+	if(line)
+		free(line);
 	return i;
 }
 
@@ -116,11 +139,13 @@ int main(int argc, char** argv)
 	if(argc >= 3)
 		col_def.subgroup_delim = argv[2];		
 
+	char* line = NULL;
 	double* counts;
 	char* chrm=NULL;
 	char* prev_chrm=NULL;
 	char* group=NULL;
 	char* prev_group=NULL;
+	
 	long start=0;
 	long end=-1;
 	long prev_start = start;
@@ -130,15 +155,17 @@ int main(int argc, char** argv)
 	int num_counts = 0;
 	int k = 0;
 	
-	char* line = NULL;
 	size_t length = 0;
 	ssize_t bytes_read = 0;
 	bytes_read=getline(&line, &length, stdin);
 	while(bytes_read != -1)
 	{
 		if(chrm)
-			prev_chrm = strdup(chrm);
-		//printf("read %lu line %s\n",bytes_read,line);
+		{
+			if(prev_chrm)
+				free(prev_chrm);
+			prev_chrm = chrm;
+		}
 		prev_start = start;
 		prev_end = end;
 		int skip_group_check = 0;
@@ -146,14 +173,13 @@ int main(int argc, char** argv)
 		if(first)
 		{
 			num_counts = num_toks - col_def.base_col_start;
+			//one large calloc up front
 			counts = calloc(num_counts,sizeof(double));
 			first = 0;
 			num_toks = process_line(strdup(line), "\t", &chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
 		}
-//printf("read %s %lu %lu %f\n",chrm,start,end,counts[0]);
 		if(num_toks == -1)
 		{	
-			//printf("read %s %lu %lu %f\n",chrm,start,end,counts[0]);
 			bp_length = (end-start)+1;
 			printf("%s\t%lu\t%s\t%lu\t%lu",prev_group,bp_length,prev_chrm,prev_start,prev_end);
 			for(k=0;k<num_counts;k++)
@@ -164,6 +190,8 @@ int main(int argc, char** argv)
 			printf("\n");
 			skip_group_check = 1;
 			//process the rest of the line for the current group
+			if(prev_group)
+				free(prev_group);
 			prev_group = group;
 			start = 0;
 			process_line(strdup(line), "\t", &chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
@@ -173,7 +201,6 @@ int main(int argc, char** argv)
 	}
 	if(prev_group)
 	{	
-		//printf("read %s %lu %lu %f\n",chrm,start,end,counts[0]);
 		bp_length = (end-start)+1;
 		printf("%s\t%lu\t%s\t%lu\t%lu",prev_group,bp_length,prev_chrm,prev_start,prev_end);
 		for(k=0;k<num_counts;k++)
@@ -184,9 +211,14 @@ int main(int argc, char** argv)
 		printf("\n");
 	}
 	fflush(stdout);
-	//free(line);
-	//free(chrm);
-	//free(prev_chrm);
-	//free(counts);
-	//free(tok);
+	if(line)
+		free(line);
+	if(prev_chrm)
+		free(prev_chrm);
+	if(chrm)
+		free(chrm);
+	if(counts)
+		free(counts);
+	if(prev_group)
+		free(prev_group);
 }
