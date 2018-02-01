@@ -4,6 +4,7 @@
 #include <string.h>
 
 typedef struct col_def {
+	int bp_col;
 	int chrm_col;
 	int start_col;
 	int end_col;
@@ -42,21 +43,14 @@ int check_group_boundary(char** group, char** prev_group, column_settings col_de
 			free(*group);
 		*group = subgroup;
 	}
-	/*if(*prev_group)
-		printf("group %s vs prev_group %s\n",*group,*prev_group);*/
-	//first group
 	if(!*prev_group)
 	{
 		*prev_group = *group;
-		//printf("prev_group %s\n",*prev_group);
 		return 0;
 	}
 	//no subgroup, so just check group
 	if(strcmp(*group, *prev_group)!=0)
-	{
-		//printf("groups diff %s vs prev_group %s\n",*group,*prev_group);
 		return -1;
-	}
 	return 0;
 }
 
@@ -71,7 +65,7 @@ void check_chromosome(char** chrm, char** prev_chrm)
 }
 
 
-int process_line(char* line, char* delim, char** chrm, char** prev_chrm, long* start, long* end, double** counts, int first, char** group, char** prev_group, int skip_group_check, column_settings col_def)
+int process_line(char* line, char* delim, long* bp_length, char** chrm, char** prev_chrm, long* start, long* end, double** counts, int first, char** group, char** prev_group, int skip_group_check, column_settings col_def)
 {
 	char* group_line = strdup(line);
 	char* tok = strtok(group_line, delim);
@@ -108,6 +102,8 @@ int process_line(char* line, char* delim, char** chrm, char** prev_chrm, long* s
 			tok = strtok(line, delim);
 			i = 0;
 		}
+		if(i == col_def.bp_col)
+			*bp_length+=atol(tok);
 		if(i == col_def.chrm_col)
 		{
 			check_chromosome(chrm, prev_chrm);
@@ -135,6 +131,7 @@ int process_line(char* line, char* delim, char** chrm, char** prev_chrm, long* s
 int main(int argc, char** argv)
 {
 	column_settings col_def;
+	col_def.bp_col=1;
 	col_def.chrm_col=2;
 	col_def.start_col=3;
 	col_def.end_col=4;
@@ -161,6 +158,7 @@ int main(int argc, char** argv)
 	long prev_start = start;
 	long prev_end = end;
 	long bp_length=0;
+	long prev_bp_length = bp_length;
 	int first = 1;
 	int num_counts = 0;
 	int k = 0;
@@ -170,23 +168,24 @@ int main(int argc, char** argv)
 	bytes_read=getline(&line, &length, stdin);
 	while(bytes_read != -1)
 	{
-		prev_start = start;
-		prev_end = end;
 		int skip_group_check = 0;
-		int num_toks = process_line(strdup(line), "\t", &chrm, &prev_chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
+		int num_toks = process_line(strdup(line), "\t", &bp_length, &chrm, &prev_chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
 		if(first)
 		{
 			num_counts = num_toks - col_def.base_col_start;
 			//one large calloc up front
 			counts = calloc(num_counts,sizeof(double));
 			first = 0;
-			num_toks = process_line(strdup(line), "\t", &chrm, &prev_chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
+			num_toks = process_line(strdup(line), "\t", &bp_length, &chrm, &prev_chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
 		}
 		check_chromosome(&chrm, &prev_chrm);
+		prev_start = start;
+		prev_end = end;
+		prev_bp_length = bp_length;
 		if(num_toks == -1)
 		{	
-			bp_length = (end-start)+1;
-			printf("%s\t%lu\t%s\t%lu\t%lu",prev_group,bp_length,prev_chrm,prev_start,prev_end);
+			//bp_length = (end-start)+1;
+			printf("%s\t%lu\t%s\t%lu\t%lu",prev_group,prev_bp_length,prev_chrm,prev_start,prev_end);
 			for(k=0;k<num_counts;k++)
 			{
 				printf("\t%.0f",counts[k]);
@@ -199,9 +198,11 @@ int main(int argc, char** argv)
 				free(prev_group);
 			prev_group = group;
 			start = 0;
-			process_line(strdup(line), "\t", &chrm, &prev_chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
+			bp_length = 0;
+			process_line(strdup(line), "\t", &bp_length, &chrm, &prev_chrm, &start, &end, &counts, first, &group, &prev_group, skip_group_check, col_def);
 			prev_start = start;
 			prev_end = end;
+			prev_bp_length = bp_length;
 			check_chromosome(&chrm, &prev_chrm);
 		}
 		fflush(stdout);
@@ -209,8 +210,8 @@ int main(int argc, char** argv)
 	}
 	if(prev_group)
 	{	
-		bp_length = (end-start)+1;
-		printf("%s\t%lu\t%s\t%lu\t%lu",prev_group,bp_length,prev_chrm,prev_start,prev_end);
+		//bp_length = (end-start)+1;
+		printf("%s\t%lu\t%s\t%lu\t%lu",prev_group,prev_bp_length,prev_chrm,prev_start,prev_end);
 		for(k=0;k<num_counts;k++)
 		{
 			printf("\t%.0f",counts[k]);
