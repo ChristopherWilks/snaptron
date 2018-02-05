@@ -29,15 +29,19 @@ def main():
         for f in files:
             if f not in final_map:
                 final_map[f]=[]
-            final_map[f].append("\t".join([c,s,e])+"\n"+g)
+            final_map[f].append(c0+" "+g)
     for (i,f) in enumerate(sorted(final_map.keys())):
-        with open("%s.map" % f,"wb") as fout:
-            for line in final_map[f]:
-                #sys.stdout.write(c+"\n"+g+"\n")
-                fout.write(line+"\n")
         ascii_idx = (i % 14)+66
         outpath = "%s/%d.tcga" % ("/data"+str(unichr(ascii_idx)),i)
-        sys.stdout.write("%s -R %s.map %s.bgz | %s | tee > %s.exons | %s > %s.genes 2> %s.err\n" % (TABIX_MOD,f,f,GROUPBY_TABIX,outpath,GROUPBY_GENERAL,outpath,outpath))
+        with open("%s.map.sh" % f,"wb") as fout:
+            fout.write('#!/bin/bash\n')
+            fout.write("%s %s.bgz"% (TABIX_MOD,f))
+            for line in final_map[f]:
+                #sys.stdout.write(c+"\n"+g+"\n")
+                fout.write(" "+line)
+            fout.write(" | %s | tee %s.exons | %s > %s.genes 2> %s.err\n" % (GROUPBY_TABIX,outpath,GROUPBY_GENERAL,outpath,outpath))
+        sys.stdout.write("/bin/bash %s.map.sh\n" % f)
+        #sys.stdout.write("%s -R %s.map %s.bgz | %s | tee > %s.exons | %s > %s.genes 2> %s.err\n" % (TABIX_MOD,f,f,GROUPBY_TABIX,outpath,GROUPBY_GENERAL,outpath,outpath))
 
 if __name__ == '__main__':
     main()
