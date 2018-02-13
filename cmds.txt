@@ -259,3 +259,7 @@ time zcat junctions.bgz | cut -f 12 | perl -ne 'chomp; @f=split(/,/,$_); shift(@
 
 #look for client side injection possibilities in stderr
 grep "stderr" snquery.py snaputil.py snaptron.py snannotation.py snample.py > stderrs
+
+
+#create chromosome2region map
+ls x* | perl -ne 'chomp; $f=$_; open(IN,"<$f"); while($line=<IN>) { chomp($line); ($chrm,$s,$e)=split(/\t/,$line); if(!$h{$chrm}) { $h{$chrm}->{$f}=[0,$e]; } if(!$h{$chrm}->{$f}) { $h{$chrm}->{$f}=[$s,$e]; } $h{$chrm}->{$f}->[1]=$e; } close(IN); END { for $chrm (sort {$a cmp $b} keys %h) { print "\"$chrm\":["; for $f (sort {$a cmp $b} keys %{$h{$chrm}}) { print "[\"$f\",".$h{$chrm}->{$f}->[0].",".$h{$chrm}->{$f}->[1]."],"; } print "],"; } print "\n";}' | perl -ne 'chomp; $s=$_; $s=~s/\],\]/\]\]/g; $s=~s/,$//; print "$s\n";'
