@@ -31,6 +31,7 @@ sqlite3 $db < ${p}/snaptron_schema_index.sql
 tabix -s2 -b3 -e4 ${3}.genes.tsv.bgz
 
 #####EXONS
+`perl -e 'print STDERR "now running exons\n";'`
 export db="exons.sqlite"
 rm ${db}
 sqlite3 $db < ${p}/snaptron_schema.sql
