@@ -256,7 +256,7 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
     return (snaptron_ids_returned,sample_ids_returned)
 
 def process_params(input_,region_args=default_region_args):
-    params = {'regions':[],'ids':[],'sids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','either':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1'}
+    params = {'regions':[],'ids':[],'sids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','either':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1','id':1}
     prefix=region_args.prefix
     header=region_args.header
 
@@ -281,6 +281,8 @@ def process_params(input_,region_args=default_region_args):
                     raise Exception("one or more sample groupings not found: %s\n" % (urllib.quote(str(e))))
             else:
                 params[key].extend(subparams)
+        elif key == 'id':
+            params['ids'].append(val)
         elif key == 'fields':
             if val == 'rc':
                 #only provide the total count of results
