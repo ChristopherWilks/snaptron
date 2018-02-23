@@ -18,4 +18,5 @@ ln -fs ../$p/../instances/snapconf.py.${1} ./snapconf.py
 #need the snaptron_data directory specific to this compilation
 #to be already setup and passed in
 ln -fs $2 ./data
+ln -fs ./data/lucene_indexed_numeric_types.tsv ./
 ln -fs ../$p/../python
