@@ -144,10 +144,9 @@ SAMPLE_HEADER_FIELDS=SAMPLE_HEADER.split('\t')
 SAMPLE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(SAMPLE_HEADER_FIELDS)}
 SAMPLE_HEADER_FIELDS_TYPE_MAP={field:field for field in SAMPLE_HEADER_FIELDS}
 
-#below numbers are sample rail_ids
-#TODO: this is still supermouse, but left here for a placeholder
 
 BASE_HEADER_FIELDS=['chromosome','start','end']
+#below numbers are sample rail_ids
 BASE_HEADER_FIELDS.extend([str(x) for x in range(0,1159)])
 BASE_HEADER="\t".join(BASE_HEADER_FIELDS)
 BASE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(BASE_HEADER_FIELDS)}
