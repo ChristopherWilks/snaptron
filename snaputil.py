@@ -40,6 +40,8 @@ UCSC_URL=snapconfshared.UCSC_URL
 
 REQ_FIELDS=[]
 
+
+
 def log_error(passed_in, msg, output=sys.stderr):
     if passed_in is None:
         output.write('ERROR: %s\n' % (msg))
@@ -78,6 +80,31 @@ def load_sample_group_map():
             ds = {f.split('\t')[0]:f.split('\t')[snapconfshared.SAMPLE_GROUP_IDS_COL] for f in fall}
             store_cpickle_file(sgfile+".pkl", ds)
     return ds
+
+def map_region2files(chrom, start, end):
+    regions = []
+    if chrom not in snapconf.BASE_TABIX_DB_MAP:
+        ds = load_cpickle_file(snapconf.BASE_TABIX_DB_MAP+".pkl")
+        if ds is None:
+            ds = {}
+            with open(snapconf.BASE_TABIX_DB_MAP,"rb") as fin:
+                for line in fin:
+                    fields = line.rstrip().split(',')
+                    ds[fields[0]]=[[int(x) if i > 0 else x for (i,x) in enumerate(f.split(':'))] for f in fields[1:]]
+            store_cpickle_file(snapconf.BASE_TABIX_DB_MAP+".pkl", ds)
+        snapconf.BASE_TABIX_DB_MAP = ds
+    #requires that the regions are in coordinate order in BASE_TABIX_DB_MAP[chrom]
+    for (region_file,cstart,cend) in snapconf.BASE_TABIX_DB_MAP[chrom]:
+        #take care of start baes 0 in BigWig-derived TSVs
+        if start <= cend and end >= cstart+1:
+            (nstart,nend) = (start,end)
+            if nstart < cstart+1:
+                nstart = cstart+1
+            if nend > cend:
+                nend = cend
+            #regions.append(["%s:%s-%s" % (chrom,nstart,nend),snapconf.BASE_TABIX_DB_PATH+region_file+".bgz"])
+            regions.append(["%s:%s-%s" % (chrom,nstart,nend),snapconf.BASE_TABIX_DB_PATH+region_file])
+    return regions
 
 def retrieve_from_db_by_ids(dbh,select,ids):
     #bug from snaptronUI

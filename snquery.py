@@ -88,7 +88,7 @@ class RunExternalQueryEngine:
                 cmd = snapconf.TABIX_BASES
                 #offset for start at 0 in BigWig derived bases
                 self.chrom = m.group(1)
-                qargs_and_region_files = snapconfshared.map_region2files(self.chrom,self.start,self.end)
+                qargs_and_region_files = snaputil.map_region2files(self.chrom,self.start,self.end)
                 self.start-=1
                 for (qargs,region_file) in qargs_and_region_files:
                     self.cmds.append("%s %s %s %s" % (cmd,region_file,qargs,additional_cmd))
