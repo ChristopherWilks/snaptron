@@ -35,6 +35,7 @@ BIGWIG2WIG="bigWigToWig"
 ROOT_DIR='./'
 PYTHON_PATH="python"
 TABIX="tabix"
+TABIX_BASES="tabix"
 SQLITE="sqlite3"
 #tabix related
 TABIX_DB_PATH='./data'

@@ -84,12 +84,13 @@ class RunExternalQueryEngine:
             self.full_cmd = "%s %s %s %s" % (cmd,self.ra.tabix_db_file,self.qargs,additional_cmd)
             self.cmds = []
             if self.ra.app == snapconf.BASES_APP:
+                #might be using a different version of Tabix for bases (e.g. using zstd for compression)
+                cmd = snapconf.TABIX_BASES
                 #offset for start at 0 in BigWig derived bases
                 self.chrom = m.group(1)
                 qargs_and_region_files = snapconfshared.map_region2files(self.chrom,self.start,self.end)
                 self.start-=1
                 for (qargs,region_file) in qargs_and_region_files:
-                    #self.ra=self.ra._replace(tabix_db_file=snapconf.BASE_TABIX_DB_PATH+snapconf.BASE_TABIX_DB_MAP[chrom])
                     self.cmds.append("%s %s %s %s" % (cmd,region_file,qargs,additional_cmd))
                     if self.ra.debug:
                         sys.stderr.write("running %s %s %s\n" % (self.cmds[-1],region_file,qargs))
