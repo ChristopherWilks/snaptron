@@ -1,0 +1,156 @@
+#!/usr/bin/env python2.7
+import operator
+import re
+
+import lucene
+from org.apache.lucene.analysis.standard import StandardAnalyzer
+from org.apache.lucene.analysis.core import WhitespaceAnalyzer
+from org.apache.lucene.document import Field, IntField, FloatField, StringField, TextField
+from org.apache.lucene.index import Term
+from org.apache.lucene.search import NumericRangeQuery
+from org.apache.lucene.util import Version
+
+#setup lucene reader for sample related searches
+lucene.initVM()
+#use this for GTEx sample metadata
+analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
+#use this for SRAvX sample metadata
+analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
+
+#####fields that should be changed for a different instance
+#compilation source name
+DATA_SOURCE='ct_h_b'
+#internal port to serve one, must be unique per compilation
+PORT=1592
+#genome build version
+HG='hg38'
+#change to metadata specific
+SAMPLE_HEADER='rail_id	Run	ReleaseDate	LoadDate	spots	bases	spots_with_mates	avgLength	size_MB	AssemblyName	download_path	Experiment	LibraryName	LibraryStrategy	LibrarySelection	LibrarySource	LibraryLayout	InsertSize	InsertDev	Platform	Model	SRAStudy	BioProject	Study_Pubmed_id	ProjectID	Sample	BioSample	SampleType	TaxID	ScientificName	SampleName	g1k_pop_code	source	g1k_analysis_group	Subject_ID	Sex	Disease	Tumor	Affection_Status	Analyte_Type	Histological_Type	Body_Site	CenterName	Submission	dbgap_study_accession	Consent	RunHash	ReadHash	junction_count	junction_coverage	junction_avg_coverage	all'
+
+#####fields which could change, but usually don't (when run on Stingray at least)
+IP='0.0.0.0'
+SAMPLE_ID_FIELD_NAME='rail_id'
+SERVER_STRING='http://snaptron.cs.jhu.edu/%s/' % (DATA_SOURCE.lower())
+BIGWIG2WIG="bigWigToWig"
+ROOT_DIR='./'
+PYTHON_PATH="python"
+TABIX="tabix"
+TABIX_BASES="tabix_zstd"
+SQLITE="sqlite3"
+#tabix related
+TABIX_DB_PATH='./data'
+TABIX_GENE_INTERVAL_DB='all_transcripts.gtf.bgz'
+GENE_INTERVAL_DB='%s/transcripts.sqlite' % (TABIX_DB_PATH)
+TABIX_INTERVAL_DB='junctions_uncompressed.bgz'
+GENE_TABIX_DB='genes.bgz'
+EXON_TABIX_DB='exons.bgz'
+BASE_TABIX_DB='bases.bgz'
+#split by chromosome for space and performance reasons
+BASE_TABIX_DB_PATH='%s/bases/' % TABIX_DB_PATH
+BASE_TABIX_DB_MAP='./base_mappings/hg38.split.100k.31k.mapping.tsv'
+ID_START_COL=2
+CUT_START_COL=1
+#sqlite3 dbs
+SAMPLE_SQLITE_DB="%s/sample2junction.sqlite" % (TABIX_DB_PATH)
+SNAPTRON_SQLITE_DB="%s/junctions.sqlite" % (TABIX_DB_PATH)
+GENE_SQLITE_DB="%s/genes.sqlite" % (TABIX_DB_PATH)
+EXON_SQLITE_DB="%s/exons.sqlite" % (TABIX_DB_PATH)
+#Lucene dbs
+LUCENE_STD_SAMPLE_DB="%s/lucene_full_standard/" % (TABIX_DB_PATH)
+LUCENE_WS_SAMPLE_DB="%s/lucene_full_ws/" % (TABIX_DB_PATH)
+#gene annotation related flat files
+REFSEQ_ANNOTATION='refseq_transcripts_by_hgvs.tsv'
+CANONICAL_ANNOTATION='ucsc_known_canonical_transcript.tsv'
+SAMPLE_MD_FILE="%s/samples.tsv" % (TABIX_DB_PATH)
+LUCENE_STD_ANALYZER=analyzer_ws
+LUCENE_WS_ANALYZER=analyzer
+#####END of fields that should/could be changed for a different instance
+
+
+#basic paths to everything (one day replace with inferred directory)
+#used only by snaptron_server
+#mostly used by snaptronws.py
+SNAPTRON_APP = "%s/snaptron.py" % (ROOT_DIR)
+SAMPLES_APP = "%s/snample.py" % (ROOT_DIR)
+ANNOTATIONS_APP = "%s/snannotation.py" % (ROOT_DIR)
+GENES_APP='genes'
+EXONS_APP='exons'
+BASES_APP='bases'
+pseudo_apps = set([GENES_APP,EXONS_APP,BASES_APP])
+#size for the OS buffer on the input pipe reading from samtools output
+CMD_BUFFER_SIZE = -1
+#a low max for what we want to pass to samtools for start/end coordinates, otherwise samtools will return everything
+MAX_COORDINATE_DIGITS = 11
+#size of samtools read,can impact performance in a major way
+READ_SIZE = 1048576
+#for test read much smaller chunks
+#READ_SIZE=32
+RANGE_PATTERN = re.compile(r'^[0-9a-zA-Z_\-]+:\d+-\d+$')
+#cant have anything else in the data path or its probably a security issue
+READ_SIZE_PATTERN = re.compile(r'^\d+$')
+
+TERM = Term
+NIR = NumericRangeQuery.newIntRange
+NFR = NumericRangeQuery.newFloatRange
+
+operators_old={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
+operators={'>:':operator.ge,'<:':operator.le,'>':operator.gt,'<':operator.lt,':':operator.eq,'!:':operator.ne}
+#we overloaded this map to be used for all searchable fields, not just those with TABIX dbs
+TABIX_DBS={'chromosome':TABIX_INTERVAL_DB,'intervals':TABIX_INTERVAL_DB,'genes':'','length':'by_length.gz','snaptron_id':None,'samples_count':'by_sample_count.gz','coverage_sum':'by_coverage_sum.gz','coverage_avg':'by_coverage_avg.gz','coverage_median':'by_coverage_median.gz','metadata_keyword':'','sample_id':'by_sample_id.gz','ids':'','annotated':'','left_annotated':'','right_annotated':'','strand':''}
+RANGE_FIELDS = ['length','samples_count','coverage_sum','coverage_avg','coverage_median','strand']
+JSON_FIELDS=set(['intervals','genes','ids','metadata_keywords','sample_fields'])
+JSON_FIELDS.update(RANGE_FIELDS)
+SAMPLE_IDS_COL=11
+INTRON_ID_COL=0
+CHROM_COL=1
+INTERVAL_START_COL=2
+INTERVAL_END_COL=3
+GENE_START_COL=3
+GENE_END_COL=4
+STRAND_COL=5
+DONOR_COL=7
+ACCEPTOR_COL=8
+COV_AVG_COL=14
+COV_MED_COL=15
+
+
+#search by gene constants
+TABIX_PATTERN = re.compile(r'^([chrMXY\d]+):(\d+)-(\d+)$')
+INTERVAL_PATTERN = re.compile(r'^(chr[12]?[0-9XYM]):(\d+)-(\d+)$')
+CHROM_PATTERN = re.compile(r'^chr[12]?[0-9XYM]$')
+SNAPTRON_ID_PATT = re.compile(r'snaptron_id')
+MAX_GENE_PROXIMITY = 10000
+
+#set much larger than the total # of introns we expect to have
+LUCENE_MAX_RANGE_HITS=100000000
+#set much larger than the total # of samples we expect to have
+LUCENE_MAX_SAMPLE_HITS=1000000
+
+LUCENE_TYPES={'snaptron_id':[IntField,int,NIR],'strand':[StringField,str,TERM],'annotated':[IntField,int,NIR],'left_motif':[StringField,str,TERM],'right_motif':[StringField,str,TERM],'left_annotated':[TextField,str,TERM],'right_annotated':[TextField,str,TERM],'length':[IntField,int,NIR],'samples_count':[IntField,int,NIR],'coverage_sum':[IntField,int,NIR],'coverage_avg':[FloatField,float,NFR],'coverage_median':[FloatField,float,NFR],'source_dataset_id':[IntField,int,NIR],'coverage_avg2':[FloatField,float,NFR],'coverage_median2':[FloatField,float,NFR]}
+
+
+RANGE_QUERY_DELIMITER=','
+RANGE_QUERY_OPS='([:><!]+)'
+RANGE_QUERY_FIELD_PATTERN=re.compile(RANGE_QUERY_OPS)
+SAMPLE_QUERY_DELIMITER='==='
+SAMPLE_QUERY_FIELD_DELIMITER=':' #::
+
+FLOAT_FIELDS=set(['coverage_avg','coverage_median'])
+
+#may have to adjust this parameter for performance (# of tabix calls varies inversely with this number)
+MAX_DISTANCE_BETWEEN_IDS=1000
+#INTRON_URL='http://localhost:8090/solr/gigatron/select?q='
+#SAMPLE_URL='http://localhost:8090/solr/sra_samples/select?q='
+
+DATA_SOURCE_HEADER='DataSource:Type'
+#GENE_ANNOTATION_HEADER (GTF)
+GENE_ANNOTATION_HEADER = DATA_SOURCE_HEADER + "\treference\tannotation_source\tfeature_type\tstart\tend\tscore\tstrand\tunused\tattributes";
+
+SAMPLE_HEADER_FIELDS=SAMPLE_HEADER.split('\t')
+SAMPLE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(SAMPLE_HEADER_FIELDS)}
+SAMPLE_HEADER_FIELDS_TYPE_MAP={field:field for field in SAMPLE_HEADER_FIELDS}
+
+#below numbers are sample rail_ids
+BASE_HEADER='chromosome start   end 0   1'
+BASE_HEADER_FIELDS=BASE_HEADER.split('\t')
+BASE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(BASE_HEADER_FIELDS)}
