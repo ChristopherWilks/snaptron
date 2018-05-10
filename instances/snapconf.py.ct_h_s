@@ -17,12 +17,20 @@ analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
 #use this for SRAvX sample metadata
 analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
 
-#####fields which could change, but usually don't (when run on Stingray at least)
+#####fields that should be changed for a different instance
+#compilation source name
 DATA_SOURCE='ct_h_s'
-IP='0.0.0.0'
+#internal port to serve one, must be unique per compilation
 PORT=1590
-SERVER_STRING='http://snaptron.cs.jhu.edu/%s/' % (DATA_SOURCE.lower())
+#genome build version
 HG='hg38'
+#change to metadata specific
+SAMPLE_HEADER='rail_id	Run	ReleaseDate	LoadDate	spots	bases	spots_with_mates	avgLength	size_MB	AssemblyName	download_path	Experiment	LibraryName	LibraryStrategy	LibrarySelection	LibrarySource	LibraryLayout	InsertSize	InsertDev	Platform	Model	SRAStudy	BioProject	Study_Pubmed_id	ProjectID	Sample	BioSample	SampleType	TaxID	ScientificName	SampleName	g1k_pop_code	source	g1k_analysis_group	Subject_ID	Sex	Disease	Tumor	Affection_Status	Analyte_Type	Histological_Type	Body_Site	CenterName	Submission	dbgap_study_accession	Consent	RunHash	ReadHash	junction_count	junction_coverage	junction_avg_coverage	all'
+
+#####fields which could change, but usually don't (when run on Stingray at least)
+IP='0.0.0.0'
+SAMPLE_ID_FIELD_NAME='rail_id'
+SERVER_STRING='http://snaptron.cs.jhu.edu/%s/' % (DATA_SOURCE.lower())
 BIGWIG2WIG="bigWigToWig"
 ROOT_DIR='./'
 PYTHON_PATH="python"
@@ -54,7 +62,6 @@ LUCENE_WS_SAMPLE_DB="%s/lucene_full_ws/" % (TABIX_DB_PATH)
 REFSEQ_ANNOTATION='refseq_transcripts_by_hgvs.tsv'
 CANONICAL_ANNOTATION='ucsc_known_canonical_transcript.tsv'
 SAMPLE_MD_FILE="%s/samples.tsv" % (TABIX_DB_PATH)
-SAMPLE_ID_FIELD_NAME='rail_id'
 LUCENE_STD_ANALYZER=analyzer_ws
 LUCENE_WS_ANALYZER=analyzer
 #####END of fields that should/could be changed for a different instance
@@ -138,9 +145,6 @@ MAX_DISTANCE_BETWEEN_IDS=1000
 DATA_SOURCE_HEADER='DataSource:Type'
 #GENE_ANNOTATION_HEADER (GTF)
 GENE_ANNOTATION_HEADER = DATA_SOURCE_HEADER + "\treference\tannotation_source\tfeature_type\tstart\tend\tscore\tstrand\tunused\tattributes";
-
-#TODO: update this for ct_h_s
-SAMPLE_HEADER='rail_id	sample accession	File format	Output type	Experiment accession	Assay	Biosample term id	Biosample term name	Biosample type	Biosample life stage	Biosample sex	Biosample Age	Biosample organism	Biosample treatments	Biosample subcellular fraction term name	Biosample phase	Biosample synchronization stage	Experiment target	Antibody accession	Library made from	Library depleted in	Library extraction method	Library lysis method	Library crosslinking method	Experiment date released	Project	RBNS protein concentration	Library fragmentation method	Library size range	Read length	Mapped read length	Run type	Derived from	Lab	Assembly	Platform	File Status	all'
 
 SAMPLE_HEADER_FIELDS=SAMPLE_HEADER.split('\t')
 SAMPLE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(SAMPLE_HEADER_FIELDS)}

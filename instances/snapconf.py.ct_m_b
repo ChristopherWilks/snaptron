@@ -19,13 +19,13 @@ analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
 
 #####fields that should be changed for a different instance
 #compilation source name
-DATA_SOURCE='supermouse'
+DATA_SOURCE='ct_m_b'
 #internal port to serve one, must be unique per compilation
-PORT=1585
+PORT=1593
 #genome build version
 HG='mm10'
 #change to metadata specific
-SAMPLE_HEADER='rail_id	Run	SRP Accession	Pubmed ID	Celltype	Tissue / Region	ReleaseDate	LoadDate	spots	bases	spots_with_mates	avgLength	size_MB	AssemblyName	download_path	Experiment	LibraryName	LibraryStrategy	LibrarySelection	LibrarySource	LibraryLayout	InsertSize	InsertDev	Platform	Model	SRAStudy	BioProject	Study_Pubmed_id	ProjectID	Sample	BioSample	SampleType	TaxID	ScientificName	SampleName	g1k_pop_code	source	g1k_analysis_group	Subject_ID	Sex	Disease	Tumor	Affection_Status	Analyte_Type	Histological_Type	Body_Site	CenterName	Submission	dbgap_study_accession	Consent	RunHash	ReadHash	junction_count	junction_coverage	junction_avg_coverage	all'
+SAMPLE_HEADER='rail_id	Run	ReleaseDate	LoadDate	spots	bases	spots_with_mates	avgLength	size_MB	AssemblyName	download_path	Experiment	LibraryName	LibraryStrategy	LibrarySelection	LibrarySource	LibraryLayout	InsertSize	InsertDev	Platform	Model	SRAStudy	BioProject	Study_Pubmed_id	ProjectID	Sample	BioSample	SampleType	TaxID	ScientificName	SampleName	g1k_pop_code	source	g1k_analysis_group	Subject_ID	Sex	Disease	Tumor	Affection_Status	Analyte_Type	Histological_Type	Body_Site	CenterName	Submission	dbgap_study_accession	Consent	RunHash	ReadHash	junction_count	junction_coverage	junction_avg_coverage	all'
 
 #####fields which could change, but usually don't (when run on Stingray at least)
 IP='0.0.0.0'
@@ -35,7 +35,7 @@ BIGWIG2WIG="bigWigToWig"
 ROOT_DIR='./'
 PYTHON_PATH="python"
 TABIX="tabix"
-TABIX_BASES="tabix"
+TABIX_BASES="tabix_zstd"
 SQLITE="sqlite3"
 #tabix related
 TABIX_DB_PATH='./data'
@@ -47,7 +47,7 @@ EXON_TABIX_DB='exons.bgz'
 BASE_TABIX_DB='bases.bgz'
 #split by chromosome for space and performance reasons
 BASE_TABIX_DB_PATH='%s/bases/' % TABIX_DB_PATH
-BASE_TABIX_DB_MAP={"chr1":[["x0",0,195471971]],"chr10":[["x2",0,130694993]],"chr11":[["x2",0,113000000],["x3",113000000,122082543]],"chr12":[["x3",0,120129022]],"chr13":[["x3",0,120421639]],"chr14":[["x3",0,124902244]],"chr15":[["x3",0,104043685]],"chr16":[["x3",0,66000000],["x4",66000000,98207768]],"chr17":[["x4",0,94987271]],"chr18":[["x4",0,90702639]],"chr19":[["x4",0,61431566]],"chr2":[["x0",0,182113224]],"chr3":[["x0",0,160039680]],"chr4":[["x0",0,8000000],["x1",8000000,156508116]],"chr5":[["x1",0,151834684]],"chr6":[["x1",0,149736546]],"chr7":[["x1",0,97000000],["x2",97000000,145441459]],"chr8":[["x2",0,129401213]],"chr9":[["x2",0,124595110]],"chrM":[["x4",0,16299]],"chrX":[["x4",0,171031299]],"chrY":[["x4",0,91744698]]}
+BASE_TABIX_DB_MAP='./base_mappings/mm10.split.100k.31k.mapping.tsv'
 ID_START_COL=2
 CUT_START_COL=1
 #sqlite3 dbs
@@ -150,9 +150,7 @@ SAMPLE_HEADER_FIELDS=SAMPLE_HEADER.split('\t')
 SAMPLE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(SAMPLE_HEADER_FIELDS)}
 SAMPLE_HEADER_FIELDS_TYPE_MAP={field:field for field in SAMPLE_HEADER_FIELDS}
 
+BASE_HEADER='chromosome start   end 0   1'
 
-BASE_HEADER_FIELDS=['chromosome','start','end']
-#below numbers are sample rail_ids
-BASE_HEADER_FIELDS.extend([str(x) for x in range(0,732)])
-BASE_HEADER="\t".join(BASE_HEADER_FIELDS)
+BASE_HEADER_FIELDS=BASE_HEADER.split('\t')
 BASE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(BASE_HEADER_FIELDS)}
