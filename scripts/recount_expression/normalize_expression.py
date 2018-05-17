@@ -28,7 +28,6 @@ def load_metadata(args):
                 continue
             aucs[fields[args.sample_id_col]]=fields[args.auc_col]
             sids.append(fields[args.sample_id_col])
-        #aucs = {x.split('\t')[args.sample_id_col]:x.split('\t')[args.auc_col] for x in lines}
         return (aucs, sids)
 
 def normalize_counts(args, aucs, sids):
@@ -37,28 +36,26 @@ def normalize_counts(args, aucs, sids):
         sys.stdout.write("gene_id")
         [sys.stdout.write("\t"+x) for x in sids]
         sys.stdout.write("\n")
-        header = {int(x):x for x in sids}
     with gzip.open(args.counts_file,"rb") as fin:
         #maps column position
         for line in fin:
             fields = None
-            fields_ = None
             fields__ = line.rstrip().split('\t')
             if args.snaptron_format:
                 gene_id = fields__[SNAPTRON_FORMAT_COUNT_COL-1].split(':')[0]
-                fields_ = [0 for _ in sids]
+                fields = {sid:0 for sid in sids}
                 for sample in fields__[SNAPTRON_FORMAT_COUNT_COL].split(',')[1:]:
                     (sid, count) = sample.split(':')
-                    fields_[int(sid)] = int(count)
-                fields = fields_
+                    fields[sid] = int(count)
             else:
-                fields = fields__
-                gene_id = fields[0]
+                gene_id = fields__[0]
                 if gene_id == 'gene_id' or gene_id == 'Group':
                     sys.stdout.write(line)
-                    header={i:x for (i,x) in enumerate(fields[args.count_start_col:])}
+                    sids = fields__[args.count_start_col:]
                     continue
-            fields = [int(clsnaputil.round_like_R((RECOUNT_TARGET * float(x))/float(aucs[header[i]]),0)) for (i,x) in enumerate(fields[args.count_start_col:])]
+                else:
+                    fields = {sids[i]:int(count) for (i,count) in enumerate(fields__[args.count_start_col:])}
+            fields = [int(clsnaputil.round_like_R((RECOUNT_TARGET * float(fields[sid]))/float(aucs[sid]),0)) for sid in sids]
             sys.stdout.write(gene_id+"\t"+"\t".join(map(str,fields))+"\n")
 
 def main():
