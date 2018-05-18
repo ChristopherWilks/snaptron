@@ -28,7 +28,7 @@ HG='mm10'
 SAMPLE_HEADER='rail_id	Run	ReleaseDate	LoadDate	spots	bases	spots_with_mates	avgLength	size_MB	AssemblyName	download_path	Experiment	LibraryName	LibraryStrategy	LibrarySelection	LibrarySource	LibraryLayout	InsertSize	InsertDev	Platform	Model	SRAStudy	BioProject	Study_Pubmed_id	ProjectID	Sample	BioSample	SampleType	TaxID	ScientificName	SampleName	g1k_pop_code	source	g1k_analysis_group	Subject_ID	Sex	Disease	Tumor	Affection_Status	Analyte_Type	Histological_Type	Body_Site	CenterName	Submission	dbgap_study_accession	Consent	RunHash	ReadHash	junction_count	junction_coverage	junction_avg_coverage	all'
 
 #####fields which could change, but usually don't (when run on Stingray at least)
-IP='0.0.0.0'
+IP='127.0.0.1'
 SAMPLE_ID_FIELD_NAME='rail_id'
 SERVER_STRING='http://snaptron.cs.jhu.edu/%s/' % (DATA_SOURCE.lower())
 BIGWIG2WIG="bigWigToWig"
@@ -47,7 +47,7 @@ EXON_TABIX_DB='exons.bgz'
 BASE_TABIX_DB='bases.bgz'
 #split by chromosome for space and performance reasons
 BASE_TABIX_DB_PATH='%s/bases/' % TABIX_DB_PATH
-BASE_TABIX_DB_MAP='./base_mappings/mm10.split.100k.31k.mapping.tsv'
+BASE_TABIX_DB_MAP='./base_mappings/mm10.split.1m.1.mapping.tsv'
 ID_START_COL=2
 CUT_START_COL=1
 #sqlite3 dbs
@@ -150,7 +150,6 @@ SAMPLE_HEADER_FIELDS=SAMPLE_HEADER.split('\t')
 SAMPLE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(SAMPLE_HEADER_FIELDS)}
 SAMPLE_HEADER_FIELDS_TYPE_MAP={field:field for field in SAMPLE_HEADER_FIELDS}
 
-BASE_HEADER='chromosome start   end 0   1'
-
+BASE_HEADER='chromosome\tstart\tend\t'+'\t'.join([str(x) for x in range(0,20)])
 BASE_HEADER_FIELDS=BASE_HEADER.split('\t')
 BASE_HEADER_FIELDS_MAP={field:i for (i,field) in enumerate(BASE_HEADER_FIELDS)}
