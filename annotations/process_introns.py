@@ -15,7 +15,6 @@ annotation files from command-line parameters and annotation from
 GTF file(s) specified as argument(s) of --annotations; writes to stdout.
 all_SRA_introns.tsv.gz should have AT LEAST the following tab-separated fields
 on each line:
-0. id line
 1. chromosome
 2. start position
 3. end position

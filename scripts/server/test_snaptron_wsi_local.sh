@@ -13,12 +13,14 @@ do
 	#test ALK region
 	echo "testing $x genes"
 	curl "http://${HOST}:${x}/genes?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
+	echo "testing $x exons"
+	curl "http://${HOST}/${x}/exons?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:E" | head -1 | cut -f 1-10
 	echo "testing $x bases"
 	curl "http://${HOST}:${x}/bases?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
 done
 
 #encode supermouse
-declare -a insts=( "1587" "1585")
+declare -a insts=( "1587" "1585" "1590")
 for x in "${insts[@]}"
 do
 	echo "testing $x junctions"
@@ -26,6 +28,8 @@ do
 	#test ALK region
 	echo "testing $x genes"
 	curl "http://${HOST}:${x}/genes?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
+	echo "testing $x exons"
+	curl "http://${HOST}/${x}/exons?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:E" | head -1 | cut -f 1-10
 	echo "testing $x bases"
 	curl "http://${HOST}:${x}/bases?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
 done
@@ -39,7 +43,15 @@ do
 	#test ALK region
 	echo "testing $x genes"
 	curl "http://${HOST}:${x}/genes?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
+	echo "testing $x exons"
+	curl "http://${HOST}/${x}/exons?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:E" | head -1 | cut -f 1-10
 	echo "testing $x bases"
 	curl "http://${HOST}:${x}/bases?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
 done
+
+#tcga specific to check if Lucene is working, 73
+curl "http://snaptron.cs.jhu.edu/tcga/snaptron?regions=chr16:28931939-28933114&sfilter=gdc_cases.project.project_id:TCGA-DLBC" | grep "TCGA:I" | wc -l
+#tcga fusions, 47
+curl curl "http://snaptron.cs.jhu.edu:1575/snaptron?regions=chr16:28931939-28933114&sfilter=gdc_cases.project.project_id:TCGA-DLBC" | wc -l
+
 #curl "http://${HOST}/mouseling/snaptron?regions=chr1:1-20854861&rfilter=samples_count:50" 2>/dev/null| grep -i "mouseling:I" | head -1

@@ -127,14 +127,17 @@ if __name__ == '__main__':
         #need offset of 3 since we have gene_id,length, and symbol before the sample counts
         sample_ids = [sample_id_mapping[i] for i in xrange(field_offset,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping]
         #skip any with no samples
+        sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id,gene_name,gene_type,bp_length])]))
         if len(sample_ids) == 0:
             sys.stderr.write("%s: no samples with counts > 0\t%s\n" % (args.annot_type,gene_id))
-            continue
-        #now join up the samples and their coverages and write out
-        if args.as_ints:
-            sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id,gene_name,gene_type,bp_length]), ','.join(sample_ids),','.join([str(int(float(fields[i]))) for i in xrange(field_offset,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping])])+"\n")
+            sys.stdout.write("\t\t\n")
         else:
-            sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id,gene_name,gene_type,bp_length]), ','.join(sample_ids),','.join([fields[i] for i in xrange(field_offset,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping])])+"\n")
+            #now join up the samples and their coverages and write out
+            sys.stdout.write("\t"+','.join(sample_ids)+"\t")
+            if args.as_ints:
+                sys.stdout.write(','.join([str(int(float(fields[i]))) for i in xrange(field_offset,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping])+"\n")
+            else:
+                sys.stdout.write(','.join([fields[i] for i in xrange(field_offset,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping])+"\n")
         snaptron_id+=1
         exon_id+=1
     fin.close()

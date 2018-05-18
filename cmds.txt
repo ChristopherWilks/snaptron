@@ -263,3 +263,9 @@ grep "stderr" snquery.py snaputil.py snaptron.py snannotation.py snample.py > st
 
 #create chromosome2region map
 ls x* | perl -ne 'chomp; $f=$_; open(IN,"<$f"); while($line=<IN>) { chomp($line); ($chrm,$s,$e)=split(/\t/,$line); if(!$h{$chrm}) { $h{$chrm}->{$f}=[0,$e]; } if(!$h{$chrm}->{$f}) { $h{$chrm}->{$f}=[$s,$e]; } $h{$chrm}->{$f}->[1]=$e; } close(IN); END { for $chrm (sort {$a cmp $b} keys %h) { print "\"$chrm\":["; for $f (sort {$a cmp $b} keys %{$h{$chrm}}) { print "[\"$f\",".$h{$chrm}->{$f}->[0].",".$h{$chrm}->{$f}->[1]."],"; } print "],"; } print "\n";}' | perl -ne 'chomp; $s=$_; $s=~s/\],\]/\]\]/g; $s=~s/,$//; print "$s\n";'
+
+#find gaps between junctions
+time zcat junctions.bgz | perl -ne 'chomp; $f=$_; $f=~/^\d+\t(chr[^\t]+)\t(\d+)\t(\d+)\t/; $c=$1; $s=$2; $e=$3; if($pc eq $c) { if($s > $pe) { $d=($s-$pe)+1; print "$c\t$pe\t$s\t$d\n"; $ps=$s; $pe=$e; next; } if($s <= $pe && $e > $pe) { $pe=$e; next; }} $pc=$c; $ps=$s; $pe=$e;' | sort -k4,4nr > junctions.bgz.gaps.sorted.tsv &
+
+
+git submodule update --init --recursive
