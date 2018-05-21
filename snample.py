@@ -79,7 +79,7 @@ def read_lucene_field_types_file(file_in):
             (fieldname, fieldtypechar) = line.rstrip().split('\t')
             lucene_type_method = TermQuery
             if fieldtypechar in lucene_indexer.LUCENE_TYPE_METHODS:
-                lucene_type_method =lucene_indexer. LUCENE_TYPE_METHODS[fieldtypechar]
+                lucene_type_method = lucene_indexer.LUCENE_TYPE_METHODS[fieldtypechar]
             ftypes[fieldname]=[fieldtypechar, lucene_type_method]
     return ftypes
 
