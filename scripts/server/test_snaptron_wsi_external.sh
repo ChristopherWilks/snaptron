@@ -1,8 +1,8 @@
 #!/bin/bash
 #set -x
 
-HOST="162.129.223.10"
-#HOST="snaptron.cs.jhu.edu"
+#HOST="162.129.223.10"
+HOST="snaptron.cs.jhu.edu"
 
 declare -a insts=( "srav1" "srav2" "gtex" "tcga")
 for x in "${insts[@]}"
@@ -33,7 +33,7 @@ do
 	curl "http://${HOST}/${x}/bases?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:B" | head -1 | cut -f 1-10
 done
 
-declare -a insts=( "abmv1b" "abmv1a")
+declare -a insts=( "abmv1b" "abmv1a" "ct_h_b" "ct_m_b" "clark" "rpc")
 for x in "${insts[@]}"
 do
 	echo "testing $x junctions"

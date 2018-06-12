@@ -14,13 +14,13 @@ do
 	echo "testing $x genes"
 	curl "http://${HOST}:${x}/genes?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
 	echo "testing $x exons"
-	curl "http://${HOST}/${x}/exons?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:E" | head -1 | cut -f 1-10
+	curl "http://${HOST}:${x}/exons?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
 	echo "testing $x bases"
 	curl "http://${HOST}:${x}/bases?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
 done
 
-#encode supermouse
-declare -a insts=( "1587" "1585" "1590")
+#supermouse encode ct_h_s ct_m_s
+declare -a insts=( "1585" "1587" "1590" "1591")
 for x in "${insts[@]}"
 do
 	echo "testing $x junctions"
@@ -29,13 +29,13 @@ do
 	echo "testing $x genes"
 	curl "http://${HOST}:${x}/genes?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
 	echo "testing $x exons"
-	curl "http://${HOST}/${x}/exons?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:E" | head -1 | cut -f 1-10
+	curl "http://${HOST}:${x}/exons?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
 	echo "testing $x bases"
 	curl "http://${HOST}:${x}/bases?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
 done
 
-#abmv1b abmv1a
-declare -a insts=( "1589" "1588")
+#abmv1b abmv1a ct_h_b ct_m_b clark
+declare -a insts=( "1589" "1588" "1592" "1593" "1594")
 for x in "${insts[@]}"
 do
 	echo "testing $x junctions"
@@ -44,7 +44,7 @@ do
 	echo "testing $x genes"
 	curl "http://${HOST}:${x}/genes?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
 	echo "testing $x exons"
-	curl "http://${HOST}/${x}/exons?regions=chr2:29899597-29907199" 2>/dev/null| grep -i "${x}:E" | head -1 | cut -f 1-10
+	curl "http://${HOST}:${x}/exons?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
 	echo "testing $x bases"
 	curl "http://${HOST}:${x}/bases?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
 done
