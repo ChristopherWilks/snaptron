@@ -288,8 +288,17 @@ def process_params(input_,region_args=default_region_args):
                 #only provide the total count of results
                 params['result_count'] = True
                 continue
-            #note likely due to buffering, a smaller record size will delay first output by ~15 seconds
-            snaputil.REQ_FIELDS = [region_args.fields_map[field] for field in val.split(',')]
+            subparams = val.split(',')
+            if not subparams[0].isdigit() and subparams[0] not in region_args.fields_map:
+                #load compilation specific group_id2sample_ids map
+                sample_group_map = snaputil.load_sample_group_map()
+                try:
+                    snaputil.REQ_FIELDS = [region_args.fields_map[field] for sgroup in subparams for field in sample_group_map[sgroup].split(',')]
+                except KeyError as e:
+                    raise Exception("one or more sample groupings not found: %s\n" % (urllib.quote(str(e))))
+            else:
+                #note likely due to buffering, a smaller record size will delay first output by ~15 seconds
+                snaputil.REQ_FIELDS = [region_args.fields_map[field] for field in subparams]
         elif key == 'rfilter':
             #url decode the rfilters:
             val = urllib.unquote(val)
