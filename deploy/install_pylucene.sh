@@ -21,6 +21,8 @@ python setup.py build
 python setup.py install
 cd ..
 
+#export LIBRARY_PATH=/usr/local/lib/python2.7/dist-packages/JCC-2.21-py2.7-linux-x86_64.egg
+
 # Build and install pylucene
 #the following assumes "ant" is in the path
 cp Makefile Mafile.bak
@@ -30,6 +32,9 @@ echo 'JCC=$(PYTHON) -m jcc.__main__ --shared --arch '"${ARCH}" >> Makefile.new
 echo 'NUM_FILES=8' >> Makefile.new
 cat Makefile >> Makefile.new
 mv Makefile.new Makefile
+
+#hack to get around shared issue with JCC
+sed -i -e 's/SHARED=False/SHARED=True/' ../python/local/lib/python2.7/site-packages/JCC-2.21-py2.7-linux-x86_64.egg/jcc/config.py
 
 make
 make test
