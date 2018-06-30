@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ln -fs ./snaptron_server ./${1}_snaptron_server
-ln -f instances/snapconf.py.${1} ./snapconf.py
+ln -fs instances/snapconf.py.${1} ./snapconf.py
 if [ $1 = "srav1" ] || [ $1 = "srav2" ] ; then
 	ln -f instances/test_snaptron.py.${1} ./test_snaptron.py
 	ln -fs instances/tests.sh.${1} ./tests.sh
