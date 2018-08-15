@@ -5,3 +5,10 @@ encode1159
 supermouse
 abmv1a
 abmv1b
+ct_h_b
+ct_h_s
+ct_m_s
+ct_m_b
+rpc
+srav1
+clark
