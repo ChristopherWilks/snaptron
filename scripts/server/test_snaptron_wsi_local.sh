@@ -52,6 +52,6 @@ done
 #tcga specific to check if Lucene is working, 73
 curl "http://snaptron.cs.jhu.edu/tcga/snaptron?regions=chr16:28931939-28933114&sfilter=gdc_cases.project.project_id:TCGA-DLBC" | grep "TCGA:I" | wc -l
 #tcga fusions, 47
-curl curl "http://snaptron.cs.jhu.edu:1575/snaptron?regions=chr16:28931939-28933114&sfilter=gdc_cases.project.project_id:TCGA-DLBC" | wc -l
+curl "http://snaptron.cs.jhu.edu:1575/snaptron?regions=chr16:28931939-28933114&sfilter=gdc_cases.project.project_id:TCGA-DLBC" | wc -l
 
 #curl "http://${HOST}/mouseling/snaptron?regions=chr1:1-20854861&rfilter=samples_count:50" 2>/dev/null| grep -i "mouseling:I" | head -1
