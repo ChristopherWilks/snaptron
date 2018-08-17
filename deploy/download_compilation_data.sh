@@ -14,6 +14,7 @@ echo "scripts dir: $scripts"
 cd $DATA_DIR
 #echo "+++Downloading snaptron data, this make take a while..."
 wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/samples.tsv
+wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/samples.fields.tsv
 wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/samples.groups.tsv
 
 echo "+++Creating Lucene indices"
@@ -27,7 +28,9 @@ wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/junctions.bgz.tbi
 if [ -e junctions.sqlite ]; then
     rm junctions.sqlite
 fi
-#${scripts}/build_sqlite_db.sh junctions junctions.bgz
+
+#reindex in SQLite to avoid cost of downloading uncompressed junction db
+${scripts}/build_sqlite_db.sh junctions junctions.bgz
 
 wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/genes.bgz
 wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/genes.bgz.tbi
