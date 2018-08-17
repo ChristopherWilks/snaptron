@@ -18,9 +18,8 @@ wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/samples.fields.tsv
 wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/samples.groups.tsv
 
 echo "+++Creating Lucene indices"
-#run lucene indexer on metadata
-cat samples.tsv | perl ${scripts}/infer_sample_metadata_field_types.pl > samples.tsv.type_inference
-cat samples.tsv | python ${scripts}/../lucene_indexer.py samples.tsv.type_inference > run_indexer 2>&1
+#build Lucene metadata indices
+$scripts/build_lucene_indexes.sh
 
 echo "+++Downloading data and creating SQLite DBs"
 wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/junctions.bgz

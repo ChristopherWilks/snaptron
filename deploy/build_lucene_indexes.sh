@@ -5,6 +5,7 @@ source $root/python/bin/activate
 
 create_all=$1
 #build Lucene metadata indices (assumes samples.tsv is present and is sorted by rail_id in ascending order)
+#also assumes we're in the directory where all the snaptron compilation data is at
 if [[ $create_all == "all" ]]; then
 	perl -e 'print "rail_id\tjunction_count\tjunction_coverage\tjunction_avg_coverage\n";' > jx_stats_per_sample.tsv
 	zcat junctions.bgz | cut -f 12 | perl -ne 'chomp; @f=split(/,/,$_); shift(@f); for $f (@f) { ($f,$c)=split(/:/,$f); $count{$f}++; $cov{$f}+=$c; } END { for $f (keys %count) { $avg=$cov{$f}/$count{$f}; print "$f\t".$count{$f}."\t".$cov{$f}."\t$avg\n";}}' | sort -t'	' -k1,1n >> jx_stats_per_sample.tsv

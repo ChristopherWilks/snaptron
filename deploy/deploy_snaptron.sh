@@ -10,6 +10,8 @@ scripts=`perl -e '@f=split(/\//,"'${0}'"); pop(@f); print "".join("/",@f)."\n";'
 #installs python & PyLucene specific depdendencies
 if [ ! -e ./FINISHED_DEPENDENCIES ]; then
 	/bin/bash -x ${scripts}/install_dependencies.sh
+else
+    source ./python/bin/activate
 fi
 
 DATA_DIR=${2}

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env Python2.7
 
 #based on the example code at
 #http://graus.nu/blog/pylucene-4-0-in-60-seconds-tutorial/
@@ -19,10 +19,9 @@ from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.util import Version
 
 
-LUCENE_TYPES={'i':LongField,'s':StringField,'t':TextField,'f':FloatField,'NA':TextField,'n':TextField}
+LUCENE_TYPES={'i':LongField,'s':StringField,'t':TextField,'f':FloatField,'NA':TextField}
 LUCENE_TYPE_METHODS={'i':NumericRangeQuery.newLongRange,'f':NumericRangeQuery.newFloatRange}
 PREC_STEP=1
-LUCENE_TYPES_FILE='./lucene_indexed_numeric_types.tsv'
 
 float_patt = re.compile(r'\tf,')
 def process_pre_inferred_types(types_map,typesF):
@@ -71,11 +70,10 @@ if __name__ == "__main__":
   print "%d docs in index2" % writer2.numDocs()
   print "Reading lines from sys.stdin..."
     
-  ftypes = open(LUCENE_TYPES_FILE, "w")
+  ftypes = open("./lucene_indexed_numeric_types.tsv","w")
   
   for n, l in enumerate(sys.stdin):
     doc = Document()
-    doc_lc = Document()
     fields = l.rstrip().split("\t")
     all_ = []
     if n == 0:
@@ -94,7 +92,6 @@ if __name__ == "__main__":
             sys.stdout.write("%s %s %s %d %d\n" % (fname,fieldtype,field,idx,n))
             #basically this is complex to handle NA's in numeric fields
             field_object = None
-            field_object_lc = None
             ft = FieldType()
             ft.setStored(True)
             ft.setIndexed(True)
@@ -110,28 +107,20 @@ if __name__ == "__main__":
                     field_object = fieldtype(fname, field, ft)
                 else:
                     field_object = fieldtype(fname, field, Field.Store.YES)
-                    field_object_lc = fieldtype(fname, field.lower(), Field.Store.YES)
             except ValueError, e:
                 field = None
-            if field_object is not None:
+            if field is not None:
                 doc.add(field_object)
-
-            if field_object_lc is not None:
-                doc_lc.add(field_object_lc)
-            elif field_object is not None:
-                doc_lc.add(field_object)
     if n > 0:
         all_fields = ' '.join(all_)
         doc.add(TextField('all', all_fields, Field.Store.NO))
-        doc_lc.add(TextField('all', all_fields.lower(), Field.Store.NO))
     writer1.addDocument(doc)
-    writer2.addDocument(doc_lc)
+    writer2.addDocument(doc)
   print "Indexed %d lines from stdin (%d docs in index)" % (n, writer1.numDocs())
   print "Closing index of %d docs..." % writer1.numDocs()
   print "Indexed %d lines from stdin (%d docs in index)" % (n, writer2.numDocs())
   print "Closing index of %d docs..." % writer2.numDocs()
   writer1.close()
   writer2.close()
-  ftypes.write("all\tt\n")
   ftypes.close()
 
