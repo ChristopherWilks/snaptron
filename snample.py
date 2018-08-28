@@ -36,13 +36,16 @@ import gzip
 
 import lucene
 from java.io import File
+from java.nio.file import Paths
 from org.apache.lucene.search import BooleanQuery
-from org.apache.lucene.search import NumericRangeQuery
+#from org.apache.lucene.search.BooleanQuery import Builder
+from org.apache.lucene.search import LegacyNumericRangeQuery
 from org.apache.lucene.index import Term
 from org.apache.lucene.search import TermQuery
 from org.apache.lucene.search import PhraseQuery
 from org.apache.lucene.search import IndexSearcher
 from org.apache.lucene.index import IndexReader
+from org.apache.lucene.index import DirectoryReader
 from org.apache.lucene.queryparser.classic import MultiFieldQueryParser
 from org.apache.lucene.search import BooleanClause
 from org.apache.lucene.store import SimpleFSDirectory
@@ -64,11 +67,11 @@ DEBUG_MODE=False
 BOOLEAN_OCCUR=BooleanClause.Occur.MUST
 
 searchers = []
-std_reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_STD_SAMPLE_DB)))
+std_reader = DirectoryReader.open(SimpleFSDirectory(Paths.get(snapconf.LUCENE_STD_SAMPLE_DB)))
 std_searcher = IndexSearcher(std_reader)
 searchers.append(std_searcher)
 
-ws_reader = IndexReader.open(SimpleFSDirectory(File(snapconf.LUCENE_WS_SAMPLE_DB)))
+ws_reader = DirectoryReader.open(SimpleFSDirectory(Paths.get(snapconf.LUCENE_WS_SAMPLE_DB)))
 ws_searcher = IndexSearcher(ws_reader)
 searchers.append(ws_searcher)
 
@@ -109,7 +112,7 @@ def lucene_sample_query_parse(sampleq, ftypes):
     fields = []
     queries = []
     booleans = []
-    bq = BooleanQuery()
+    bq = BooleanQuery.Builder()
     for query_tuple in sampleq:
         (field, op_, value) = re.split(snapconf.RANGE_QUERY_OPS, query_tuple)
         m=snapconf.RANGE_QUERY_FIELD_PATTERN.search(query_tuple)
@@ -126,16 +129,16 @@ def lucene_sample_query_parse(sampleq, ftypes):
             bq.add(lucene_range_query_parse(field_w_type, op, value, fieldtypechar, ftype_method), BOOLEAN_OCCUR)
         #phrase query
         elif ' ' in value or '\t' in value:
-            pquery = PhraseQuery()
+            pquery = PhraseQuery.Builder()
             [pquery.add(Term(field_w_type, v.lower())) for v in re.split(r'\s+',value)]
             #force exact phrase matching only
             pquery.setSlop(0)
-            bq.add(pquery, BOOLEAN_OCCUR)
+            bq.add(pquery.build(), BOOLEAN_OCCUR)
         #term query
         else:
             bq.add(TermQuery(Term(field_w_type, value.lower())), BOOLEAN_OCCUR)
         #sys.stderr.write("value + fields: %s %s\n" % (urllib.quote(value.lower()), field_w_type))
-    return bq
+    return bq.build()
 
 
 #based on the example code at

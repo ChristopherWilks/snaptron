@@ -5,23 +5,27 @@
 
 import sys
 import re
+import shutil
 import os
 import lucene
  
 from java.io import File
+from java.nio.file import Paths
 from org.apache.lucene.analysis.standard import StandardAnalyzer
 from org.apache.lucene.analysis.core import WhitespaceAnalyzer
-from org.apache.lucene.document import Document, Field, LongField, StringField, TextField, FloatField
-from org.apache.lucene.search import NumericRangeQuery
+from org.apache.lucene.document import Document, Field, LegacyLongField, StringField, TextField, LegacyFloatField
+from org.apache.lucene.search import LegacyNumericRangeQuery
 from org.apache.lucene.document import FieldType
-from org.apache.lucene.index import IndexWriter, IndexWriterConfig
+from org.apache.lucene.index import IndexWriter, IndexWriterConfig, IndexOptions
 from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.util import Version
 
-
-LUCENE_TYPES={'i':LongField,'s':StringField,'t':TextField,'f':FloatField,'NA':TextField}
-LUCENE_TYPE_METHODS={'i':NumericRangeQuery.newLongRange,'f':NumericRangeQuery.newFloatRange}
+#the following variables are used by sample query processing code in Snaptron server
+#not just in this script
+LUCENE_TYPES={'i':LegacyLongField,'s':StringField,'t':TextField,'f':LegacyFloatField,'NA':TextField}
+LUCENE_TYPE_METHODS={'i':LegacyNumericRangeQuery.newLongRange,'f':LegacyNumericRangeQuery.newFloatRange}
 PREC_STEP=1
+LUCENE_TYPES_FILE='./lucene_indexed_numeric_types.tsv'
 
 float_patt = re.compile(r'\tf,')
 def process_pre_inferred_types(types_map,typesF):
@@ -51,18 +55,18 @@ if __name__ == "__main__":
 
 
   lucene.initVM()
-  analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
-  analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
+  analyzer = StandardAnalyzer()
+  analyzer_ws = WhitespaceAnalyzer()
   std_path = "%s/lucene_full_standard/" % (output_path)
   ws_path = "%s/lucene_full_ws/" % (output_path)
   if os.path.exists(std_path):
-      os.remove(std_path)
+      shutil.rmtree(std_path)
   if os.path.exists(ws_path):
-      os.remove(ws_path)
-  indexDir1 = SimpleFSDirectory(File(std_path))
-  indexDir2 = SimpleFSDirectory(File(ws_path))
-  writerConfig1 = IndexWriterConfig(Version.LUCENE_4_10_1, analyzer)
-  writerConfig2 = IndexWriterConfig(Version.LUCENE_4_10_1, analyzer_ws)
+      shutil.rmtree(ws_path)
+  indexDir1 = SimpleFSDirectory(Paths.get(std_path))
+  indexDir2 = SimpleFSDirectory(Paths.get(ws_path))
+  writerConfig1 = IndexWriterConfig(analyzer)
+  writerConfig2 = IndexWriterConfig(analyzer_ws)
   writer1 = IndexWriter(indexDir1, writerConfig1)
   writer2 = IndexWriter(indexDir2, writerConfig2)
  
@@ -70,7 +74,7 @@ if __name__ == "__main__":
   print "%d docs in index2" % writer2.numDocs()
   print "Reading lines from sys.stdin..."
     
-  ftypes = open("./lucene_indexed_numeric_types.tsv","w")
+  ftypes = open("%s/%s" % (output_path, LUCENE_TYPES_FILE),"w")
   
   for n, l in enumerate(sys.stdin):
     doc = Document()
@@ -94,16 +98,16 @@ if __name__ == "__main__":
             field_object = None
             ft = FieldType()
             ft.setStored(True)
-            ft.setIndexed(True)
+            ft.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS)
             ft.setNumericPrecisionStep(PREC_STEP)
             try:
-                if fieldtype is FloatField:
+                if fieldtype is LegacyFloatField:
                     field = float(field)
-                    ft.setNumericType(FieldType.NumericType.FLOAT)
+                    ft.setNumericType(FieldType.LegacyNumericType.FLOAT)
                     field_object = fieldtype(fname, field, ft)
-                elif fieldtype is LongField:
+                elif fieldtype is LegacyLongField:
                     field = long(field) 
-                    ft.setNumericType(FieldType.NumericType.LONG)
+                    ft.setNumericType(FieldType.LegacyNumericType.LONG)
                     field_object = fieldtype(fname, field, ft)
                 else:
                     field_object = fieldtype(fname, field, Field.Store.YES)
@@ -116,6 +120,7 @@ if __name__ == "__main__":
         doc.add(TextField('all', all_fields, Field.Store.NO))
     writer1.addDocument(doc)
     writer2.addDocument(doc)
+  ftypes.write("all\tt\n")
   print "Indexed %d lines from stdin (%d docs in index)" % (n, writer1.numDocs())
   print "Closing index of %d docs..." % writer1.numDocs()
   print "Indexed %d lines from stdin (%d docs in index)" % (n, writer2.numDocs())
