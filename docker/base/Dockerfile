@@ -1,6 +1,11 @@
 # Use an official Python runtime as a base image
 FROM debian
 
+# If the user passes in 1) a compilation and 2) a data directory
+# 2) is only used if 1) is passed in
+ARG COMPILATION
+ARG DATA_DIR
+
 # Set the working directory to /app
 WORKDIR /app
 
@@ -17,25 +22,34 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     wget \
-    default-jdk
+    default-jdk \
+    ant
 
-#clone master branch of Snaptron
+# cribbed from https://bitbucket.org/coady/docker/src/tip/pylucene/Dockerfile
+WORKDIR /usr/src/pylucene
+RUN curl https://www.apache.org/dist/lucene/pylucene/pylucene-6.5.0-src.tar.gz \
+    | tar -xz --strip-components=1
+RUN cd jcc \
+    && JCC_JDK=/usr/lib/jvm/default-java python setup.py install
+RUN make all install JCC='python -m jcc' ANT=ant PYTHON=python NUM_FILES=8
+
+WORKDIR ..
+RUN rm -rf pylucene
+
+# clone master branch of Snaptron
 RUN git clone https://github.com/ChristopherWilks/snaptron.git
+RUN pip install -r snaptron/requirements.txt
+RUN touch snaptron/FINISHED_DEPENDENCIES
 
-# This will setup Snaptron with the SRAv2 compilation which contains
-# the system tests.  This includes installing additional python packages,
-# PyLucene (including the JCC), and linking the srav2-specific snaptron
-# configuration file (snapconf.py).
-# It will also copy down the required backing databases and indices.
-# This latter step takes minutes-to-a-few-hours depending on the network/disk
-# speed due to copying down ~70GBs data.
-RUN cd snaptron ; ./deploy/deploy_snaptron.sh srav2
+# setup compilation if passed in
+# if DATA_DIR was also passed, assume all compilation data has already been downloaded
+RUN if [ "y$COMPILATION" != "y" ] ; then \
+	cd snaptron ; ./deploy/deploy_snaptron.sh $COMPILATION $DATA_DIR ; fi
 
-# Make port 80 available to the world outside this container
-EXPOSE 1555 1556 1557 1558 1580
+# Make Snaptron ports available to the world outside this container
+EXPOSE 1556 1557 1558 1585 1587 1590 1591 1592 1593 1594 1595
 
 # Define environment variable
 ENV NAME World
 
-# Run app.py when the container launches
-CMD ["python", "./snaptron/snaptron_server --no-daemon"]
+CMD ["/bin/bash"]
