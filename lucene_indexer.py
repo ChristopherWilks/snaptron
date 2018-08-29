@@ -75,7 +75,7 @@ if __name__ == "__main__":
   print "Reading lines from sys.stdin..."
     
   ftypes = open("%s/%s" % (output_path, LUCENE_TYPES_FILE),"w")
-  
+  n = 0 
   for n, l in enumerate(sys.stdin):
     doc = Document()
     fields = l.rstrip().split("\t")

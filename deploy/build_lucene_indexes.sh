@@ -1,7 +1,6 @@
 #!/bin/bash
-scripts=`perl -e '@f=split(/\//,"'${0}'"); pop(@f); print "".join("/",@f)."\n";'`
+scripts=`perl -e '$f="'${0}'"; $f=~s/\/[^\/]+$/\//; print "$f\n";'`
 root=$scripts/../
-source $root/python/bin/activate
 
 create_all=$1
 #build Lucene metadata indices (assumes samples.tsv is present and is sorted by rail_id in ascending order)
@@ -17,5 +16,5 @@ if [ -d ./lucene_full_standard ]; then
 	rm -rf lucene_full_standard
 	rm -rf lucene_full_ws
 fi
-cat samples.tsv | python $scripts/../lucene_indexer.py samples.tsv.inferred > lucene.indexer.run 2>&1
+cat samples.tsv | python $scripts/../lucene_indexer.py samples.tsv.inferred ./ > lucene.indexer.run 2>&1
 head -1 samples.tsv | perl -ne 'BEGIN { print "index\tfield_name\n";} chomp; for $e (split(/\t/,$_)) { print "".$i++."\t$e\n";}' > samples.fields.tsv

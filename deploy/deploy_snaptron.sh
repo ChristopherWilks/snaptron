@@ -5,12 +5,12 @@
 #./deploy/deploy_snaptron.sh srav2 /snaptron_data
 
 #get the path to this script
-scripts=`perl -e '@f=split(/\//,"'${0}'"); pop(@f); print "".join("/",@f)."\n";'`
+scripts=`perl -e '$f="'${0}'"; $f=~s/\/[^\/]+$/\//; print "$f\n";'`
 
 #installs python & PyLucene specific depdendencies
 if [ ! -e ./FINISHED_DEPENDENCIES ]; then
 	/bin/bash -x ${scripts}/install_dependencies.sh
-else
+elif [ -e ./python/bin/activate ]; then
     source ./python/bin/activate
 fi
 
@@ -21,8 +21,10 @@ if [ -z ${DATA_DIR} ]; then
         mkdir ./downloaded_data
     fi
     DATA_DIR=./downloaded_data
-    /bin/bash -x ${scripts}/download_compilation_data.sh $1 $DATA_DIR
 fi
+
+#assume we need to get the data in any case
+/bin/bash -x ${scripts}/download_compilation_data.sh $1 $DATA_DIR
 
 #link the right configs for this compilation
 /bin/bash -x ${scripts}/configure_compilation_and_data.sh $1 $DATA_DIR

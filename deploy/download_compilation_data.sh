@@ -7,10 +7,9 @@ COMP=$1
 DATA_DIR=${2}
 
 #get the path to this script
-scripts=`perl -e '@f=split(/\//,"'${0}'"); pop(@f); print "../".join("/",@f)."\n";'`
+scripts=`perl -e '$f="'${0}'"; $f=~s/\/[^\/]+$/\//; print "$f\n";'`
 echo "scripts dir: $scripts"
 
-#assume ./data already exists
 cd $DATA_DIR
 #echo "+++Downloading snaptron data, this make take a while..."
 wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/samples.tsv
@@ -43,7 +42,7 @@ wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/exons.bgz.tbi
 if [ -e exons.sqlite ]; then
     rm exons.sqlite
 fi
-#${scripts}/build_sqlite_db.sh exons exons.bgz
+${scripts}/build_sqlite_db.sh exons exons.bgz
 
 wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/all_transcripts.gtf.bgz
 wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/all_transcripts.gtf.bgz.tbi
@@ -55,4 +54,3 @@ ln -fs junctions.bgz junctions_uncompressed.bgz
 ln -fs junctions.bgz.tbi junctions_uncompressed.bgz.tbi
 
 cd ../
-ln -fs data/lucene_indexed_numeric_types.tsv

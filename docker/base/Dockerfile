@@ -1,17 +1,6 @@
 # Use an official Python runtime as a base image
 FROM debian
 
-# If the user passes in 1) a compilation and 2) a data directory
-# 2) is only used if 1) is passed in
-ARG COMPILATION
-ARG DATA_DIR
-
-# Set the working directory to /app
-WORKDIR /app
-
-# Copy the current directory contents into the container at /app
-ADD . /app
-
 # Install basics
 RUN apt-get update && apt-get install -y \
     python2.7 \
@@ -36,15 +25,14 @@ RUN make all install JCC='python -m jcc' ANT=ant PYTHON=python NUM_FILES=8
 WORKDIR ..
 RUN rm -rf pylucene
 
-# clone master branch of Snaptron
-RUN git clone https://github.com/ChristopherWilks/snaptron.git
-RUN pip install -r snaptron/requirements.txt
-RUN touch snaptron/FINISHED_DEPENDENCIES
+# Copy the current directory contents 
+# (i.e. Snaptron top-level directroy) into the container at /snaptron
+# this is just to boot strap deployment (eases development)
+# the actual Snaptron will be git cloned in the externally mounted "/deploy"
+ADD . /snaptron/
 
-# setup compilation if passed in
-# if DATA_DIR was also passed, assume all compilation data has already been downloaded
-RUN if [ "y$COMPILATION" != "y" ] ; then \
-	cd snaptron ; ./deploy/deploy_snaptron.sh $COMPILATION $DATA_DIR ; fi
+# clone master branch of Snaptron
+RUN pip install -r /snaptron/requirements.txt
 
 # Make Snaptron ports available to the world outside this container
 EXPOSE 1556 1557 1558 1585 1587 1590 1591 1592 1593 1594 1595
@@ -52,4 +40,5 @@ EXPOSE 1556 1557 1558 1585 1587 1590 1591 1592 1593 1594 1595
 # Define environment variable
 ENV NAME World
 
-CMD ["/bin/bash"]
+ENTRYPOINT ["/snaptron/entrypoint.sh"]
+CMD []
