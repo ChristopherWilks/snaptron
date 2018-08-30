@@ -5,17 +5,17 @@ import re
 import lucene
 from org.apache.lucene.analysis.standard import StandardAnalyzer
 from org.apache.lucene.analysis.core import WhitespaceAnalyzer
-from org.apache.lucene.document import Field, IntField, FloatField, StringField, TextField
+from org.apache.lucene.document import Field, LegacyLongField, LegacyFloatField, StringField, TextField
 from org.apache.lucene.index import Term
-from org.apache.lucene.search import NumericRangeQuery
+from org.apache.lucene.search import LegacyNumericRangeQuery
 from org.apache.lucene.util import Version
 
 #setup lucene reader for sample related searches
 lucene.initVM()
 #use this for GTEx sample metadata
-analyzer = StandardAnalyzer(Version.LUCENE_4_10_1)
+analyzer = StandardAnalyzer()
 #use this for SRAvX sample metadata
-analyzer_ws = WhitespaceAnalyzer(Version.LUCENE_4_10_1)
+analyzer_ws = WhitespaceAnalyzer()
 
 #####fields that need to be changed for a different instance
 DATA_SOURCE='TCGA'
@@ -84,8 +84,8 @@ RANGE_PATTERN = re.compile(r'^[0-9a-zA-Z_\-]+:\d+-\d+$')
 READ_SIZE_PATTERN = re.compile(r'^\d+$')
 
 TERM = Term
-NIR = NumericRangeQuery.newIntRange
-NFR = NumericRangeQuery.newFloatRange
+NIR = LegacyNumericRangeQuery.newIntRange
+NFR = LegacyNumericRangeQuery.newFloatRange
 
 operators_old={'>=':operator.ge,'<=':operator.le,'>':operator.gt,'<':operator.lt,'=':operator.eq,'!=':operator.ne}
 operators={'>:':operator.ge,'<:':operator.le,'>':operator.gt,'<':operator.lt,':':operator.eq,'!:':operator.ne}
@@ -120,7 +120,7 @@ LUCENE_MAX_RANGE_HITS=100000000
 #set much larger than the total # of samples we expect to have
 LUCENE_MAX_SAMPLE_HITS=1000000
 
-LUCENE_TYPES={'snaptron_id':[IntField,int,NIR],'strand':[StringField,str,TERM],'annotated':[IntField,int,NIR],'left_motif':[StringField,str,TERM],'right_motif':[StringField,str,TERM],'left_annotated':[TextField,str,TERM],'right_annotated':[TextField,str,TERM],'length':[IntField,int,NIR],'samples_count':[IntField,int,NIR],'coverage_sum':[IntField,int,NIR],'coverage_avg':[FloatField,float,NFR],'coverage_median':[FloatField,float,NFR],'source_dataset_id':[IntField,int,NIR],'coverage_avg2':[FloatField,float,NFR],'coverage_median2':[FloatField,float,NFR]}
+LUCENE_TYPES={'snaptron_id':[LegacyLongField,long,NIR],'strand':[StringField,str,TERM],'annotated':[LegacyLongField,long,NIR],'left_motif':[StringField,str,TERM],'right_motif':[StringField,str,TERM],'left_annotated':[TextField,str,TERM],'right_annotated':[TextField,str,TERM],'length':[LegacyLongField,long,NIR],'samples_count':[LegacyLongField,long,NIR],'coverage_sum':[LegacyLongField,long,NIR],'coverage_avg':[LegacyFloatField,float,NFR],'coverage_median':[LegacyFloatField,float,NFR],'source_dataset_id':[LegacyLongField,long,NIR],'coverage_avg2':[LegacyFloatField,float,NFR],'coverage_median2':[LegacyFloatField,float,NFR]}
 
 
 RANGE_QUERY_DELIMITER=','
