@@ -33,10 +33,15 @@ BASE_END_COL=2
 
 BULK_QUERY_DELIMITER='\|\|\|'
 
+#path to compiled C binary to do speedy basic calculations on base coverage data
+CALC_PATH='./scripts/groupby/calc'
+
 #return formats:
 TSV='0'
 UCSC_BED='1'
 UCSC_URL='2'
+UCSC_WIG='3'
+UCSC_URL_WIG='4'
 
 GENCODE_ANNOTATION='gencode.v25.annotation.gff3.gz'
 GENE_ID_PATTERN=re.compile(r'ENSG\d+\.\d+')

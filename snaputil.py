@@ -24,6 +24,7 @@ import re
 import cPickle
 import gzip
 import urllib
+from functools import reduce
 
 import numpy as np
 
@@ -36,7 +37,9 @@ default_region_args = snapconfshared.default_region_args
 #return formats:
 TSV=snapconfshared.TSV
 UCSC_BED=snapconfshared.UCSC_BED
+UCSC_WIG=snapconfshared.UCSC_WIG
 UCSC_URL=snapconfshared.UCSC_URL
+UCSC_URL_WIG=snapconfshared.UCSC_URL_WIG
 
 REQ_FIELDS=[]
 
@@ -167,6 +170,8 @@ def sqlite3_range_query_parse(rquery,where,arguments):
 def ucsc_format_header(fout,region_args=default_region_args,interval=None):
     header = ["browser position %s" % (interval)]
     header.append("track name=\"Snaptron\" visibility=2 description=\"Snaptron Exported Splice Junctions\" color=100,50,0 useScore=1\n")
+    if snapconf.BASES_APP == region_args.app:
+        header[1] = "track type=bedGraph name=\"Snaptron Bases\" visibility=2 description=\"Snaptron Exported Base Coverage\" color=100,50,0 useScore=0\n"
     fout.write("\n".join(header))
 
 def ucsc_format_intron(fout,line,fields,region_args=default_region_args):
@@ -177,11 +182,44 @@ def ucsc_format_intron(fout,line,fields,region_args=default_region_args):
     new_line[snapconf.INTERVAL_START_COL-1] = str(int(new_line[snapconf.INTERVAL_START_COL-1]) - 1)
     fout.write("%s\n" % ("\t".join([str(x) for x in new_line])))
 
+def ucsc_format_base(fout,line,fields,region_args=default_region_args):
+    ra = region_args
+    new_line = list(fields[0:3])
+    #if len(REQ_FIELDS) > 0:
+    #    newline = "\t".join([str(fields[x]) for x in REQ_FIELDS]) + "\n"
+    #else:
+    #slowest
+    #sum_= reduce(lambda i,j: float(i)+float(j), fields[3:])
+    #fastest
+    #in the middle
+    #sum_ = np.sum(np.array(fields[3:]).astype(np.float32), axis=0)
+    a = np.array(fields[3:]).astype(np.float32)
+    sum_ = fields[3]
+    new_line.append(sum_)
+    #no need to adjust for UCSC BED start-at-0 coordinates, they already are
+    newline = "%s\n" % ("\t".join([str(x) for x in new_line]))
+    fout.write(newline)
+
 def ucsc_url(fout,region_args=default_region_args,interval=None):
-    #change return_format=2 to =1 to actually return the introns in UCSC BED format
-    input_str = re.sub("return_format=2","return_format=1",region_args.original_input_string)
+    endpoint = 'snaptron'
+    #must be BASES app
+    if endpoint not in region_args.app:
+        endpoint = region_args.app
+        input_str = re.sub("return_format=2","return_format=3",region_args.original_input_string)
+    else:
+        #change return_format=2 to =1 to actually return the introns in UCSC BED format
+        input_str = re.sub("return_format=2","return_format=1",region_args.original_input_string)
     encoded_input_string = urllib.quote(re.sub(r'regions=[^&]+',"regions=%s" % (interval),input_str))
-    ucsc_url = "".join(["http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s&hgct_customText=" % (snapconf.HG,interval),snapconf.SERVER_STRING,"/snaptron?",encoded_input_string])
+    ucsc_url = "".join(["http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s&hgct_customText=" % (snapconf.HG,interval),snapconf.SERVER_STRING,"/%s?" % (endpoint),encoded_input_string])
+    if region_args.print_header:
+        fout.write("DataSource:Type\tcoordinate_string\tURL\n")
+    fout.write("%s:U\t%s\t%s\n" % (snapconf.DATA_SOURCE,interval,ucsc_url))
+
+def ucsc_url_wig(fout,region_args=default_region_args,interval=None):
+    #change return_format=4 to =3 to actually return the introns in UCSC WIG format
+    input_str = re.sub("return_format=4","return_format=3",region_args.original_input_string)
+    encoded_input_string = urllib.quote(re.sub(r'regions=[^&]+',"regions=%s" % (interval),input_str))
+    ucsc_url = "".join(["http://genome.ucsc.edu/cgi-bin/hgTracks?db=%s&position=%s&hgct_customText=" % (snapconf.HG,interval),snapconf.SERVER_STRING,"/bases?",encoded_input_string])
     if region_args.print_header:
         fout.write("DataSource:Type\tcoordinate_string\tURL\n")
     fout.write("%s:U\t%s\t%s\n" % (snapconf.DATA_SOURCE,interval,ucsc_url))
@@ -213,7 +251,7 @@ def stream_record(fout,line,fields,region_args=default_region_args):
     else:
         fout.write("%s\t%s" % (ra.prefix,newline))
 
-return_formats={TSV:(stream_header,stream_record),UCSC_BED:(ucsc_format_header,ucsc_format_intron),UCSC_URL:(ucsc_url,None)}
+return_formats={TSV:(stream_header,stream_record),UCSC_BED:(ucsc_format_header,ucsc_format_intron),UCSC_WIG:(ucsc_format_header,ucsc_format_base),UCSC_URL:(ucsc_url,None),UCSC_URL:(ucsc_url,None)}
 
 #def extract_sids_and_covs_from_search_iter(samples_found_iter, samples_str, num_samples):
 def extract_sids_and_covs_from_search_iter(samples_found_iter, fields):
