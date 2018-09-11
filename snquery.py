@@ -52,6 +52,7 @@ def build_sid_ahoc_queries(sample_ids):
 class RunExternalQueryEngine:
 
     def __init__(self,cmd,qargs,rangeq,snaptron_ids,region_args=default_region_args,additional_cmd=""):
+        self.direct_output = False
         self.cmd = cmd
         self.qargs = qargs
         self.ra = region_args
@@ -84,6 +85,9 @@ class RunExternalQueryEngine:
             self.full_cmd = "%s %s %s %s" % (cmd,self.ra.tabix_db_file,self.qargs,additional_cmd)
             self.cmds = []
             if self.ra.app == snapconf.BASES_APP:
+                if self.ra.return_format == snapconfshared.UCSC_WIG:
+                    additional_cmd += " | %s " % (snapconfshared.CALC_PATH)
+                    self.direct_output = True
                 #might be using a different version of Tabix for bases (e.g. using zstd for compression)
                 cmd = snapconf.TABIX_BASES
                 #offset for start at 0 in BigWig derived bases
@@ -101,7 +105,7 @@ class RunExternalQueryEngine:
             #maybe we should consider doing this differently, however, self.qargs is enforced to be a strict chr:start-end pattern,
             #and the rest of the arguments are set internally, so I think we avoid potential injection attacks here
             #self.extern_proc = SnaptronServerIterator([self.full_cmd], shell=True)
-            self.extern_proc = SnaptronServerIterator(self.cmds, shell=True)
+            self.extern_proc = SnaptronServerIterator(self.cmds, shell=True, direct_output=self.direct_output)
 
         elif cmd == snapconf.SQLITE:
             self.delim = '\t'
@@ -143,6 +147,9 @@ class RunExternalQueryEngine:
     def run_query(self):
         ids_found = set()
         sample_set = set()
+        if self.direct_output:
+            return (ids_found, sample_set)
+        #sys.stdout.write("NOT DOING DIRECT OUTPUT\n")
         #exit early as we only want the ucsc_url
         if self.ra.return_format == UCSC_URL:
             return (ids_found,sample_set)

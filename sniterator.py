@@ -23,9 +23,12 @@ import subprocess
 import shlex
 
 class SnaptronServerIterator():
-    def __init__(self,cmds,stdout=subprocess.PIPE,shell=False,bufsize=-1):
+    def __init__(self,cmds,stdout=subprocess.PIPE,shell=False,bufsize=-1,direct_output=False):
+            
         self.cmds = cmds
         self.stdout = stdout
+        if direct_output:
+            self.stdout = sys.stdout
         self.shell = shell
         self.bufsize = bufsize
         self.extern_procs = [subprocess.Popen(cmd, stdout=self.stdout, shell=self.shell, bufsize=self.bufsize) for cmd in self.cmds]
