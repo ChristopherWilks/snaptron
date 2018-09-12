@@ -256,7 +256,7 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
     return (snaptron_ids_returned,sample_ids_returned)
 
 def process_params(input_,region_args=default_region_args):
-    params = {'regions':[],'ids':[],'sids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','either':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1','id':1,'label':'','calc':False,'calc_axis':1,'calc_op':'sum'}
+    params = {'regions':[],'ids':[],'sids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','either':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1','id':1,'label':'','calc':0,'calc_axis':1,'calc_op':'sum'}
     prefix = region_args.prefix
     header = region_args.header
 
@@ -266,6 +266,9 @@ def process_params(input_,region_args=default_region_args):
         #only expect one group per query
         if key == 'group':
             prefix = val
+            #this can be overriden by an actual label value if one is passed in
+            params['label'] = val
+            region_args._replace(label=val)
             header = header.replace(snapconf.DATA_SOURCE_HEADER, 'Group') 
         elif key not in params:
             snaputil.log_error(key, "query parameter, exiting")

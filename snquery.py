@@ -88,10 +88,7 @@ class RunExternalQueryEngine:
                 self.chrom = m.group(1)
                 if self.ra.return_format == snapconfshared.UCSC_WIG or bool(self.ra.calc):
                     r = self.ra
-                    label = self.qargs
-                    if len(r.label) > 0:
-                        label = r.label+":"+label
-                    additional_cmd += " | %s -a %s -o %s -l \"%s\"" % (snapconfshared.CALC_PATH,r.calc_axis,r.calc_op,label)
+                    additional_cmd += " | %s -a %s -o %s -l \"%s\"" % (snapconfshared.CALC_PATH,r.calc_axis,r.calc_op,r.label)
                     self.direct_output = True
                 #might be using a different version of Tabix for bases (e.g. using zstd for compression)
                 cmd = snapconf.TABIX_BASES
