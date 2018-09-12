@@ -85,13 +85,17 @@ class RunExternalQueryEngine:
             self.full_cmd = "%s %s %s %s" % (cmd,self.ra.tabix_db_file,self.qargs,additional_cmd)
             self.cmds = []
             if self.ra.app == snapconf.BASES_APP:
-                if self.ra.return_format == snapconfshared.UCSC_WIG:
-                    additional_cmd += " | %s " % (snapconfshared.CALC_PATH)
+                self.chrom = m.group(1)
+                if self.ra.return_format == snapconfshared.UCSC_WIG or bool(self.ra.calc):
+                    r = self.ra
+                    label = self.qargs
+                    if len(r.label) > 0:
+                        label = r.label+":"+label
+                    additional_cmd += " | %s -a %s -o %s -l \"%s\"" % (snapconfshared.CALC_PATH,r.calc_axis,r.calc_op,label)
                     self.direct_output = True
                 #might be using a different version of Tabix for bases (e.g. using zstd for compression)
                 cmd = snapconf.TABIX_BASES
                 #offset for start at 0 in BigWig derived bases
-                self.chrom = m.group(1)
                 qargs_and_region_files = snaputil.map_region2files(self.chrom,self.start,self.end)
                 self.start-=1
                 for (qargs,region_file) in qargs_and_region_files:

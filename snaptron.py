@@ -256,9 +256,9 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
     return (snaptron_ids_returned,sample_ids_returned)
 
 def process_params(input_,region_args=default_region_args):
-    params = {'regions':[],'ids':[],'sids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','either':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1','id':1}
-    prefix=region_args.prefix
-    header=region_args.header
+    params = {'regions':[],'ids':[],'sids':[],'rfilter':[],'sfilter':[],'fields':[],'result_count':False,'contains':'0','either':'0','exact':'0','return_format':TSV,'score_by':'samples_count','coordinate_string':'','header':'1','id':1,'label':'','calc':False,'calc_axis':1,'calc_op':'sum'}
+    prefix = region_args.prefix
+    header = region_args.header
 
     params_ = input_.split('&')
     for param_ in params_:
@@ -307,7 +307,9 @@ def process_params(input_,region_args=default_region_args):
             if isinstance(params[key], list):
                 params[key].append(val) 
             else:
-                params[key]=val
+                params[key] = val
+                #directly update the main config structure (region_args) with simple parameters
+                region_args = region_args._replace(**{key:val})
     #make sure we copy the list of samples over from sids to REQ_FIELDS if this is a bases query
     #bases queries don't support the normal sample IDs filtering mechanism
     if region_args.app == snapconf.BASES_APP and len(params['sids']) > 0:
@@ -316,8 +318,11 @@ def process_params(input_,region_args=default_region_args):
         snaputil.REQ_FIELDS.extend(region_args.fields_map[field] for field in params['sids'])
         #clear the sample IDs so we don't invoke the normal sample filter processing
         params['sids']=[]
-
-    ra=region_args._replace(post=False,result_count=params['result_count'],contains=bool(int(params['contains'])),either=(int(params['either'])),exact=bool(int(params['exact'])),score_by=params['score_by'],print_header=bool(int(params['header'])),return_format=params['return_format'],original_input_string=input_,coordinate_string=params['coordinate_string'],sids=params['sids'],prefix=prefix,header=header)
+    #turn off header if we're doing calcuations on the return (summarizing)
+    if bool(region_args.calc):
+        params['header']=0
+    #simple_params = set(['result_count','score_by','return_format','coordinate_string','header','calc','calc_axis','calc_op','label'])
+    ra=region_args._replace(post=False,contains=bool(int(params['contains'])),either=(int(params['either'])),exact=bool(int(params['exact'])),print_header=bool(int(params['header'])),original_input_string=input_,sids=params['sids'],prefix=prefix,header=header)
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'],ra)
 
 
