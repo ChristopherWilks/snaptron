@@ -117,7 +117,7 @@ int main(int argc, char** argv)
 		opt_idx = 0;
 		opt_ = getopt_long(argc, argv, "a:o:l:", long_opts, &opt_idx);
 	}
-	printf("axis: %d op: %s label: %s\n",config_def.axis,config_def.op,config_def.label);
+	//printf("axis: %d op: %s label: %s\n",config_def.axis,config_def.op,config_def.label);
 	
 	char* line = NULL;
 	size_t length = 0;
