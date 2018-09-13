@@ -79,9 +79,7 @@ static struct option long_opts[] =
 	{0,0,0,0}
 };
 
-
-//modified from https://stackoverflow.com/questions/3501338/c-read-file-line-by-line
-int main(int argc, char** argv)
+config_settings setup(int argc, char*** argv)
 {
 	int opt_;
 	int opt_idx = 0;
@@ -95,7 +93,7 @@ int main(int argc, char** argv)
 	config_def.op = "sum";
 	config_def.label = "";
 
-	opt_ = getopt_long(argc, argv, "a:o:l:", long_opts, &opt_idx);
+	opt_ = getopt_long(argc, *argv, "a:o:l:", long_opts, &opt_idx);
 	while(opt_ != -1)
 	{
 		switch(opt_)
@@ -115,10 +113,17 @@ int main(int argc, char** argv)
 			exit(-1);
 		}
 		opt_idx = 0;
-		opt_ = getopt_long(argc, argv, "a:o:l:", long_opts, &opt_idx);
+		opt_ = getopt_long(argc, *argv, "a:o:l:", long_opts, &opt_idx);
 	}
 	//printf("axis: %d op: %s label: %s\n",config_def.axis,config_def.op,config_def.label);
-	
+	return config_def;
+}
+
+
+//modified from https://stackoverflow.com/questions/3501338/c-read-file-line-by-line
+int main(int argc, char** argv)
+{
+	config_settings config_def = setup(argc, &argv);	
 	char* line = NULL;
 	size_t length = 0;
 	ssize_t bytes_read = 0;
