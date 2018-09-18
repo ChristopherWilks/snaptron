@@ -23,25 +23,25 @@ import re
 import subprocess
 import shlex
 import snapconf
-import snapconfshared 
+import snapconfshared as sc
 import snaputil
 from sniterator import SnaptronServerIterator
 
 #for speedy multi-sample ID searching per jx
 import ahocorasick
 
-RegionArgs = snapconfshared.RegionArgs
-default_region_args = snapconfshared.default_region_args
+RegionArgs = sc.RegionArgs
+default_region_args = sc.default_region_args
 logger = default_region_args.logger
 
-EITHER_START=snapconfshared.EITHER_START
-EITHER_END=snapconfshared.EITHER_END
+EITHER_START=sc.EITHER_START
+EITHER_END=sc.EITHER_END
 return_formats = snaputil.return_formats
 
 #return formats:
-TSV=snapconfshared.TSV
-UCSC_BED=snapconfshared.UCSC_BED
-UCSC_URL=snapconfshared.UCSC_URL
+TSV=sc.TSV
+UCSC_BED=sc.UCSC_BED
+UCSC_URL=sc.UCSC_URL
 
 def build_sid_ahoc_queries(sample_ids):
     acs = ahocorasick.Automaton()
@@ -73,35 +73,35 @@ class RunExternalQueryEngine:
         if self.ra.return_format == UCSC_URL:
             return
 
-        if cmd == snapconf.TABIX:
+        if cmd == sc.TABIX:
             self.delim = '\t'
-            m = snapconf.TABIX_PATTERN.search(self.qargs)
+            m = sc.TABIX_PATTERN.search(self.qargs)
             self.start = int(m.group(2))
             self.end = int(m.group(3))
             self.range_filters = self.ra.range_filters if self.ra.range_filters is not None and len(self.ra.range_filters) > 0 else None
             additional_cmd = ''
             if len(self.ra.additional_cmd) > 0:
                 additional_cmd = " | %s" % (self.ra.additional_cmd)
-            self.ra = self.ra._replace(tabix_db_file = "%s/%s" % (snapconf.TABIX_DB_PATH,self.ra.tabix_db_file))
+            self.ra = self.ra._replace(tabix_db_file = "%s/%s" % (sc.TABIX_DB_PATH,self.ra.tabix_db_file))
             self.full_cmd = "%s %s %s %s" % (cmd,self.ra.tabix_db_file,self.qargs,additional_cmd)
             self.cmds = []
-            if self.ra.app == snapconf.BASES_APP:
+            if self.ra.app == sc.BASES_APP:
                 self.chrom = m.group(1)
                 #might be using a different version of Tabix for bases (e.g. using zstd for compression)
                 cmd = snapconf.TABIX_BASES
                 #offset for start at 0 in BigWig derived bases
                 qargs_and_region_files = snaputil.map_region2files(self.chrom,self.start,self.end)
-                if self.ra.return_format == snapconfshared.UCSC_WIG or bool(self.ra.calc):
+                if self.ra.return_format == sc.UCSC_WIG or bool(self.ra.calc):
                     r = self.ra
-                    #additional_cmd += " | %s -a %s -o %s -l \"%s" % (snapconfshared.CALC_PATH,r.calc_axis,r.calc_op,r.label)
+                    #additional_cmd += " | %s -a %s -o %s -l \"%s" % (sc.CALC_PATH,r.calc_axis,r.calc_op,r.label)
                     #add label later (if it's passed in)
-                    additional_cmd += " | %s -a %s -o %s" % (snapconfshared.CALC_PATH,r.calc_axis,r.calc_op)
+                    additional_cmd += " | %s -a %s -o %s" % (sc.CALC_PATH,r.calc_axis,r.calc_op)
                     self.direct_output = True
                 self.start-=1
                 for (qargs,region_file) in qargs_and_region_files:
                     #need to set the region for each split so the client knows how to re-assemble the splits
                     additional_cmd_ = additional_cmd
-                    if self.ra.return_format == snapconfshared.UCSC_WIG or bool(self.ra.calc):
+                    if self.ra.return_format == sc.UCSC_WIG or bool(self.ra.calc):
                         qargs_ = qargs.replace(':','|')
                         qargs_ = qargs_.replace('-','|')
                         #label is ignored if doing axis=1 (col summaries)
@@ -118,7 +118,7 @@ class RunExternalQueryEngine:
             #self.extern_proc = SnaptronServerIterator([self.full_cmd], shell=True)
             self.extern_proc = SnaptronServerIterator(self.cmds, shell=True, direct_output=self.direct_output)
 
-        elif cmd == snapconf.SQLITE:
+        elif cmd == sc.SQLITE:
             self.delim = '\t'
             arguments = []
             where = []
@@ -128,12 +128,12 @@ class RunExternalQueryEngine:
             self.end = end
             snaputil.sqlite3_range_query_parse(rangeq,where,arguments)
             #force sqlite3 to 3 decimal places
-            select_fields = snapconfshared.INTRON_HEADER_FIELDS
-            select_fields[snapconf.CHROM_COL]='chrom'
-            select_fields[snapconf.DONOR_COL]='donor'
-            select_fields[snapconf.ACCEPTOR_COL]='acceptor'
-            select_fields[snapconf.COV_AVG_COL]="printf('%.3f',coverage_avg)"
-            select_fields[snapconf.COV_MED_COL]="printf('%.3f',coverage_median)"
+            select_fields = sc.INTRON_HEADER_FIELDS
+            select_fields[sc.CHROM_COL]='chrom'
+            select_fields[sc.DONOR_COL]='donor'
+            select_fields[sc.ACCEPTOR_COL]='acceptor'
+            select_fields[sc.COV_AVG_COL]="printf('%.3f',coverage_avg)"
+            select_fields[sc.COV_MED_COL]="printf('%.3f',coverage_median)"
             select = "SELECT %s from intron WHERE %s" % (",".join(select_fields), ' AND '.join(where))
             logger.debug("%s\t%s\n" % (select,arguments))
             query_ = select
@@ -184,17 +184,17 @@ class RunExternalQueryEngine:
             samples_found_iter = None
             #TODO: support sample filtering for base-level data?
             if self.ra.sid_search_object is not None:
-                samples_found_iter = self.ra.sid_search_object.iter(fields[snapconf.SAMPLE_IDS_COL])
+                samples_found_iter = self.ra.sid_search_object.iter(fields[sc.SAMPLE_IDS_COL])
                 #check to see if this jx has one or more of the sample IDs
                 (found_np, fields) = snaputil.extract_sids_and_covs_from_search_iter(samples_found_iter, fields)
                 if fields is None:
                     continue
             #not used unless testing Tabix or doing a R + F + M query
-            if (self.cmd == snapconf.TABIX or samples_found_iter is not None) and self.range_filters is not None and snaputil.filter_by_ranges(fields,self.range_filters):
+            if (self.cmd == sc.TABIX or samples_found_iter is not None) and self.range_filters is not None and snaputil.filter_by_ranges(fields,self.range_filters):
                 continue
             #combine these two so we only have to split sample <= 1 times
             if self.ra.save_samples:
-                samples = set(fields[snapconf.SAMPLE_IDS_COL].split(","))
+                samples = set(fields[sc.SAMPLE_IDS_COL].split(","))
                 #due to start prefixed "," delete empty string in set
                 if '' in samples:
                     samples.remove('')

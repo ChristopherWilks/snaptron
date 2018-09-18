@@ -40,12 +40,12 @@ if sys.path[0] != './':
     sys.path=['./'] + sys.path
 
 import snapconf
-import snapconfshared
+import snapconfshared as sc
 import snaputil
 import snaptron
 import snquery
 
-default_region_args = snapconfshared.default_region_args
+default_region_args = sc.default_region_args
 logger = default_region_args.logger
 
 def process_params(input_):
@@ -71,9 +71,9 @@ class GeneCoords(object):
         self.ensembl_id_patt = re.compile('(ENST\d+)')
         #this is the main gene2coordinate map we use for servicing HUGO gene symbol queries (RefSeq)
         if load_refseq:
-            gene_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.REFSEQ_ANNOTATION)
-            gencode_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconfshared.GENCODE_ANNOTATION)
-            gene_pickle_file = "%s/refseq_gencode.pkl" % snapconf.TABIX_DB_PATH
+            gene_file = "%s/%s" % (sc.TABIX_DB_PATH,sc.REFSEQ_ANNOTATION)
+            gencode_file = "%s/%s" % (sc.TABIX_DB_PATH,sc.GENCODE_ANNOTATION)
+            gene_pickle_file = "%s/refseq_gencode.pkl" % sc.TABIX_DB_PATH
             self.gene_map = snaputil.load_cpickle_file(gene_pickle_file)
             if not self.gene_map:
                 self.load_gene_coords(gene_file)
@@ -81,7 +81,7 @@ class GeneCoords(object):
                 self.extend_gene_coords(gencode_file)
             snaputil.store_cpickle_file(gene_pickle_file,self.gene_map)
         if load_canonical:
-            canonical_gene_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.CANONICAL_ANNOTATION)
+            canonical_gene_file = "%s/%s" % (sc.TABIX_DB_PATH,sc.CANONICAL_ANNOTATION)
             canonical_gene_pickle_file = "%s.pkl" % (canonical_gene_file)
             self.canonical_gene_map = snaputil.load_cpickle_file(canonical_gene_pickle_file)
             if not self.canonical_gene_map:
@@ -90,7 +90,7 @@ class GeneCoords(object):
        
         #per transcript exons
         if load_transcript:
-            transcript_file = "%s/%s" % (snapconf.TABIX_DB_PATH,snapconf.TABIX_GENE_INTERVAL_DB)
+            transcript_file = "%s/%s" % (sc.TABIX_DB_PATH,sc.TABIX_GENE_INTERVAL_DB)
             transcript_pickle_file = "%s.pkl" % (transcript_file)
             self.transcript_map = snaputil.load_cpickle_file(transcript_pickle_file)
             if not self.transcript_map:
@@ -118,14 +118,14 @@ class GeneCoords(object):
                 (gene_name,chrom,st,en) = (fields[0].upper(),fields[2],int(fields[4]),int(fields[5]))
                 #UCSC OFFSET
                 st += 1
-                if not snapconf.CHROM_PATTERN.search(chrom):
+                if not sc.CHROM_PATTERN.search(chrom):
                     continue
                 if gene_name in gene_map:
                     add_tuple = True
                     if chrom in gene_map[gene_name]:
                         for (idx,gene_tuple) in enumerate(gene_map[gene_name][chrom]):
                             (st2,en2) = gene_tuple
-                            if (st2 <= en and en2 >= en) or (st <= en2 and en >= en2) or abs(en2-en) <= snapconf.MAX_GENE_PROXIMITY:
+                            if (st2 <= en and en2 >= en) or (st <= en2 and en >= en2) or abs(en2-en) <= sc.MAX_GENE_PROXIMITY:
                                 add_tuple = False
                                 if st < st2:
                                     gene_map[gene_name][chrom][idx][0] = st
@@ -152,7 +152,7 @@ class GeneCoords(object):
                 estarts = estarts_.split(',')[:-1]
                 eends = eends_.split(',')[:-1]
                 #if we're not on an autosome/sex chromosom OR there's no splice sites, skip
-                if not snapconf.CHROM_PATTERN.search(chrom) or len(estarts) < 2:
+                if not sc.CHROM_PATTERN.search(chrom) or len(estarts) < 2:
                     continue
                 #shift to get introns
                 temp = estarts[1:]
@@ -217,7 +217,7 @@ class GeneCoords(object):
 
 def query_gene_regions(intervalq,contains=False,either=0,exact=False,limit=20):
     print_header = True
-    ra = default_region_args._replace(tabix_db_file=snapconf.TABIX_GENE_INTERVAL_DB,range_filters=None,save_introns=False,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G",cut_start_col=1,region_start_col=snapconf.GENE_START_COL,region_end_col=snapconf.GENE_END_COL,contains=contains,either=either,exact=exact)
+    ra = default_region_args._replace(tabix_db_file=sc.TABIX_GENE_INTERVAL_DB,range_filters=None,save_introns=False,header=sc.GENE_ANNOTATION_HEADER,prefix="Mixed:G",cut_start_col=1,region_start_col=sc.GENE_START_COL,region_end_col=sc.GENE_END_COL,contains=contains,either=either,exact=exact)
     gc = GeneCoords()
     limit_filter = 'perl -ne \'chomp; @f=split(/\\t/,$_); @f1=split(/;/,$f[8]); $boost=0; $boost=100000 if($f1[1]!~/"NA"/); @f2=split(/,/,$f1[2]); $s1=$f1[2]; $f[5]=(scalar @f2)+$boost; print "".(join("\\t",@f))."\\n";\' | sort -t"	" -k6,6nr'
     additional_cmd = ""
@@ -227,8 +227,8 @@ def query_gene_regions(intervalq,contains=False,either=0,exact=False,limit=20):
         additional_cmd = "%s | head -%d" % (limit_filter,limit)
         ra_additional_cmd = ra._replace(additional_cmd=additional_cmd)
     for interval in intervalq:
-        if snapconf.INTERVAL_PATTERN.search(interval):
-           runner = snquery.RunExternalQueryEngine(snapconf.TABIX,interval,None,set(),region_args=ra)
+        if sc.INTERVAL_PATTERN.search(interval):
+           runner = snquery.RunExternalQueryEngine(sc.TABIX,interval,None,set(),region_args=ra)
            (ids,sids) = runner.run_query()
         else:
             intervals = gc.gene2coords(interval)
@@ -238,7 +238,7 @@ def query_gene_regions(intervalq,contains=False,either=0,exact=False,limit=20):
                 logger.info("# of gene intervals in chrom %s: %d\n" % (chrom,len(coord_tuples)))
                 for coord_tuple in coord_tuples:
                     (st,en) = coord_tuple
-                    runner = snquery.RunExternalQueryEngine(snapconf.TABIX,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra_additional_cmd)
+                    runner = snquery.RunExternalQueryEngine(sc.TABIX,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra_additional_cmd)
                     (ids,sids_) = runner.run_query()
                     if ra_additional_cmd.print_header:
                         ra_additional_cmd=ra_additional_cmd._replace(print_header=False)

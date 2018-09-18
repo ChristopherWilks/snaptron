@@ -29,18 +29,18 @@ from functools import reduce
 import numpy as np
 
 import snapconf
-import snapconfshared
+import snapconfshared as sc
 
-RegionArgs = snapconfshared.RegionArgs
-default_region_args = snapconfshared.default_region_args
+RegionArgs = sc.RegionArgs
+default_region_args = sc.default_region_args
 logger = default_region_args.logger
 
 #return formats:
-TSV=snapconfshared.TSV
-UCSC_BED=snapconfshared.UCSC_BED
-UCSC_WIG=snapconfshared.UCSC_WIG
-UCSC_URL=snapconfshared.UCSC_URL
-UCSC_URL_WIG=snapconfshared.UCSC_URL_WIG
+TSV=sc.TSV
+UCSC_BED=sc.UCSC_BED
+UCSC_WIG=sc.UCSC_WIG
+UCSC_URL=sc.UCSC_URL
+UCSC_URL_WIG=sc.UCSC_URL_WIG
 
 REQ_FIELDS=[]
 
@@ -73,13 +73,13 @@ def store_cpickle_file(filepath, ds, compress=False):
     return False
 
 def load_sample_group_map():
-    sgfile = snapconfshared.SAMPLE_GROUP_FILE
+    sgfile = sc.SAMPLE_GROUP_FILE
     ds = load_cpickle_file(sgfile+".pkl")
     if ds is None:
         with open(sgfile,"rb") as fin:
             fall = fin.read().split('\n')
             fall=fall[:-1]
-            ds = {f.split('\t')[0]:f.split('\t')[snapconfshared.SAMPLE_GROUP_IDS_COL] for f in fall}
+            ds = {f.split('\t')[0]:f.split('\t')[sc.SAMPLE_GROUP_IDS_COL] for f in fall}
             store_cpickle_file(sgfile+".pkl", ds)
     return ds
 
@@ -104,8 +104,8 @@ def map_region2files(chrom, start, end):
                 nstart = cstart+1
             if nend > cend:
                 nend = cend
-            #regions.append(["%s:%s-%s" % (chrom,nstart,nend),snapconf.BASE_TABIX_DB_PATH+region_file+".bgz"])
-            regions.append(["%s:%s-%s" % (chrom,nstart,nend),snapconf.BASE_TABIX_DB_PATH+region_file])
+            #regions.append(["%s:%s-%s" % (chrom,nstart,nend),sc.BASE_TABIX_DB_PATH+region_file+".bgz"])
+            regions.append(["%s:%s-%s" % (chrom,nstart,nend),sc.BASE_TABIX_DB_PATH+region_file])
     return regions
 
 def retrieve_from_db_by_ids(dbh,select,ids):
@@ -119,7 +119,7 @@ def retrieve_from_db_by_ids(dbh,select,ids):
 def sqlite3_interval_query_parse(qargs,where,arguments,ra):
     if qargs is None:
         return (None,None,None)
-    m = snapconf.TABIX_PATTERN.search(qargs)
+    m = sc.TABIX_PATTERN.search(qargs)
     chrom = m.group(1)
     start = m.group(2)
     end = m.group(3)
@@ -138,20 +138,20 @@ def sqlite3_range_query_parse(rquery,where,arguments):
     if rquery is None or len(rquery) == 0:
         return ""
     for query_string in rquery['rfilter']:
-        queries_ = query_string.split(snapconf.RANGE_QUERY_DELIMITER)
+        queries_ = query_string.split(sc.RANGE_QUERY_DELIMITER)
         for query_tuple in queries_:
-            m=snapconf.RANGE_QUERY_FIELD_PATTERN.search(query_tuple)
-            (col,op_,val)=re.split(snapconf.RANGE_QUERY_OPS,query_tuple)
-            if not m or not col or col not in snapconf.LUCENE_TYPES:
+            m=sc.RANGE_QUERY_FIELD_PATTERN.search(query_tuple)
+            (col,op_,val)=re.split(sc.RANGE_QUERY_OPS,query_tuple)
+            if not m or not col or col not in sc.LUCENE_TYPES:
                 log_error(col, "filter fieldname in range query, exiting")
                 sys.exit(-1)
                 #continue
             op=m.group(1)
             op=op.replace(':','=')
-            if op not in snapconf.operators_old:
+            if op not in sc.operators_old:
                 log_error(col, "operator in range query, exiting")
                 sys.exit(-1)
-            if col in snapconfshared.annotated_columns:
+            if col in sc.annotated_columns:
                 val = str(val)
                 #special casing for the annotated fields since they're a mix of integer and string
                 if (len(val) > 1 or val == '1'):
@@ -159,7 +159,7 @@ def sqlite3_range_query_parse(rquery,where,arguments):
                     op='!='
             where.append("%s %s ?" % (col,op))
             #only need ptype ("python type") for this version of parser
-            (ltype,ptype,qtype) = snapconf.LUCENE_TYPES[col]
+            (ltype,ptype,qtype) = sc.LUCENE_TYPES[col]
             #do some input cleansing to avoid injection attacks
             val = val.replace("'","")
             val = val.replace('"','')
@@ -169,7 +169,7 @@ def sqlite3_range_query_parse(rquery,where,arguments):
 def ucsc_format_header(fout,region_args=default_region_args,interval=None):
     header = ["browser position %s" % (interval)]
     header.append("track name=\"Snaptron\" visibility=2 description=\"Snaptron Exported Splice Junctions\" color=100,50,0 useScore=1\n")
-    if snapconf.BASES_APP == region_args.app:
+    if sc.BASES_APP == region_args.app:
         header[1] = "track type=bedGraph name=\"Snaptron Bases\" visibility=2 description=\"Snaptron Exported Base Coverage\" color=100,50,0 useScore=0\n"
     fout.write("\n".join(header))
     fout.flush()
@@ -177,9 +177,9 @@ def ucsc_format_header(fout,region_args=default_region_args,interval=None):
 def ucsc_format_intron(fout,line,fields,region_args=default_region_args):
     ra = region_args
     new_line = list(fields[1:4])
-    new_line.extend(["junc",fields[snapconfshared.INTRON_HEADER_FIELDS_MAP[ra.score_by]],fields[snapconf.STRAND_COL]])
+    new_line.extend(["junc",fields[sc.INTRON_HEADER_FIELDS_MAP[ra.score_by]],fields[sc.STRAND_COL]])
     #adjust for UCSC BED start-at-0 coordinates
-    new_line[snapconf.INTERVAL_START_COL-1] = str(int(new_line[snapconf.INTERVAL_START_COL-1]) - 1)
+    new_line[sc.INTERVAL_START_COL-1] = str(int(new_line[sc.INTERVAL_START_COL-1]) - 1)
     fout.write("%s\n" % ("\t".join([str(x) for x in new_line])))
 
 def ucsc_format_base(fout,line,fields,region_args=default_region_args):
@@ -235,7 +235,7 @@ def stream_header(fout,region_args=default_region_args,interval=None):
         if not ra.result_count:
             fout.write("%s\n" % (custom_header))
     if ra.stream_back and ra.print_header and ra.post:
-        fout.write("datatypes:%s\t%s\n" % (str.__name__,snapconfshared.INTRON_TYPE_HEADER))
+        fout.write("datatypes:%s\t%s\n" % (str.__name__,sc.INTRON_TYPE_HEADER))
 
 def stream_record(fout,line,fields,region_args=default_region_args):
     ra = region_args
@@ -255,7 +255,7 @@ return_formats={TSV:(stream_header,stream_record),UCSC_BED:(ucsc_format_header,u
 
 #def extract_sids_and_covs_from_search_iter(samples_found_iter, samples_str, num_samples):
 def extract_sids_and_covs_from_search_iter(samples_found_iter, fields):
-    samples_str = fields[snapconf.SAMPLE_IDS_COL]
+    samples_str = fields[sc.SAMPLE_IDS_COL]
     found = np.empty((0,2),dtype=np.int32)
     idx = 0
     samples = ""
@@ -276,11 +276,11 @@ def extract_sids_and_covs_from_search_iter(samples_found_iter, fields):
             return (None,None)
     length = len(found)
     #newfields = [samples,length,np.sum(found[0:length,1]),np.mean(found[0:length,1]),np.median(found[0:length,1])]
-    fields[snapconf.SAMPLE_IDS_COL] = samples
-    fields[snapconf.SAMPLE_IDS_COL+1] = length
-    fields[snapconf.SAMPLE_IDS_COL+2] = np.sum(found[0:length,1])
-    fields[snapconf.SAMPLE_IDS_COL+3] = np.mean(found[0:length,1])
-    fields[snapconf.SAMPLE_IDS_COL+4] = np.median(found[0:length,1])
+    fields[sc.SAMPLE_IDS_COL] = samples
+    fields[sc.SAMPLE_IDS_COL+1] = length
+    fields[sc.SAMPLE_IDS_COL+2] = np.sum(found[0:length,1])
+    fields[sc.SAMPLE_IDS_COL+3] = np.mean(found[0:length,1])
+    fields[sc.SAMPLE_IDS_COL+4] = np.median(found[0:length,1])
     return (found,fields)
 
 
@@ -289,11 +289,11 @@ def filter_by_ranges(fields,rquerys):
     skip=False
     for rfield in rquerys.keys():
         (op,rval)=rquerys[rfield]
-        if rfield not in snapconfshared.INTRON_HEADER_FIELDS_MAP:
+        if rfield not in sc.INTRON_HEADER_FIELDS_MAP:
             log_error("bad field %s in range query, exiting",rfield)
             sys.exit(-1)
-        fidx = snapconfshared.INTRON_HEADER_FIELDS_MAP[rfield]
-        (ltype,ptype,qtype) = snapconf.LUCENE_TYPES[rfield]
+        fidx = sc.INTRON_HEADER_FIELDS_MAP[rfield]
+        (ltype,ptype,qtype) = sc.LUCENE_TYPES[rfield]
         if rfield == 'annotated':
             val = str(fields[fidx])
             rval = str(rval)

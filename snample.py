@@ -58,24 +58,24 @@ if sys.path[0] != './':
 
 
 import snapconf
-import snapconfshared
+import snapconfshared as sc
 import snaputil
 import snaptron
 import snquery
 import logging
 import lucene_indexer
 
-default_region_args = snapconfshared.default_region_args
+default_region_args = sc.default_region_args
 logger = default_region_args.logger
 
 BOOLEAN_OCCUR=BooleanClause.Occur.MUST
 
 searchers = []
-std_reader = DirectoryReader.open(SimpleFSDirectory(Paths.get(snapconf.LUCENE_STD_SAMPLE_DB)))
+std_reader = DirectoryReader.open(SimpleFSDirectory(Paths.get(sc.LUCENE_STD_SAMPLE_DB)))
 std_searcher = IndexSearcher(std_reader)
 searchers.append(std_searcher)
 
-ws_reader = DirectoryReader.open(SimpleFSDirectory(Paths.get(snapconf.LUCENE_WS_SAMPLE_DB)))
+ws_reader = DirectoryReader.open(SimpleFSDirectory(Paths.get(sc.LUCENE_WS_SAMPLE_DB)))
 ws_searcher = IndexSearcher(ws_reader)
 searchers.append(ws_searcher)
 
@@ -118,12 +118,12 @@ def lucene_sample_query_parse(sampleq, ftypes):
     booleans = []
     bq = BooleanQuery.Builder()
     for query_tuple in sampleq:
-        (field, op_, value) = re.split(snapconf.RANGE_QUERY_OPS, query_tuple)
-        m=snapconf.RANGE_QUERY_FIELD_PATTERN.search(query_tuple)
+        (field, op_, value) = re.split(sc.RANGE_QUERY_OPS, query_tuple)
+        m=sc.RANGE_QUERY_FIELD_PATTERN.search(query_tuple)
         if m is None or field is None:
             continue
         op=m.group(1)
-        if op not in snapconf.operators:
+        if op not in sc.operators:
             snaputil.log_error(str(op), "range query operator, exiting")
             sys.exit(-1)
         field_w_type = snapconf.SAMPLE_HEADER_FIELDS_TYPE_MAP[field]
@@ -157,7 +157,7 @@ def search_samples_lucene(sample_map,sampleq,sample_set,ra,stream_sample_metadat
     #do a non-redundant union of the 2 analyzers and 2 lucene DB types
     header = ra.print_header
     for searcher in searchers:
-        hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
+        hits = searcher.search(query, sc.LUCENE_MAX_SAMPLE_HITS)
         logger.debug("%s %s Found %d document(s) that matched query '%s':\n" % (searcher, query, hits.totalHits, sampleq))
         if stream_sample_metadata and header:
             sys.stdout.write("DataSource:Type\tLucene TF-IDF Score\t%s\n" % (snapconf.SAMPLE_HEADER))
@@ -231,7 +231,7 @@ def sample_ids2intron_ids_from_db(sample_ids):
 def sample_ids2intron_ids_from_bit_vector(sample_ids):
     snaptron_ids_final = None
     for sample_id in sample_ids:
-        snaptron_ids = snaputil.load_cpickle_file("%s/%s.pkl" % (snapconf.PACKED_SAMPLE_IDS_PATH, str(sample_id)), compressed=False)
+        snaptron_ids = snaputil.load_cpickle_file("%s/%s.pkl" % (sc.PACKED_SAMPLE_IDS_PATH, str(sample_id)), compressed=False)
         #in a few cases we may not have a mapping for a specific sample_id
         if snaptron_ids is None:
             continue
@@ -309,25 +309,25 @@ def main():
         #first, some special cases
         #1) just stream back the whole sample metadata file
         if 'all=1' in input_:
-            #sample_map = load_sample_metadata(snapconf.SAMPLE_MD_FILE)
+            #sample_map = load_sample_metadata(sc.SAMPLE_MD_FILE)
             cmd = 'cat'
-            if '.gz' in snapconf.SAMPLE_MD_FILE:
+            if '.gz' in sc.SAMPLE_MD_FILE:
                 cmd = 'zcat'
-            subp = subprocess.Popen('%s %s' % (cmd,snapconf.SAMPLE_MD_FILE),shell=True,stdin=None,stdout=sys.stdout,stderr=sys.stderr)
+            subp = subprocess.Popen('%s %s' % (cmd,sc.SAMPLE_MD_FILE),shell=True,stdin=None,stdout=sys.stdout,stderr=sys.stderr)
             subp.wait()
             return
         #2) check the date of the source sample metadata file (for client caching purposes)
         elif 'check_for_update=1' in input_:
-            stats = os.stat(snapconf.SAMPLE_MD_FILE)
+            stats = os.stat(sc.SAMPLE_MD_FILE)
             sys.stdout.write(str(stats.st_mtime) + "\n")
             return
         #update support simple '&' CGI format
         (intervalq,idq,rangeq,sampleq,ra) = snaptron.process_params(input_)
     #only care about sampleq
-    if len(intervalq) > 0 or len(rangeq['rfilter']) > 0 or snapconf.SNAPTRON_ID_PATT.search(input_):
+    if len(intervalq) > 0 or len(rangeq['rfilter']) > 0 or sc.SNAPTRON_ID_PATT.search(input_):
         snaputil.log_error(None, "bad input asking for intervals and/or ranges, only take sample queries and/or sample ids, exiting")
         sys.exit(-1) 
-    sample_map = load_sample_metadata(snapconf.SAMPLE_MD_FILE)
+    sample_map = load_sample_metadata(sc.SAMPLE_MD_FILE)
     logger.debug("loaded %d samples metadata\n" % (len(sample_map)))
     #main decision cases
     if len(idq) > 0:

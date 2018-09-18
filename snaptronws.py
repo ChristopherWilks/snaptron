@@ -21,8 +21,9 @@ from os import O_NONBLOCK, read
 import errno
 import time
 
-#assume we're in the same dir as snapconf.py
+#assume we're in the same dir as sc.py
 import snapconf
+import snapconfshared as sc
 
 DEBUG_MODE=True
 
@@ -34,7 +35,7 @@ logger.addHandler(lHandler)
 
 #passes back a stream, either binary or text (its agnostic) in READ_SIZE chunks
 class StreamingResponseIterator:
-    def __init__(self, start_response, stream_subproc, request_id, read_size=snapconf.READ_SIZE):
+    def __init__(self, start_response, stream_subproc, request_id, read_size=sc.READ_SIZE):
         self.start_response = start_response
         self.stream_subproc = stream_subproc
         self.request_id = request_id
@@ -64,7 +65,7 @@ class StreamingResponseIterator:
         #up one or more (but we don't block)
         while(True):
             try:
-                stderr = read(self.stream_subproc.stderr.fileno(), snapconf.READ_SIZE)
+                stderr = read(self.stream_subproc.stderr.fileno(), sc.READ_SIZE)
                 #hit EOF
                 if not stderr:
                     break
@@ -87,8 +88,8 @@ class StreamingResponseIterator:
             logger.error("in _wait, found an error message")
             self.stderr = "".join(self.stderr)
             for line in self.stderr.split("\n"):
-                errors.append("%s:%s" % (snapconf.SNAPTRON_APP, line.rstrip()))
-                logger.error("%s:%s" % (snapconf.SNAPTRON_APP, line.rstrip()))
+                errors.append("%s:%s" % (sc.SNAPTRON_APP, line.rstrip()))
+                logger.error("%s:%s" % (sc.SNAPTRON_APP, line.rstrip()))
             #alert the server to the error by THROWING AN EXCEPTION (not re-calling start_response)
             if self.stream_subproc.returncode != 0 or (not DEBUG_MODE and len(self.stderr) > 0):
                 return True
@@ -103,12 +104,12 @@ class StreamingResponseIterator:
 
     def next(self):
         if self.error:
-            raise Exception("%s failed on %s" % (snapconf.SNAPTRON_APP, self.stderr))
+            raise Exception("%s failed on %s" % (sc.SNAPTRON_APP, self.stderr))
         if self.done:
             raise StopIteration
         #read next "chunk" from stream output, stream and return, 
         #this will block if more data is coming and < READ_SIZE
-        chunk = self.stream_subproc.stdout.read(snapconf.READ_SIZE)
+        chunk = self.stream_subproc.stdout.read(sc.READ_SIZE)
         if chunk == "":
             self.done = True
             error = self._wait()
@@ -208,7 +209,7 @@ def internal_server_error(start_response, msg):
 
 def run_command(cmd_and_args):
     logger.info("Running: %s" % (" ".join(cmd_and_args)))
-    sproc = subprocess.Popen(cmd_and_args, bufsize=snapconf.CMD_BUFFER_SIZE, 
+    sproc = subprocess.Popen(cmd_and_args, bufsize=sc.CMD_BUFFER_SIZE, 
                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
     #we need to make sure that reading from the STDERR pipe 
     #is NOT going to block since we don't know if we'll get errors, or not
@@ -224,7 +225,7 @@ def run_command_with_pipe(cmd_and_args,record_type):
     cmd_and_args[2] = "PIPE"
     if record_type != 'junction':
         cmd_and_args[2] = record_type +"|"+"PIPE"
-    sproc = subprocess.Popen(cmd_and_args, bufsize=snapconf.CMD_BUFFER_SIZE, 
+    sproc = subprocess.Popen(cmd_and_args, bufsize=sc.CMD_BUFFER_SIZE, 
                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
     #we need to make sure that reading from the STDERR pipe 
     #is NOT going to block since we don't know if we'll get errors, or not
@@ -239,7 +240,7 @@ def run_command_with_pipe(cmd_and_args,record_type):
 
 def query(query, add_checksum=True):
 
-    args = [snapconf.PYTHON_PATH, snapconf.SNAPTRON_APP]
+    args = [sc.PYTHON_PATH, sc.SNAPTRON_APP]
     #get the one or more range tuples (expect chr:start-end) 
     ranges = query.get('range', [])
 
@@ -253,15 +254,15 @@ def query(query, add_checksum=True):
         if done:
             raise urllib2.HTTPError(None, 400, "submitted more than expected number of ranges", None, None)
         #must be the expected format
-        if snapconf.RANGE_PATTERN.search(range) is None:
+        if sc.RANGE_PATTERN.search(range) is None:
             raise urllib2.HTTPError(None, 400, "submitted one or more ranges in an unsupported format", None, None)
         (chr, start_end) = range.split(":")
         (start, end) = start_end.split("-")
         #must not be above MAX_COORDINATE_DIGITS otherwise samtools will start returning everything
-        if len(start) > snapconf.MAX_COORDINATE_DIGITS or len(end) > snapconf.MAX_COORDINATE_DIGITS:
+        if len(start) > sc.MAX_COORDINATE_DIGITS or len(end) > sc.MAX_COORDINATE_DIGITS:
             raise urllib2.HTTPError(None, 400,
                                     "The start or the end coordinate (or both) of this range %s is exceeds %s" % (
-                                    range, str(snapconf.MAX_COORDINATE_DIGITS)), None, None)
+                                    range, str(sc.MAX_COORDINATE_DIGITS)), None, None)
         #also must not have swapped start and end, otherwise samtools will return everything
         if int(start) > int(end):
             raise urllib2.HTTPError(None, 400, "The start coordinate > the end coordinate in this range %s" % range,
@@ -327,20 +328,20 @@ def generic_endpoint(environ, start_response, endpoint_app):
     except KeyError:
         force_stream_error = "0"
 
-    read_size = snapconf.READ_SIZE
+    read_size = sc.READ_SIZE
     #see if the read_size is being overriden (as in a test server is calling this)
     if 'read_size' in environ:
         read_size = str(environ['read_size'])
-        if snapconf.READ_SIZE_PATTERN.search(read_size) is None:
+        if sc.READ_SIZE_PATTERN.search(read_size) is None:
             return bad_request(start_response, "bad read_size in environment")
     read_size = int(read_size)
     record_type = 'junction'
-    if endpoint_app in snapconf.pseudo_apps:
+    if endpoint_app in sc.pseudo_apps:
         if not use_pipe:
             query_string = endpoint_app+"|"+query_string
         record_type = endpoint_app
-        endpoint_app = snapconf.SNAPTRON_APP
-    args=[snapconf.PYTHON_PATH, endpoint_app, query_string]
+        endpoint_app = sc.SNAPTRON_APP
+    args=[sc.PYTHON_PATH, endpoint_app, query_string]
     #create subprocess run object 
     sproc = None
     if use_pipe:
@@ -360,27 +361,27 @@ def generic_endpoint(environ, start_response, endpoint_app):
     return si
 
 def snaptron_endpoint(environ, start_response):
-        return generic_endpoint(environ, start_response, snapconf.SNAPTRON_APP)
+        return generic_endpoint(environ, start_response, sc.SNAPTRON_APP)
 
 def samples_endpoint(environ, start_response):
-        return generic_endpoint(environ, start_response, snapconf.SAMPLES_APP)
+        return generic_endpoint(environ, start_response, sc.SAMPLES_APP)
 
 def annotations_endpoint(environ, start_response):
-        return generic_endpoint(environ, start_response, snapconf.ANNOTATIONS_APP)
+        return generic_endpoint(environ, start_response, sc.ANNOTATIONS_APP)
 
 def genes_endpoint(environ, start_response):
-        return generic_endpoint(environ, start_response, snapconf.GENES_APP)
+        return generic_endpoint(environ, start_response, sc.GENES_APP)
 
 def exons_endpoint(environ, start_response):
-        return generic_endpoint(environ, start_response, snapconf.EXONS_APP)
+        return generic_endpoint(environ, start_response, sc.EXONS_APP)
 
 def bases_endpoint(environ, start_response):
-        return generic_endpoint(environ, start_response, snapconf.BASES_APP)
+        return generic_endpoint(environ, start_response, sc.BASES_APP)
 
 #only for basic testing
 if __name__ == '__main__':
     rquery=r'chr6:1-10000000|samples_countEQ5|'
-    sproc = run_command([snapconf.PYTHON_PATH, snapconf.SNAPTRON_APP, rquery])
+    sproc = run_command([sc.PYTHON_PATH, sc.SNAPTRON_APP, rquery])
     itr=StreamingResponseIterator(None,sproc,None)
     chunk=itr.next();
     while(chunk):
