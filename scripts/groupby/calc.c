@@ -22,7 +22,9 @@ typedef struct config_def {
 	char* label;
 } config_settings;
 
-int process_line(int first, char* line, char* delim, double** vals, config_settings config_def, int print_coord) //double** vals
+//tokenize each line to get the coordinates and the list of sample counts
+//if doing a axis=COLUMN computation do it per row here
+int process_line(int first, char* line, char* delim, double** vals, config_settings config_def, int print_coord)
 {
 	char* line_copy = strdup(line);
 	char* tok = strtok(line_copy, delim);
@@ -35,6 +37,10 @@ int process_line(int first, char* line, char* delim, double** vals, config_setti
 		col_idx = &i;
 	while(tok != NULL)
 	{
+		//if first line, only loop through to get
+		//count of fields, this will be used to create
+		//the actual storage array for the counts in a 2nd pass
+		//through (only this line)
 		if(first)
 		{
 			i++;
@@ -139,10 +145,11 @@ int main(int argc, char** argv)
 		//assumes no header
 		num_rows++;
 		int num_toks = process_line(first, strdup(line), "\t", &vals, config_def, print_coords_per_row);
+		//if the first line, we need to know the total # of samples, so make 2 passes through the line
 		if(first)
 		{
 			num_vals = num_toks - config_def.base_col_start;
-			//one large calloc up front
+			//one large calloc up front, this array will be resused subsequently for each line
 			vals = calloc(num_vals,sizeof(double));
 			first = 0;
 			num_toks = process_line(first, strdup(line), "\t", &vals, config_def, print_coords_per_row);
@@ -156,7 +163,9 @@ int main(int argc, char** argv)
 			printf("\n");
 			fflush(stdout);
 		}
-		//reset the value for a row computation
+		//reset the value for a col computation
+		//no need to reset for a row computation, as we
+		//keep the running stat for all rows
 		if(config_def.axis == COL_AXIS)
 			vals[0] = 0.0;
 		bytes_read=getline(&line, &length, stdin);
