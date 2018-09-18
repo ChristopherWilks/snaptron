@@ -268,7 +268,7 @@ def process_params(input_,region_args=default_region_args):
             prefix = val
             #this can be overriden by an actual label value if one is passed in
             params['label'] = val
-            region_args._replace(label=val)
+            region_args = region_args._replace(label=val)
             header = header.replace(snapconf.DATA_SOURCE_HEADER, 'Group') 
         elif key not in params:
             snaputil.log_error(key, "query parameter, exiting")
@@ -326,6 +326,9 @@ def process_params(input_,region_args=default_region_args):
         params['header']=0
     #simple_params = set(['result_count','score_by','return_format','coordinate_string','header','calc','calc_axis','calc_op','label'])
     ra=region_args._replace(post=False,contains=bool(int(params['contains'])),either=(int(params['either'])),exact=bool(int(params['exact'])),print_header=bool(int(params['header'])),original_input_string=input_,sids=params['sids'],prefix=prefix,header=header)
+    #basic checks against injection attacks for provided params that will be passed to the command line
+    if ra.calc_axis not in snapconfshared.calc_axis_ops or ra.calc_op not in snapconfshared.calc_axis_ops or (len(ra.label) > 0 and snapconfshared.label_pattern.search(ra.label) == None):
+        raise Exception("bad input for one or more calc/label parameters: %s\n" % (urllib.quote(" ".join([str(x) for x in [ra.calc, ra.calc_axis, ra.calc_op, ra.label]]))))
     return (params['regions'],params['ids'],{'rfilter':params['rfilter']},params['sfilter'],ra)
 
 

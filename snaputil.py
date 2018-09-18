@@ -173,6 +173,7 @@ def ucsc_format_header(fout,region_args=default_region_args,interval=None):
     if snapconf.BASES_APP == region_args.app:
         header[1] = "track type=bedGraph name=\"Snaptron Bases\" visibility=2 description=\"Snaptron Exported Base Coverage\" color=100,50,0 useScore=0\n"
     fout.write("\n".join(header))
+    fout.flush()
 
 def ucsc_format_intron(fout,line,fields,region_args=default_region_args):
     ra = region_args
@@ -205,7 +206,7 @@ def ucsc_url(fout,region_args=default_region_args,interval=None):
     #must be BASES app
     if endpoint not in region_args.app:
         endpoint = region_args.app
-        input_str = re.sub("return_format=2","return_format=3",region_args.original_input_string)
+        input_str = re.sub("return_format=2","return_format=3&calc=1",region_args.original_input_string)
     else:
         #change return_format=2 to =1 to actually return the introns in UCSC BED format
         input_str = re.sub("return_format=2","return_format=1",region_args.original_input_string)

@@ -86,17 +86,27 @@ class RunExternalQueryEngine:
             self.cmds = []
             if self.ra.app == snapconf.BASES_APP:
                 self.chrom = m.group(1)
-                if self.ra.return_format == snapconfshared.UCSC_WIG or bool(self.ra.calc):
-                    r = self.ra
-                    additional_cmd += " | %s -a %s -o %s -l \"%s\"" % (snapconfshared.CALC_PATH,r.calc_axis,r.calc_op,r.label)
-                    self.direct_output = True
                 #might be using a different version of Tabix for bases (e.g. using zstd for compression)
                 cmd = snapconf.TABIX_BASES
                 #offset for start at 0 in BigWig derived bases
                 qargs_and_region_files = snaputil.map_region2files(self.chrom,self.start,self.end)
+                if self.ra.return_format == snapconfshared.UCSC_WIG or bool(self.ra.calc):
+                    r = self.ra
+                    #additional_cmd += " | %s -a %s -o %s -l \"%s" % (snapconfshared.CALC_PATH,r.calc_axis,r.calc_op,r.label)
+                    #add label later (if it's passed in)
+                    additional_cmd += " | %s -a %s -o %s" % (snapconfshared.CALC_PATH,r.calc_axis,r.calc_op)
+                    self.direct_output = True
                 self.start-=1
                 for (qargs,region_file) in qargs_and_region_files:
-                    self.cmds.append("%s %s %s %s" % (cmd,region_file,qargs,additional_cmd))
+                    #need to set the region for each split so the client knows how to re-assemble the splits
+                    additional_cmd_ = additional_cmd
+                    if self.ra.return_format == snapconfshared.UCSC_WIG or bool(self.ra.calc):
+                        qargs_ = qargs.replace(':','|')
+                        qargs_ = qargs_.replace('-','|')
+                        #label is ignored if doing axis=1 (col summaries)
+                        #since each row will have the chr:start-end printed out for it
+                        additional_cmd_ += " -l \""+qargs_+"|"+r.label+"\""
+                    self.cmds.append("%s %s %s %s" % (cmd,region_file,qargs,additional_cmd_))
                     if self.ra.debug:
                         sys.stderr.write("running %s %s %s\n" % (self.cmds[-1],region_file,qargs))
             else:

@@ -27,16 +27,30 @@ class SnaptronServerIterator():
             
         self.cmds = cmds
         self.stdout = stdout
+        #performance trick, pipe output from subprocess directly to this process's output
+        #to avoid the cost of python line processing
         if direct_output:
             self.stdout = sys.stdout
         self.shell = shell
         self.bufsize = bufsize
-        self.extern_procs = [subprocess.Popen(cmd, stdout=self.stdout, shell=self.shell, bufsize=self.bufsize) for cmd in self.cmds]
+        #used to run them in parallel, but that's a bad idea because:
+        #1) results will come back in random order
+        #2) we need to control the number of potential processes spun up by any given query (so for now we'll keep this at 1)
+        if direct_output:
+            for cmd in self.cmds:
+                extern_proc = subprocess.Popen(cmd, shell=self.shell, bufsize=self.bufsize)
+                extern_proc.wait() 
+        else:
+            #TODO: stop this running in parallel for the above cited reasons, but will need to handle
+            #the sequential nature in the next() method
+            self.extern_procs = [subprocess.Popen(cmd, stdout=self.stdout, shell=self.shell, bufsize=self.bufsize) for cmd in self.cmds]
         self.idx = 0
 
     def __iter__(self):
         return self
 
+    #this is only used if the self.stdout isn't directed to the current process's sys.stdout
+    #i.e. direct_output is False
     def next(self):
         line = self.extern_procs[self.idx].stdout.readline()
         if line == '':
