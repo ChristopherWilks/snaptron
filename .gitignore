@@ -1,2 +1,15 @@
 *.pyc
 docs/build/
+expected_*
+test_*
+tests.sh
+*.test
+test.samplegroups1
+lucene_range_ids.test
+snapconf.py
+lucene_indexed_numeric_types.tsv
+python/
+calc*
+scripts/groupby/calc
+data/
+*.swp
