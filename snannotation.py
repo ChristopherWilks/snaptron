@@ -31,6 +31,7 @@ import time
 import operator
 import re
 import urllib
+import logging
 
 import gzip
 
@@ -44,7 +45,8 @@ import snaputil
 import snaptron
 import snquery
 
-DEBUG_MODE=False
+default_region_args = snapconfshared.default_region_args
+logger = default_region_args.logger
 
 def process_params(input_):
     params = {'regions':[],'contains':'0','either':'0','exact':'0','limit':20}
@@ -215,13 +217,13 @@ class GeneCoords(object):
 
 def query_gene_regions(intervalq,contains=False,either=0,exact=False,limit=20):
     print_header = True
-    ra = snaptron.default_region_args._replace(tabix_db_file=snapconf.TABIX_GENE_INTERVAL_DB,range_filters=None,save_introns=False,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G",cut_start_col=1,region_start_col=snapconf.GENE_START_COL,region_end_col=snapconf.GENE_END_COL,contains=contains,either=either,exact=exact,debug=DEBUG_MODE)
+    ra = default_region_args._replace(tabix_db_file=snapconf.TABIX_GENE_INTERVAL_DB,range_filters=None,save_introns=False,header=snapconf.GENE_ANNOTATION_HEADER,prefix="Mixed:G",cut_start_col=1,region_start_col=snapconf.GENE_START_COL,region_end_col=snapconf.GENE_END_COL,contains=contains,either=either,exact=exact)
     gc = GeneCoords()
     limit_filter = 'perl -ne \'chomp; @f=split(/\\t/,$_); @f1=split(/;/,$f[8]); $boost=0; $boost=100000 if($f1[1]!~/"NA"/); @f2=split(/,/,$f1[2]); $s1=$f1[2]; $f[5]=(scalar @f2)+$boost; print "".(join("\\t",@f))."\\n";\' | sort -t"	" -k6,6nr'
     additional_cmd = ""
     ra_additional_cmd = ra
     if limit > 0:
-        sys.stderr.write("limit_filter %s\n" % (urllib.quote(limit_filter)))
+        logger.info("limit_filter %s\n" % (urllib.quote(limit_filter)))
         additional_cmd = "%s | head -%d" % (limit_filter,limit)
         ra_additional_cmd = ra._replace(additional_cmd=additional_cmd)
     for interval in intervalq:
@@ -230,10 +232,10 @@ def query_gene_regions(intervalq,contains=False,either=0,exact=False,limit=20):
            (ids,sids) = runner.run_query()
         else:
             intervals = gc.gene2coords(interval)
-            sys.stderr.write("# of gene intervals: %d\n" % (len(intervals)))
+            logger.info("# of gene intervals: %d\n" % (len(intervals)))
             #if given a gene name, first convert to coordinates and then search tabix
             for (chrom,coord_tuples) in intervals:
-                sys.stderr.write("# of gene intervals in chrom %s: %d\n" % (chrom,len(coord_tuples)))
+                logger.info("# of gene intervals in chrom %s: %d\n" % (chrom,len(coord_tuples)))
                 for coord_tuple in coord_tuples:
                     (st,en) = coord_tuple
                     runner = snquery.RunExternalQueryEngine(snapconf.TABIX,"%s:%d-%d" % (chrom,st,en),None,set(),region_args=ra_additional_cmd)
@@ -242,10 +244,9 @@ def query_gene_regions(intervalq,contains=False,either=0,exact=False,limit=20):
                         ra_additional_cmd=ra_additional_cmd._replace(print_header=False)
   
 def main():
-    global DEBUG_MODE
     input_ = sys.argv[1]
     if len(sys.argv) > 2:
-       DEBUG_MODE=True
+        logger.setLevel(logging.DEBUG)
     params = process_params(input_)
     query_gene_regions(params['regions'],contains=bool(int(params['contains'])),either=(int(params['either'])),exact=bool(int(params['exact'])),limit=int(params['limit']))
 

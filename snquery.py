@@ -32,6 +32,7 @@ import ahocorasick
 
 RegionArgs = snapconfshared.RegionArgs
 default_region_args = snapconfshared.default_region_args
+logger = default_region_args.logger
 
 EITHER_START=snapconfshared.EITHER_START
 EITHER_END=snapconfshared.EITHER_END
@@ -107,8 +108,7 @@ class RunExternalQueryEngine:
                         #since each row will have the chr:start-end printed out for it
                         additional_cmd_ += " -l \""+qargs_+"|"+r.label+"\""
                     self.cmds.append("%s %s %s %s" % (cmd,region_file,qargs,additional_cmd_))
-                    if self.ra.debug:
-                        sys.stderr.write("running %s %s %s\n" % (self.cmds[-1],region_file,qargs))
+                    logger.debug("running %s %s %s\n" % (self.cmds[-1],region_file,qargs))
             else:
                 self.cmds.append(self.full_cmd)
             #self.full_cmd = "%s %s %s | cut -f %d- %s" % (cmd,self.ra.tabix_db_file,self.qargs,self.ra.cut_start_col,additional_cmd)
@@ -135,8 +135,7 @@ class RunExternalQueryEngine:
             select_fields[snapconf.COV_AVG_COL]="printf('%.3f',coverage_avg)"
             select_fields[snapconf.COV_MED_COL]="printf('%.3f',coverage_median)"
             select = "SELECT %s from intron WHERE %s" % (",".join(select_fields), ' AND '.join(where))
-            if self.ra.debug:
-                sys.stderr.write("%s\t%s\n" % (select,arguments))
+            logger.debug("%s\t%s\n" % (select,arguments))
             query_ = select
             chr_patt = re.compile('(chr)|[+-]')
             for (i,arg_) in enumerate(arguments):
@@ -150,8 +149,7 @@ class RunExternalQueryEngine:
             full_cmd_args = shlex.split(self.full_cmd)
             #we never going to use additional range filters because R+F+M will go through tabix
             self.range_filters = None
-            if self.ra.debug:
-                sys.stderr.write("%s\n" % (self.full_cmd))
+            logger.debug("%s\n" % (self.full_cmd))
             self.extern_proc = SnaptronServerIterator([full_cmd_args], shell=False)
 
 
@@ -191,7 +189,6 @@ class RunExternalQueryEngine:
                 (found_np, fields) = snaputil.extract_sids_and_covs_from_search_iter(samples_found_iter, fields)
                 if fields is None:
                     continue
-            #print fields
             #not used unless testing Tabix or doing a R + F + M query
             if (self.cmd == snapconf.TABIX or samples_found_iter is not None) and self.range_filters is not None and snaputil.filter_by_ranges(fields,self.range_filters):
                 continue

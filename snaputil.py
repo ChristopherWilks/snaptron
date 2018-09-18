@@ -33,6 +33,7 @@ import snapconfshared
 
 RegionArgs = snapconfshared.RegionArgs
 default_region_args = snapconfshared.default_region_args
+logger = default_region_args.logger
 
 #return formats:
 TSV=snapconfshared.TSV
@@ -43,13 +44,11 @@ UCSC_URL_WIG=snapconfshared.UCSC_URL_WIG
 
 REQ_FIELDS=[]
 
-
-
-def log_error(passed_in, msg, output=sys.stderr):
+def log_error(passed_in, msg):
     if passed_in is None:
-        output.write('ERROR: %s\n' % (msg))
+        logger.error('ERROR: %s\n' % (msg))
     else:
-        output.write('ERROR: bad argument "%s" for %s\n' % (urllib.quote(passed_in),msg))
+        logger.error('ERROR: bad argument "%s" for %s\n' % (urllib.quote(passed_in),msg))
 
 def load_cpickle_file(filepath, compressed=False):
     ds = None

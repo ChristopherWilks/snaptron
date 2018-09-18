@@ -30,6 +30,7 @@ import json
 import time
 import re
 import urllib
+import logging
 
 import gzip
 
@@ -57,12 +58,15 @@ if sys.path[0] != './':
 
 
 import snapconf
+import snapconfshared
 import snaputil
 import snaptron
 import snquery
+import logging
 import lucene_indexer
 
-DEBUG_MODE=False
+default_region_args = snapconfshared.default_region_args
+logger = default_region_args.logger
 
 BOOLEAN_OCCUR=BooleanClause.Occur.MUST
 
@@ -137,7 +141,7 @@ def lucene_sample_query_parse(sampleq, ftypes):
         #term query
         else:
             bq.add(TermQuery(Term(field_w_type, value.lower())), BOOLEAN_OCCUR)
-        #sys.stderr.write("value + fields: %s %s\n" % (urllib.quote(value.lower()), field_w_type))
+        logger.debug("value + fields: %s %s\n" % (urllib.quote(value.lower()), field_w_type))
     return bq.build()
 
 
@@ -154,7 +158,7 @@ def search_samples_lucene(sample_map,sampleq,sample_set,ra,stream_sample_metadat
     header = ra.print_header
     for searcher in searchers:
         hits = searcher.search(query, snapconf.LUCENE_MAX_SAMPLE_HITS)
-        #sys.stderr.write("%s %s Found %d document(s) that matched query '%s':\n" % (searcher, query, hits.totalHits, sampleq))
+        logger.debug("%s %s Found %d document(s) that matched query '%s':\n" % (searcher, query, hits.totalHits, sampleq))
         if stream_sample_metadata and header:
             sys.stdout.write("DataSource:Type\tLucene TF-IDF Score\t%s\n" % (snapconf.SAMPLE_HEADER))
             header = False
@@ -210,7 +214,7 @@ def load_sample_metadata(file_):
            fmd[fields[0]]=line
     end = time.time()
     taken = end-start
-    #sys.stderr.write("time taken to load samples from normal: %d\n" % taken)
+    logger.debug("time taken to load samples from normal: %d\n" % taken)
     snaputil.store_cpickle_file("%s.pkl" % (file_),fmd)
     return fmd
 
@@ -261,13 +265,11 @@ def query_samples_fast(sampleq,sample_map,snaptron_ids,ra,stream_sample_metadata
     #maybe the user wants to pass in sample IDs directly
     if len(ra.sids) > 0:
         sample_ids = set(ra.sids)
-        if DEBUG_MODE:
-            sys.stderr.write("user submitted %d sample IDs\n" % (len(sample_ids)))
+        logger.debug("user submitted %d sample IDs\n" % (len(sample_ids)))
     #otherwise search via metadata
     else:
         search_samples_lucene(sample_map,sampleq,sample_ids,ra,stream_sample_metadata=stream_sample_metadata)
-        if DEBUG_MODE:
-            sys.stderr.write("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
+        logger.debug("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
     sid_search_automaton = None
     if not stream_sample_metadata and len(sample_ids) > 0:
         sid_search_automaton = snquery.build_sid_ahoc_queries(sample_ids)
@@ -277,8 +279,7 @@ def query_samples(sampleq,sample_map,snaptron_ids,ra,stream_sample_metadata=Fals
     sample_ids = set()
     search_samples_lucene(sample_map,sampleq,sample_ids,ra,stream_sample_metadata=stream_sample_metadata)
     new_snaptron_ids = set()
-    if DEBUG_MODE:
-        sys.stderr.write("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
+    logger.debug("found %d samples matching sample metadata fields/query\n" % (len(sample_ids)))
     if not stream_sample_metadata:
         snaptron_ids_from_samples = set()
         intron_ids_from_samples(sample_ids,snaptron_ids_from_samples,None)
@@ -294,9 +295,9 @@ def query_by_sample_ids(idq,sample_map,ra):
 
 def main():
     input_ = sys.argv[1]
-    global DEBUG_MODE
     if len(sys.argv) > 2:
-       DEBUG_MODE=True
+        #debugging turned on
+       logger.setLevel(logging.DEBUG)
     if input_ == "PIPE":
         input_ = sys.stdin.read()
     (intervalq,rangeq,sampleq,idq) = (None,None,None,None)
@@ -327,8 +328,7 @@ def main():
         snaputil.log_error(None, "bad input asking for intervals and/or ranges, only take sample queries and/or sample ids, exiting")
         sys.exit(-1) 
     sample_map = load_sample_metadata(snapconf.SAMPLE_MD_FILE)
-    if DEBUG_MODE:
-        sys.stderr.write("loaded %d samples metadata\n" % (len(sample_map)))
+    logger.debug("loaded %d samples metadata\n" % (len(sample_map)))
     #main decision cases
     if len(idq) > 0:
         query_by_sample_ids(idq,sample_map,ra)

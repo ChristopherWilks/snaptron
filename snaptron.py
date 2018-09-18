@@ -28,9 +28,8 @@ import urllib
 import urllib2
 import time
 import json
-
+import logging
 import gzip
-
 import sqlite3
 
 import lucene
@@ -65,11 +64,10 @@ EITHER_END=snapconfshared.EITHER_END
 
 RegionArgs = snapconfshared.RegionArgs
 default_region_args = snapconfshared.default_region_args
+logger = default_region_args.logger
 
 sconn = sqlite3.connect(snapconf.SNAPTRON_SQLITE_DB)
 snc = sconn.cursor()
-
-DEBUG_MODE = default_region_args.debug
 
 def search_introns_by_ids(ids,rquery,filtering=False,region_args=default_region_args):
     #TODO also process rquery as part of the SQL
@@ -164,7 +162,7 @@ def process_post_params(input_,region_args=default_region_args):
     return (or_intervals,or_ranges,or_samples,or_ids,ra)
 
 def parse_json_query(clause,region_args=default_region_args):
-    #sys.stderr.write("clause %s\n"  % (clause))
+    logger.debug("clause %s\n"  % (clause))
     ra = region_args
     #legacy_remap = {'gene':'genes','interval':'intervals','metadata_keyword':'metadata_keywords'}
     legacy_remap = {}
@@ -238,7 +236,7 @@ def query_regions(intervalq,rangeq,snaptron_ids,filtering=False,region_args=defa
         ids = None
         sids = None
         if snapconf.INTERVAL_PATTERN.search(interval):
-            ra = region_args._replace(range_filters=rquery,intron_filter=snaptron_ids,print_header=print_header,save_introns=filtering,debug=DEBUG_MODE)
+            ra = region_args._replace(range_filters=rquery,intron_filter=snaptron_ids,print_header=print_header,save_introns=filtering)
             #if we have JUST an interval do tabix (faster) otherwise run against slqite
             runner = determine_index_to_use(interval,rangeq,ra)
             (ids,sids) = runner.run_query()
@@ -394,11 +392,10 @@ def main():
     if inputs[0] in record_types_map:
         (tabix_db,sqlite_db,header,prefix) = record_types_map[inputs[0]]
         input_ = '|'.join(inputs[1:])
-    DEBUG_MODE_=DEBUG_MODE
     global FORCE_SQLITE
     global FORCE_TABIX
     if len(sys.argv) == 3:
-       DEBUG_MODE_=True
+       loggger.setLevel(logging.DEBUG)
     if len(sys.argv) == 4:
        FORCE_SQLITE=True
     if len(sys.argv) == 5:

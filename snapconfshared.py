@@ -21,6 +21,11 @@
 from collections import namedtuple
 import snapconf
 import re
+import logging
+from logging import handlers
+
+logger = logging.getLogger("snaptron.%s" % (snapconf.DATA_SOURCE))
+logger.setLevel(logging.INFO)
 
 #to force the overlap to have either the start within the interval or the end
 #useful for avoiding overlaps which only contain the query interval
@@ -65,9 +70,10 @@ GENE_HEADER='snaptron_id	chromosome	start	end	length	strand	NA	NA	NA	exon_count	
 EXON_HEADER=''
 annotated_columns=set(['annotated','left_annotated','right_annotated'])
 
-RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col id_col region_start_col region_end_col contains either exact result_count return_format score_by post original_input_string coordinate_string sample_fields sid_search_object sids additional_cmd sqlite_db_file fields_map fields_list app label calc calc_axis calc_op debug')
+RegionArgs = namedtuple('RegionArgs','tabix_db_file range_filters intron_filter sample_filter save_introns save_samples stream_back print_header header prefix cut_start_col id_col region_start_col region_end_col contains either exact result_count return_format score_by post original_input_string coordinate_string sample_fields sid_search_object sids additional_cmd sqlite_db_file fields_map fields_list app label calc calc_axis calc_op logger debug')
 
-default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="%s\t%s" % (snapconf.DATA_SOURCE_HEADER,INTRON_HEADER), prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, id_col = snapconf.INTRON_ID_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, either=0, exact=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', sample_fields=[], sid_search_object=None, sids=[], additional_cmd='', sqlite_db_file=snapconf.SNAPTRON_SQLITE_DB, fields_map=INTRON_HEADER_FIELDS_MAP, fields_list=INTRON_HEADER_FIELDS, app=snapconf.SNAPTRON_APP, label="", calc=0, calc_axis="1", calc_op="sum", debug=True)
+
+default_region_args = RegionArgs(tabix_db_file=snapconf.TABIX_INTERVAL_DB, range_filters=[], intron_filter=None, sample_filter=None, save_introns=False, save_samples=False, stream_back=True, print_header=True, header="%s\t%s" % (snapconf.DATA_SOURCE_HEADER,INTRON_HEADER), prefix="%s:I" % snapconf.DATA_SOURCE, cut_start_col=snapconf.CUT_START_COL, id_col = snapconf.INTRON_ID_COL, region_start_col=snapconf.INTERVAL_START_COL, region_end_col=snapconf.INTERVAL_END_COL, contains=False, either=0, exact=False, result_count=False, return_format=TSV, score_by="samples_count", post=False, original_input_string='', coordinate_string='', sample_fields=[], sid_search_object=None, sids=[], additional_cmd='', sqlite_db_file=snapconf.SNAPTRON_SQLITE_DB, fields_map=INTRON_HEADER_FIELDS_MAP, fields_list=INTRON_HEADER_FIELDS, app=snapconf.SNAPTRON_APP, label="", calc=0, calc_axis="1", calc_op="sum", logger = logger, debug=False)
 
 #for injection checking
 calc_axis_ops = set(["0","1","sum","mean"])
