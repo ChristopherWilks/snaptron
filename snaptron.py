@@ -69,7 +69,7 @@ default_region_args = snapconfshared.default_region_args
 sconn = sqlite3.connect(snapconf.SNAPTRON_SQLITE_DB)
 snc = sconn.cursor()
 
-DEBUG_MODE=True
+DEBUG_MODE = default_region_args.debug
 
 def search_introns_by_ids(ids,rquery,filtering=False,region_args=default_region_args):
     #TODO also process rquery as part of the SQL
@@ -164,7 +164,7 @@ def process_post_params(input_,region_args=default_region_args):
     return (or_intervals,or_ranges,or_samples,or_ids,ra)
 
 def parse_json_query(clause,region_args=default_region_args):
-    sys.stderr.write("clause %s\n"  % (clause))
+    #sys.stderr.write("clause %s\n"  % (clause))
     ra = region_args
     #legacy_remap = {'gene':'genes','interval':'intervals','metadata_keyword':'metadata_keywords'}
     legacy_remap = {}

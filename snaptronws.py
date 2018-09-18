@@ -219,7 +219,7 @@ def run_command(cmd_and_args):
     return sproc
 
 def run_command_with_pipe(cmd_and_args,record_type):
-    #logger.info("record type = %s; Running with piped input: %s " % (" ".join(cmd_and_args), record_type))
+    logger.debug("record type = %s; Running with piped input: %s " % (" ".join(cmd_and_args), record_type))
     (python_path, endpoint_app, query_string) = cmd_and_args
     cmd_and_args[2] = "PIPE"
     if record_type != 'junction':
@@ -301,7 +301,7 @@ def basic_cleansing(query_string):
 def generic_endpoint(environ, start_response, endpoint_app):
     http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}
     urlpath = environ.get("PATH_INFO",'')
-    logger.info("\nURLPATH %s\n" % urlpath)
+    logger.debug("\nURLPATH %s\n" % urlpath)
     query_string = environ.get('QUERY_STRING')
     if len(urlpath) > 0:
         urlpath = urlpath.rstrip(r'/').lstrip(r'/')
@@ -333,7 +333,6 @@ def generic_endpoint(environ, start_response, endpoint_app):
         read_size = str(environ['read_size'])
         if snapconf.READ_SIZE_PATTERN.search(read_size) is None:
             return bad_request(start_response, "bad read_size in environment")
-    logger.info("READ_SIZE=%s" % read_size)
     read_size = int(read_size)
     record_type = 'junction'
     if endpoint_app in snapconf.pseudo_apps:
