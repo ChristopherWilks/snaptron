@@ -13,6 +13,7 @@ SNAPTRON_FORMAT_CHR_COL = 1
 SNAPTRON_FORMAT_COUNT_COL = 11
 
 def load_metadata(args):
+    has_base_coverage_column = False
     with open(args.metadata_file,"rb") as fin:
         lines = fin.read()
         lines = lines.split('\n')
@@ -26,9 +27,14 @@ def load_metadata(args):
         for x in lines:
             fields = x.split('\t')
             if fields[0] == 'rail_id':
+                has_base_coverage_column = fields[-1] == 'has_base_coverage'
+                if has_base_coverage_column and args.auc_col == len(fields) - 1:
+                    args.auc_col -= 1
                 continue
-            aucs[fields[args.sample_id_col]]=fields[args.auc_col]
-            sids.append(fields[args.sample_id_col])
+            if not has_base_coverage_column or fields[-1] == 'true':
+                print fields[args.auc_col]
+                aucs[fields[args.sample_id_col]]=fields[args.auc_col]
+                sids.append(fields[args.sample_id_col])
         return (aucs, sids)
 
 def normalize_counts(args, aucs, sids):
