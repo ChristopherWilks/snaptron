@@ -8,6 +8,7 @@ test.samplegroups1
 lucene_range_ids.test
 snapconf.py
 lucene_indexed_numeric_types.tsv
+samples.tsv.inferred
 python/
 calc*
 scripts/groupby/calc
