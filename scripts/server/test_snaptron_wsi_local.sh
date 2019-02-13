@@ -34,8 +34,8 @@ do
 	curl "http://${HOST}:${x}/bases?regions=chr2:29899597-29907199" 2>/dev/null| head -3 | cut -f 1-10
 done
 
-#abmv1b abmv1a ct_h_b ct_m_b clark
-declare -a insts=( "1589" "1588" "1592" "1593" "1594")
+#abmv1b abmv1a ct_h_b ct_m_b clark rpc
+declare -a insts=( "1589" "1588" "1592" "1593" "1594" "1595")
 for x in "${insts[@]}"
 do
 	echo "testing $x junctions"
