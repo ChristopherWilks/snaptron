@@ -269,3 +269,18 @@ time zcat junctions.bgz | perl -ne 'chomp; $f=$_; $f=~/^\d+\t(chr[^\t]+)\t(\d+)\
 
 
 git submodule update --init --recursive
+
+
+time tabix_zstd ./data/bases/b chr11:82973133-83071923 | ./scripts/groupby/calc
+curl "http://snaptron.cs.jhu.edu/test/bases?regions%3Dchr11%3A82970135-82997450%26return_format%3D3"
+
+#column-wise sum
+time tabix_zstd ./data/bases/b chr11:82973133-83071923 | cut -f 4- | perl -F'\t' -ane '$sum=0; map { $sum+=$_; } @F; print "$sum\n";' > t1
+#column-wise mean
+time tabix_zstd ./data/bases/b chr11:82973133-83071923 | cut -f 4- | perl -F'\t' -ane '$sum=0; $c=0; map { $sum+=$_; $c++; } @F; printf("%.3f\n",$sum/$c);' > t1m
+#row-wise sum
+time tabix_zstd ./data/bases/b chr11:82973133-83071923 | cut -f 4- | perl -F'\t' -ane '$c++; $i=0; map { $sums[$i++]+=$_; } @F; END { for $sum (@sums) { printf("\t%.0f",$sum); } print "\n";}' > a1
+#row-wise mean
+time tabix_zstd ./data/bases/b chr11:82973133-83071923 | cut -f 4- | perl -F'\t' -ane '$c++; $i=0; map { $sums[$i++]+=$_; } @F; END { for $sum (@sums) { printf("\t%.3f",$sum/$c); } print "\n";}' > a1m
+
+time curl -s "http://snaptron.cs.jhu.edu/test/bases?regions=chr11:82973133-83071923&label=bob&calc=1&calc_axis=0&calc_op=mean" | head
