@@ -3,7 +3,10 @@ use strict;
 
 #input is compilation specific samples.tsv
 
-my %col_map = ('tcga'=>[1,79,83,102],'gtex'=>[1,66,302],'srav2'=>[1,5,19]);
+#my %col_map = ('tcga'=>[1,79,83,102],'gtex'=>[1,66,302],'srav2'=>[1,5,19]);
+my %col_map = ('tcga'=>[0,78,82,101],'gtex'=>[1,66,302],'srav2'=>[1,5,19]);
+
+my $type = shift;
 
 my %h;
 while(my $line = <STDIN>)
