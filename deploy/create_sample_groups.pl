@@ -16,7 +16,7 @@ while(my $line = <STDIN>)
 	my @cols = @{$col_map{$type}};
 	my ($rid,$dcode,$dlong)=($f[$cols[0]],$f[$cols[1]],$f[$cols[2]]);
 	
-	my $dlong=~s/\t/ /g;
+	$dlong=~s/\t/ /g;
 	if($rid=~/rail_id/) 
 	{ 
 		print "$dcode"."_tumor|normal\t$dlong\tnum_samples\trail_ids\n" if($type eq 'tcga');
