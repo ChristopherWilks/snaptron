@@ -40,26 +40,14 @@ int process_line(char* line, char** prev, char** chrm1, long* start1, long* end1
         //print out previous range
         fprintf(stdout,"%s\t%lu\t%lu\t%s",*chrm1,*start1,*end1,*prev);
 		fflush(stdout);
-        /*free(*chrm1);
-        free(*prev);*/
+        free(*chrm1);
+        free(*prev);
     }
     //start a new range
-    int stl = strlen((*coords)[0]);
-    //should only happen once
-    if(!(*chrm1))
-        *chrm1 = calloc(sizeof(char), stl+10);
-    //*chrm1 = strdup((*coords)[0]);
-    memmove(*chrm1, (*coords)[0], stl);
-    (*chrm1)[stl]='\0';
+    *chrm1 = strdup((*coords)[0]);
     *start1 = atol((*coords)[1]);
     *end1 = atol((*coords)[2]);
-
-    stl = strlen(&(line[i]));
-    if(!(*prev))
-        *prev = calloc(sizeof(char), (10*stl) + 1);
-    memmove(*prev, &(line[i]), stl);
-    (*prev)[stl]='\0';
-    //(*prev) = strdup(&(line[i]));
+    (*prev) = strdup(&(line[i]));
     if(line)
         free(line);
 	return -1;
