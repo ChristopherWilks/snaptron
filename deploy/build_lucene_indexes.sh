@@ -1,5 +1,6 @@
-#!/bin/bash
-scripts=`perl -e '$f="'${0}'"; $f=~s/\/[^\/]+$/\//; print "$f\n";'`
+#!/usr/bin/env bash
+set -o pipefail -o errexit 
+scripts=$(dirname $0)
 root=$scripts/../
 
 create_all=$1
