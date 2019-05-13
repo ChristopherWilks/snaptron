@@ -1,5 +1,5 @@
 #!/usr/bin/env python2.7
-DATA_SOURCE='supermouse'
+DATA_SOURCE='mesa'
 PORT=1585
 HG='mm10'
 SAMPLE_HEADER='rail_id	Run	SRP Accession	Pubmed ID	Celltype	Tissue / Region	ReleaseDate	LoadDate	spots	bases	spots_with_mates	avgLength	size_MB	AssemblyName	download_path	Experiment	LibraryName	LibraryStrategy	LibrarySelection	LibrarySource	LibraryLayout	InsertSize	InsertDev	Platform	Model	SRAStudy	BioProject	Study_Pubmed_id	ProjectID	Sample	BioSample	SampleType	TaxID	ScientificName	SampleName	g1k_pop_code	source	g1k_analysis_group	Subject_ID	Sex	Disease	Tumor	Affection_Status	Analyte_Type	Histological_Type	Body_Site	CenterName	Submission	dbgap_study_accession	Consent	RunHash	ReadHash	junction_count	junction_coverage	junction_avg_coverage	all'
