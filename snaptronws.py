@@ -33,6 +33,9 @@ lHandler = logging.StreamHandler()
 lHandler.setLevel(logging.DEBUG)
 logger.addHandler(lHandler)
 
+#used for the compilation sample metadata types registry
+reg_pattern = re.compile(r'<Location /([^/]+)/snaptron>')
+
 #passes back a stream, either binary or text (its agnostic) in READ_SIZE chunks
 class StreamingResponseIterator:
     def __init__(self, start_response, stream_subproc, request_id, read_size=sc.READ_SIZE):
@@ -359,6 +362,46 @@ def generic_endpoint(environ, start_response, endpoint_app):
         logger.debug("bforce_stream_error %s\n" % force_stream_error)
         si = DebugStreamIterator(si)
     return si
+
+def registry_endpoint(environ, start_response):
+    http_error_map = {400: bad_request, 401: unauthorized, 403: forbidden, 500: internal_server_error}
+    urlpath = environ.get("PATH_INFO",'')
+    logger.debug("\nURLPATH %s\n" % urlpath)
+    query_string = environ.get('QUERY_STRING')
+    if len(urlpath) > 0:
+        urlpath = urlpath.rstrip(r'/').lstrip(r'/')
+        query_string = "ids=" + urlpath
+
+    query_string = basic_cleansing(query_string)
+
+    logger.debug("REQUEST ENVIRONMENT:")
+    for (key, val) in environ.iteritems():
+        logger.debug("key=%s val=%s" % (key, val))
+        #see if we're in test/debug mode for the chunked error
+
+    #do the response 
+    status = "200 OK"
+
+    compilations = {}
+    with open(snapconf.REG_PROXY_FILE,"r") as fin:
+        for line in fin:
+            match = reg_pattern.search(line)
+            if match is not None:
+                comp = match.group(1)
+                #get column types
+                fname = '%s/%s%s/lucene_indexed_numeric_types.tsv' % (snapconf.REG_ROOT, comp, snapconf.REG_SUFFIX)
+                if not os.path.exists(fname):
+                    continue
+                compilations[comp] = {}
+                with open(fname, "r") as fin2:
+                    compilations[comp] = dict([s.split('\t') for s in fin2.read().split('\n')[:-1]])
+    js=json.dumps(compilations)
+
+    response_headers = [('Content-type', 'application/json')]
+    start_response(status, response_headers)
+    status_response = "%s\n%s\n" % (status, js.encode('utf-8'))
+    return status_response
+
 
 def snaptron_endpoint(environ, start_response):
         return generic_endpoint(environ, start_response, sc.SNAPTRON_APP)

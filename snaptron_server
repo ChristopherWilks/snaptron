@@ -15,6 +15,7 @@ from optparse import OptionParser
 
 import cherrypy
 
+from snaptronws import registry_endpoint
 from snaptronws import snaptron_endpoint
 from snaptronws import samples_endpoint
 from snaptronws import annotations_endpoint
@@ -71,6 +72,9 @@ def log(level, msg):
     syslog.syslog(level, msg)
     # CR: I think we might want to not log to syslog if in --no-daemon aka --debug mode
     # sys.stdout.write(msg+"\n")
+
+def registry_service(environ, start_response):
+    return registry_endpoint(environ, start_response)
 
 def snaptron_service(environ, start_response):
     environ['read_size'] = options.read_size
@@ -178,6 +182,7 @@ class SmartPIDLockFile(PIDLockFile):
 
 
 def run_server():
+    cherrypy.tree.graft(registry_service, "/registry")
     cherrypy.tree.graft(snaptron_service, "/snaptron")
     cherrypy.tree.graft(sample_service, "/samples")
     cherrypy.tree.graft(annotation_service, "/annotations")
