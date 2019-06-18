@@ -65,8 +65,6 @@ UCSC_URL='2'
 UCSC_WIG='3'
 UCSC_URL_WIG='4'
 
-GENCODE_ANNOTATION='gencode.v25.annotation.gff3.gz'
-GENE_ID_PATTERN=re.compile(r'ENSG\d+\.\d+')
 
 SAMPLE_GROUP_IDS_COL=3
 

@@ -24,6 +24,8 @@ DATA_SOURCE='rpc'
 PORT=1595
 #genome build version
 HG='hg38'
+GENCODE_ANNOTATION='gencode.v25.annotation.gff3.gz'
+GENE_ID_PATTERN=re.compile(r'ENSG\d+\.\d+')
 #change to metadata specific
 SAMPLE_HEADER='rail_id	run	study	description	junction_count	junction_coverage	junction_avg_coverage	all'
 

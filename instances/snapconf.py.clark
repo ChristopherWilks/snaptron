@@ -2,6 +2,8 @@
 DATA_SOURCE='clark'
 PORT=1594
 HG='mm10'
+GENCODE_ANNOTATION='gencode.vM15.basic.annotation.gff3.gz'
+GENE_ID_PATTERN=re.compile(r'ENSMUSG\d+\.\d+')
 SAMPLE_HEADER='rail_id	Run	all'
 IP='0.0.0.0'
 SAMPLE_ID_FIELD_NAME='rail_id'

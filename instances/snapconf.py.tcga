@@ -2,6 +2,8 @@
 DATA_SOURCE='TCGA'
 IP='0.0.0.0'
 PORT=1558
+GENCODE_ANNOTATION='gencode.v25.annotation.gff3.gz'
+GENE_ID_PATTERN=re.compile(r'ENSG\d+\.\d+')
 SERVER_STRING='http://snaptron.cs.jhu.edu/%s/' % (DATA_SOURCE.lower())
 HG='hg38'
 TABIX_BASES="tabix"

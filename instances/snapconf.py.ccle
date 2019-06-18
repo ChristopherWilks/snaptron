@@ -2,6 +2,8 @@
 DATA_SOURCE='CCLE'
 PORT=1597
 HG='hg38'
+GENCODE_ANNOTATION='gencode.v25.annotation.gff3.gz'
+GENE_ID_PATTERN=re.compile(r'ENSG\d+\.\d+')
 SAMPLE_HEADER='rail_id	gdc_file_id	aliquot_id	case_id	disease_type	experimental_strategy	gender	investigation	platform	primary_site	sample_id	sample_type	junction_count	junction_coverage	junction_avg_coverage	all'
 IP='0.0.0.0'
 SAMPLE_ID_FIELD_NAME='rail_id'
