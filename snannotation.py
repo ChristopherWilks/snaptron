@@ -72,7 +72,7 @@ class GeneCoords(object):
         #this is the main gene2coordinate map we use for servicing HUGO gene symbol queries (RefSeq)
         if load_refseq:
             gene_file = "%s/%s" % (sc.TABIX_DB_PATH,sc.REFSEQ_ANNOTATION)
-            gencode_file = "%s/%s" % (sc.TABIX_DB_PATH,sc.GENCODE_ANNOTATION)
+            gencode_file = "%s/%s" % (sc.TABIX_DB_PATH,snapconf.GENCODE_ANNOTATION)
             gene_pickle_file = "%s/refseq_gencode.pkl" % sc.TABIX_DB_PATH
             self.gene_map = snaputil.load_cpickle_file(gene_pickle_file)
             if not self.gene_map:
