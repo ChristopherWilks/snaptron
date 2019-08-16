@@ -4,7 +4,7 @@ use strict;
 #input is compilation specific samples.tsv
 
 #my %col_map = ('tcga'=>[1,79,83,102],'gtex'=>[1,66,302],'srav2'=>[1,5,19]);
-my %col_map = ('tcga'=>[0,78,82,101],'gtex'=>[1,66,302],'srav2'=>[1,5,19]);
+my %col_map = ('tcga'=>[0,78,82,101],'gtex'=>[1,66,302],'srav2'=>[1,5,19],'ccle'=>[0,7,4]);
 
 my $type = shift;
 
@@ -24,6 +24,7 @@ while(my $line = <STDIN>)
 		next;
 	} 
 	$dcode=~s/TCGA-//; 
+	$dcode=~s/CCLE-//; 
 	$dcode=~s/ /_/g;
 	my $key=$dcode; 
 	if($type eq 'tcga')
