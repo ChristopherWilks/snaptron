@@ -13,8 +13,7 @@ samples=$3
 
 basedir=$(dirname $0)
 #only build compressed junction table & sqlite db (skip uncompressed by default)
-/bin/bash -x $basedir/rebuild_junctions.sh $compilation $junctions
-mv junctions.ordered.bgz junctions.bgz
+/bin/bash -x $basedir/rebuild_junctions.sh $junctions
 
 #make a backup of original samples file
 rsync -av $samples ${samples}.${date}
