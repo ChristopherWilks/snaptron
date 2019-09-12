@@ -66,8 +66,8 @@ RegionArgs = sc.RegionArgs
 default_region_args = sc.default_region_args
 logger = default_region_args.logger
 
-sconn = sqlite3.connect(sc.SNAPTRON_SQLITE_DB)
-snc = sconn.cursor()
+sconn = None
+snc = None
 
 def search_introns_by_ids(ids,rquery,filtering=False,region_args=default_region_args):
     #TODO also process rquery as part of the SQL
@@ -392,6 +392,11 @@ def main():
     if inputs[0] in record_types_map:
         (tabix_db,sqlite_db,header,prefix) = record_types_map[inputs[0]]
         input_ = '|'.join(inputs[1:])
+    global sconn
+    if sqlite_db is not None:
+        sconn = sqlite3.connect(sqlite_db)
+        global snc
+        snc = sconn.cursor()
     global FORCE_SQLITE
     global FORCE_TABIX
     if len(sys.argv) == 3:
