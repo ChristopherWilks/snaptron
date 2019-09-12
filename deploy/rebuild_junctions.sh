@@ -8,37 +8,40 @@ BGZIP_COMP='bgzip'
 TABIX='tabix'
 BGZIP_UNCOMP='~/bgzip'
 
-#e.g. junctions.gz, should be fully formatted already for Snaptron
-junctions=$1
+#e.g. ${dtype}.gz, should be fully formatted already for Snaptron
+infile=$1
 tmpdir=$2
+#junctions,genes, or exons
+dtype=$3
 #might be undefined
-build_uncompressed_junctions=$3
+build_uncompressed=$4
 
 scripts=$(dirname $0)
 
-if [[ -e junctions.sqlite ]]; then
-    rm junctions.sqlite
+if [[ -e ${dtype}.sqlite ]]; then
+    rm ${dtype}.sqlite
 fi
-$SQLITE3 junctions.sqlite < ${scripts}/snaptron_schema.sql
+$SQLITE3 ${dtype}.sqlite < ${scripts}/snaptron_schema.sql
 
+rm -f ./import ./import2
 mkfifo ./import
 mkfifo ./import2
 
-zcat $junctions | sort -T $tmpdir -k2,2 -k3,3n -k4,4n | tee ./import | tee ./import2 | $BGZIP_COMP > junctions.bgz &
-if [[ -v $build_uncompressed_junctions ]]; then
-    cat ./import2 | $BGZIP_UNCOMP > junctions_uncompressed.bgz &
+zcat $infile | sort -T $tmpdir -k2,2 -k3,3n -k4,4n | tee ./import | tee ./import2 | $BGZIP_COMP > ${dtype}.bgz &
+if [[ -v $build_uncompressed ]]; then
+    cat ./import2 | $BGZIP_UNCOMP > ${dtype}_uncompressed.bgz &
 else
     cat ./import2 > /dev/null &
-    ln -s junctions.bgz junctions_uncompressed.bgz
+    ln -fs ${dtype}.bgz ${dtype}_uncompressed.bgz
 fi
-$SQLITE3 junctions.sqlite -cmd '.separator "\t"' ".import ./import intron"
-$SQLITE3 junctions.sqlite < ${scripts}/snaptron_schema_index.sql
+$SQLITE3 ${dtype}.sqlite -cmd '.separator "\t"' ".import ./import intron"
+$SQLITE3 ${dtype}.sqlite < ${scripts}/snaptron_schema_index.sql
 
-tabix -0 -s 2 -b 3 -e 4 junctions.bgz
-if [[ -v $build_uncompressed_junctions ]]; then
-    tabix -0 -s 2 -b 3 -e 4 junctions_uncompressed.bgz
+tabix -0 -s 2 -b 3 -e 4 ${dtype}.bgz
+if [[ -v $build_uncompressed ]]; then
+    tabix -0 -s 2 -b 3 -e 4 ${dtype}_uncompressed.bgz
 else
-    ln -s junctions.bgz.tbi junctions_uncompressed.bgz.tbi
+    ln -fs ${dtype}.bgz.tbi ${dtype}_uncompressed.bgz.tbi
 fi
 
 rm ./import
