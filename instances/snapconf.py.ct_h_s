@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.7
+import re
 DATA_SOURCE='ct_h_s'
 PORT=1590
 HG='hg38'

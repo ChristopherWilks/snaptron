@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.7
+import re
 DATA_SOURCE='CCLE'
 PORT=1597
 HG='hg38'
