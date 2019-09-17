@@ -24,10 +24,10 @@ if [ "$1" == "deploy" ] ; then
    cd ${compilation}
    #assume dependencies have been installed in the container
    touch ./FINISHED_DEPENDENCIES
-   /bin/bash -x /snaptron/deploy/deploy_snaptron.sh ${compilation}
+   /bin/bash -x ${DEPLOY_DIR}/${compilation}/deploy/deploy_snaptron.sh ${compilation}
 # case 2): run (assume everything's already setup)
 elif [ "$1" == "run" ] ; then
-   cd /deploy/${compilation} && python /deploy/${compilation}/snaptron_server --no-daemon
+   cd /${DEPLOY_DIR}/${compilation} && python /${DEPLOY_DIR}/${compilation}/snaptron_server --no-daemon
 else
    echo "Did not understand command: \"$*\""
 fi
