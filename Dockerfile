@@ -3,6 +3,12 @@ FROM debian
 
 # Install basics
 RUN apt-get update && apt-get install -y \
+    zstd \
+    libzstd-dev \
+    apache2 \
+    apache2-bin \
+    apache2-data \
+    apache2-dev \
     python2.7 \
     python-dev \
     python-pip \
@@ -16,7 +22,7 @@ RUN apt-get update && apt-get install -y \
 
 # cribbed from https://bitbucket.org/coady/docker/src/tip/pylucene/Dockerfile
 WORKDIR /usr/src/pylucene
-RUN curl https://www.apache.org/dist/lucene/pylucene/pylucene-6.5.0-src.tar.gz \
+RUN curl http://snaptron.cs.jhu.edu/data/pylucene-6.5.0-src.tar.gz \
     | tar -xz --strip-components=1
 RUN cd jcc \
     && JCC_JDK=/usr/lib/jvm/default-java python setup.py install
