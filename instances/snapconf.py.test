@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 #apache reverse proxy config file to get list of compilations being proxied to
 import re
-REG_PROXY_FILE='proxy.conf'
+REG_PROXY_FILE='instances/proxy.conf'
 REG_ROOT='compilations'
 REG_SUFFIX='_snaptron'
 DATA_SOURCE='SRAv2'
