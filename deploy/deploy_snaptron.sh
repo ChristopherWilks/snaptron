@@ -14,6 +14,14 @@ elif [ -e ./python/bin/activate ]; then
     source ./python/bin/activate
 fi
 
+#pull down the binaries for helper utilities
+wget http://snaptron.cs.jhu.edu/data/calc
+chmod a+x calc
+wget http://snaptron.cs.jhu.edu/data/bgzip_zstd
+chmod a+x bgzip_zstd
+wget http://snaptron.cs.jhu.edu/data/tabix_zstd
+chmod a+x tabix_zstd
+
 DATA_DIR=${2}
 if [ -z ${DATA_DIR} ]; then
     #echo "+++Downloading snaptron data, this make take a while..."

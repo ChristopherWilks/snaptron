@@ -37,9 +37,9 @@ fi
 $SQLITE3 ${dtype}.sqlite -cmd '.separator "\t"' ".import ./import intron"
 $SQLITE3 ${dtype}.sqlite < ${scripts}/snaptron_schema_index.sql
 
-tabix -0 -s 2 -b 3 -e 4 ${dtype}.bgz
+tabix -s 2 -b 3 -e 4 ${dtype}.bgz
 if [[ -v $build_uncompressed ]]; then
-    tabix -0 -s 2 -b 3 -e 4 ${dtype}_uncompressed.bgz
+    tabix -s 2 -b 3 -e 4 ${dtype}_uncompressed.bgz
 else
     ln -fs ${dtype}.bgz.tbi ${dtype}_uncompressed.bgz.tbi
 fi
