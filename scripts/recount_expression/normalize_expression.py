@@ -32,7 +32,7 @@ def load_metadata(args):
                     args.auc_col -= 1
                 continue
             if not has_base_coverage_column or fields[-1] == 'true':
-                print fields[args.auc_col]
+                #print fields[args.auc_col]
                 aucs[fields[args.sample_id_col]]=fields[args.auc_col]
                 sids.append(fields[args.sample_id_col])
         return (aucs, sids)
