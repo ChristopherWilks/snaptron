@@ -28,6 +28,9 @@ if [ "$1" == "deploy" ] ; then
 # case 2): run (assume everything's already setup)
 elif [ "$1" == "run" ] ; then
    cd /${DEPLOY_DIR}/${compilation} && python /${DEPLOY_DIR}/${compilation}/snaptron_server --no-daemon
+    ln -s /${DEPLOY_DIR}/${compilation}/instances/proxy.conf /etc/apache2/mods-enabled/
+    ln -s ../mods-available/proxy.load /etc/apache2/mods-enabled/
+   /etc/init.d/apache2 start
 else
    echo "Did not understand command: \"$*\""
 fi
