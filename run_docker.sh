@@ -5,7 +5,8 @@
 #1: full path to directory where Snaptron code + data files have already been persisted
 #2: name of compilation to deploy (e.g. clark, tcga, etc...)
 
+bdir=$(dirname $0)
 # get the TCP port for the compilation
-port=`grep "PORT=" instances/snapconf.py.${2} | cut -d'=' -f 2`
+port=`grep "PORT=" ${bdir}/instances/snapconf.py.${2} | cut -d'=' -f 2`
 
 docker run --rm -p 2${port}:${port} -p 2080:80 -i -t --name snaptron --volume $1:/deploy:rw snaptron run $2
