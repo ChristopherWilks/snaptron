@@ -31,17 +31,13 @@ RUN make all install JCC='python -m jcc' ANT=ant PYTHON=python NUM_FILES=8
 WORKDIR ..
 RUN rm -rf pylucene
 
-# Copy the current directory contents 
-# (i.e. Snaptron top-level directroy) into the container at /snaptron
-# this is just to boot strap deployment (eases development)
-# the actual Snaptron will be git cloned in the externally mounted "/deploy"
-ADD . /snaptron/
-
-# clone master branch of Snaptron
-RUN pip install -r /snaptron/requirements.txt
-
+#now deploy Snaptron server proper
 RUN mkdir -p /deploy
-RUN /bin/bash -x /snaptron/deploy/deploy_snaptron.sh /deploy test
+RUN mkdir -p /snaptron
+# clone master branch of Snaptron
+RUN git clone https://github.com/ChristopherWilks/snaptron.git /deploy/test
+RUN pip install -r /deploy/test/requirements.txt
+RUN cd /deploy/test && touch FINISHED_DEPENDENCIES && /bin/bash -x /deploy/test/deploy/deploy_snaptron.sh test
 COPY ./tests/entrypoint.sh /snaptron/
 
 # Define environment variable
