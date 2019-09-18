@@ -38,6 +38,4 @@ fi
 /bin/bash -x ${scripts}/configure_compilation_and_data.sh $1 $DATA_DIR
 
 #setup proxy config for Apache for frontend server (which reverse proxies to us)
-ln -s ${scripts}/../instances/proxy.conf /etc/apache2/mods-enabled/
-ln -s ../mods-available/proxy.load /etc/apache2/mods-enabled/
-/etc/init.d/apache2 start
+cp ${scripts}/../entrypoint.sh /snaptron/
