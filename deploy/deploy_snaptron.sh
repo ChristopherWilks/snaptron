@@ -5,7 +5,11 @@
 #./deploy/deploy_snaptron.sh srav2 /snaptron_data
 
 #get the path to this script
-scripts=`perl -e '$f="'${0}'"; $f=~s/\/[^\/]+$/\//; print "$f\n";'`
+#scripts=`perl -e '$f="'${0}'"; $f=~s/\/[^\/]+$/\//; print "$f\n";'`
+scripts=$(dirname $0)
+
+#compilation e.g. "tcga"
+comp=$1
 
 #installs python & PyLucene specific depdendencies
 if [ ! -e ./FINISHED_DEPENDENCIES ]; then
@@ -32,10 +36,11 @@ if [ -z ${DATA_DIR} ]; then
 fi
 
 #assume we need to get the data in any case
-/bin/bash -x ${scripts}/download_compilation_data.sh $1 $DATA_DIR
+/bin/bash -x ${scripts}/download_compilation_data.sh $comp $DATA_DIR
 
 #link the right configs for this compilation
-/bin/bash -x ${scripts}/configure_compilation_and_data.sh $1 $DATA_DIR
+/bin/bash -x ${scripts}/configure_compilation_and_data.sh $comp $DATA_DIR
 
-#setup proxy config for Apache for frontend server (which reverse proxies to us)
-cp ${scripts}/../entrypoint.sh /snaptron/
+#setup directory for registry (only for this compilation though)
+mkdir -p compilations/${comp}_snaptron/
+ln -fs ${DATA_DIR}/lucene_indexed_numeric_types.tsv compilations/${comp}_snaptron/
