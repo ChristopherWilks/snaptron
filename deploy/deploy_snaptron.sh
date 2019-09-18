@@ -28,11 +28,11 @@ chmod a+x tabix_zstd
 
 DATA_DIR=${2}
 if [ -z ${DATA_DIR} ]; then
+    DATA_DIR=`pwd`/downloaded_data
     #echo "+++Downloading snaptron data, this make take a while..."
-    if [ ! -e ./downloaded_data ]; then
-        mkdir ./downloaded_data
+    if [ ! -e $DATA_DIR ]; then
+        mkdir $DATA_DIR
     fi
-    DATA_DIR=./downloaded_data
 fi
 
 #assume we need to get the data in any case
@@ -43,4 +43,5 @@ fi
 
 #setup directory for registry (only for this compilation though)
 mkdir -p compilations/${comp}_snaptron/
+#assumes full path in $DATA_DIR
 ln -fs ${DATA_DIR}/lucene_indexed_numeric_types.tsv compilations/${comp}_snaptron/
