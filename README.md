@@ -10,6 +10,16 @@ http://snaptron.cs.jhu.edu
 
 ## Deployment ##
 
+We recommend using the Snaptron under Docker, rather than attempting a full installation due to the number of dependencies and the complexity of configuration.
+
+A base docker image exists primarily for testing but which includes a full working install of Snaptron and its dependencies:
+
+https://quay.io/repository/broadsword/snaptron_tests?tab=tags
+
+It also comes with 2 test compilations, a small subset of the srav2 compilation under "test" and a small subset of gtex under "test_gtex".
+
+### Full Installation Instructions ###
+
 	git clone https://github.com/ChristopherWilks/snaptron.git
 
 NOTE: Avoid setting Snaptron up on a Lustre or NFS filesystem
