@@ -15,4 +15,4 @@ ln -fs ../mods-available/lbmethod_byrequests.load /etc/apache2/mods-enabled/
 ln -fs ../mods-available/proxy_http.load /etc/apache2/mods-enabled/
 /etc/init.d/apache2 start
 cd /${DEPLOY_DIR}/${compilation} && python /${DEPLOY_DIR}/${compilation}/snaptron_server --no-daemon &
-cd /${DEPLOY_DIR}/${compilation}_gtex && python /${DEPLOY_DIR}/${compilation}_gtex/snaptron_server --no-daemon &
+cd /${DEPLOY_DIR}/${compilation}_gtex && python /${DEPLOY_DIR}/${compilation}_gtex/snaptron_server --no-daemon
