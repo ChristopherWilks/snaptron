@@ -45,7 +45,7 @@ fi
 #assumes full path in $DATA_DIR
 if [[ "$comp" == "test_gtex" ]] ; then
     mkdir -p ../test/compilations/${comp}_snaptron/
-    ln -fs ${DATA_DIR}/lucene_indexed_numeric_types.tsv ../compilations/${comp}_snaptron/
+    ln -fs ${DATA_DIR}/lucene_indexed_numeric_types.tsv ../test/compilations/${comp}_snaptron/
 else
     mkdir -p compilations/${comp}_snaptron/
     ln -fs ${DATA_DIR}/lucene_indexed_numeric_types.tsv compilations/${comp}_snaptron/
