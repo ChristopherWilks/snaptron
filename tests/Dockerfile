@@ -36,8 +36,10 @@ RUN mkdir -p /deploy
 RUN mkdir -p /snaptron
 # clone master branch of Snaptron
 RUN git clone https://github.com/ChristopherWilks/snaptron.git /deploy/test
+RUN git clone https://github.com/ChristopherWilks/snaptron.git /deploy/test_gtex
 RUN pip install -r /deploy/test/requirements.txt
 RUN cd /deploy/test && touch FINISHED_DEPENDENCIES && /bin/bash -x /deploy/test/deploy/deploy_snaptron.sh test
+RUN cd /deploy/test_gtex && touch FINISHED_DEPENDENCIES && /bin/bash -x /deploy/test_gtex/deploy/deploy_snaptron.sh test_gtex
 COPY ./tests/entrypoint.sh /snaptron/
 
 # Define environment variable

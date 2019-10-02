@@ -42,6 +42,11 @@ fi
 /bin/bash -x ${scripts}/configure_compilation_and_data.sh $comp $DATA_DIR
 
 #setup directory for registry (only for this compilation though)
-mkdir -p compilations/${comp}_snaptron/
 #assumes full path in $DATA_DIR
-ln -fs ${DATA_DIR}/lucene_indexed_numeric_types.tsv compilations/${comp}_snaptron/
+if [[ "$comp" == "test_gtex" ]] ; then
+    mkdir -p ../test/compilations/${comp}_snaptron/
+    ln -fs ${DATA_DIR}/lucene_indexed_numeric_types.tsv ../compilations/${comp}_snaptron/
+else
+    mkdir -p compilations/${comp}_snaptron/
+    ln -fs ${DATA_DIR}/lucene_indexed_numeric_types.tsv compilations/${comp}_snaptron/
+fi
