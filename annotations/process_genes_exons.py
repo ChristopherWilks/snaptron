@@ -85,11 +85,11 @@ if __name__ == '__main__':
         #no symbol was passed in if we also have coordinates
         field_offset += 2
     fin = None
-    if args.counts_file[-2:] == 'gz':
-        fin = gzip.open(args.counts_file, "rb")
-    else:
-        fin = open(args.counts_file, "rb")
-    for line in fin:
+    #if args.counts_file[-2:] == 'gz':
+    #    fin = gzip.open(args.counts_file, "rb")
+    #else:
+    #    fin = open(args.counts_file, "rb")
+    for line in sys.stdin:
         fields = line.strip().split('\t')
         #header row
         if snaptron_id == -1:
