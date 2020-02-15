@@ -2,7 +2,7 @@
 #assumes bgzip is in PATH, dumps output to working directory
 #assumes summarization by Snaptron consolidated BigWig approach, not recount (so includes coordinates, no gene symbols)
 #6 arguments required:
-#1) path/prefix of gene counts file with raw tab-delimited genes expression formatted: gene_id,bp_length,chrm,start,end,tab delimited list of summarized raw read counts for samples
+#1) path/prefix of exon counts file with raw tab-delimited exons expression formatted: gene_id,bp_length,chrm,start,end,tab delimited list of summarized raw read counts for samples
 #2) full path to annotation mapping gene_id/exon_id to genomic coordinates (e.g. gencode.v25.annotation.gff3.gz)
 #3) source compilation (GTEx,SRA,TCGA,etc...)
 #4) full path to file containing sample metadata from Rail for this compilation (/data/snaptron_data/<compilation>/samples.tsv)
@@ -19,22 +19,22 @@ echo $p
 #print header
 perl -e 'print "".join("\t",("snaptron_id","chromosome","start","end","length","strand","NA","NA","NA","exon_count","gene_id:gene_name:gene_type:bp_length","samples","samples_count","coverage_sum","coverage_avg","coverage_median","compilation_id"))."\n";'
 
-#####GENES
-export db="genes.sqlite"
+#####EXONS
+`perl -e 'print STDERR "now running exons\n";'`
+export db="exons.sqlite"
 rm -f ${db}
 sqlite3 $db < ${p}/snaptron_schema.sql
-rm -f ./import_genes
-mkfifo ./import_genes
+rm -f ./import_exons
+mkfifo ./import_exons
 
-cmd="zcat ${1}"
+cmd="cat ${1}"
 if [[ ! -z $6 ]]; then
-    cmd="cat <(cat $6) <(zcat ${1})"
+    cmd="cat <(cat $6) <(cat ${1})"
 fi
 
 #this will sort the output by coordinate, but because the snaptron_id has already been assigned by process_genes_exons.py, it will not be in order
-eval $cmd | pypy ${p}/../annotations/process_genes_exons.py --annotation ${2} --sample-source ${3} --sample-metadata ${4} --annot-type gene --with-coords --as-ints | sort -t'	' -k2,2 -k3,3n -k4,4n | ${p}/compute_stats_per_record.sh ${5} | tee ./import_genes | ~/bgzip > ${3}.genes.tsv.bgz &
-sqlite3 $db -cmd '.separator "\t"' ".import ./import_genes intron"
+eval $cmd | pypy ${p}/../annotations/process_genes_exons.py --annotation ${2} --sample-source ${3} --sample-metadata ${4} --annot-type exon --with-coords --as-ints --monorail | sort -t'	' -k2,2 -k3,3n -k4,4n | ${p}/compute_stats_per_record.sh ${5} | tee ./import_exons | ~/bgzip > ${3}.exons.tsv.bgz &
+sqlite3 $db -cmd '.separator "\t"' ".import ./import_exons intron"
 sqlite3 $db < ${p}/snaptron_schema_index.sql
-~/tabix -s2 -b3 -e4 ${3}.genes.tsv.bgz
-rm -f ./import_genes
-
+~/tabix -s2 -b3 -e4 ${3}.exons.tsv.bgz
+rm -f ./import_exons
