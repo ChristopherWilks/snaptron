@@ -17,12 +17,15 @@ Query Type      Description                                                     
 Region          chromosome based coordinates range (1-based); HUGO gene name     1            chr(1-22,X,Y,M):1-size of chromosome; gene_name chr21:1-500; CD99
 Filter          range over summary statistic column values                       1 or more    column_name(>:,<:,:)number (integer or float)   coverage_avg>:10
 Sample Metadata keyword and numeric range search over sample metadata            1 or more    fieldname(>:,<:,:)keyword                       description:cortex; SMRIN>:8
-Sample IDs      limits results to only junctions found in specified samples IDs  1            sids=\\d+[,\\d+]*                                 sids=2,40,50,100
-Snaptron IDs    one or more snaptron_ids                                         1            ids=\\d+[,\\d+]*                                  ids=5,7,8
-Sample IDs      one or more sample_ids                                           1            ids=\\d+[,\\d+]*                                  ids=20,40,100
+Sample IDs      limits results to only junctions found in specified samples IDs  1            sids=\\d+[,\\d+]*                               sids=2,40,50,100
+Sample Group*   limits to only junctions found in specified sample group         1            sids=groupname                                  sids=Brain (gtex)
+Snaptron IDs    one or more snaptron_ids                                         1            ids=\\d+[,\\d+]*                                ids=5,7,8
+Sample IDs      one or more sample_ids                                           1            ids=\\d+[,\\d+]*                                ids=20,40,100
 =============== ================================================================ ============ =============================================== ==================
 
-The ``Region`` query type is required to be present if the ``Filter``, ``Sample Metadata``, and or ``Sample IDs`` types are used.
+\* The ``sids=groupname`` parameter is based on predefined groups of sample IDs.  These group definitions are found in the data directory of the compilation being queried, typically in a file ``samples.groups.tsv``, e.g. for GTEx: http://snaptron.cs.jhu.edu/data/gtex/samples.groups.tsv
+
+The ``Region`` query type is required to be present if the ``Filter``, ``Sample Metadata``, ``Sample Group``, and/or ``Sample IDs`` types are used.
 
 Table 2.  List of Snaptron Parameters
 -------------------------------------
@@ -31,7 +34,7 @@ Table 2.  List of Snaptron Parameters
 +===========+=========================+======================================+===========================================================================+=============================================================+================================================================================================================================================================+
 | regions   | snaptron;genes          | chr[1-22XYM]:\\d+-\\d+;HUGO gene     | 1 but can take multiple arguments separated by a comma representing an OR | chr1:1-5000;DRD4                                            | coordinate intervals and/or HUGO gene names                                                                                                                    |
 +-----------+-------------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| sids      | snaptron;genes          | sids=\\d+[,\\d+]*                    | 1                                                                         | sids=30,100,150                                             | additional query filter to only include junctions from one or more samples in this list; uses the samples' rail_ids                                            |
+| sids      | snaptron;genes          | sids=(\\d+[,\\d+]*)|(groupname)      | 1                                                                         | sids=30,100,150 ; sids=Brain                                | filter to only junctions from >=1 samples in this list; uses the samples' rail_ids, can also take a predefined sample group name (e.g. GTEx tissue)            |
 +-----------+-------------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ids*      | snaptron;genes;samples  | ids=\\d+[,\\d+]*                     | 1                                                                         | ids=5,6,7                                                   | ID filter for snaptron_id (endpoint=snaptron) and rail_id (endpoint=samples); this only returns the specific records with those IDs                            |
 +-----------+-------------------------+--------------------------------------+---------------------------------------------------------------------------+-------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------+
