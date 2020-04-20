@@ -28,6 +28,8 @@ import snapconf
 
 logger = logging.getLogger("snaptron.%s" % (snapconf.DATA_SOURCE))
 logger.setLevel(logging.INFO)
+lHandler = logging.StreamHandler()
+logger.addHandler(lHandler)
 
 
 import lucene
