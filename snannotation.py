@@ -80,6 +80,7 @@ class GeneCoords(object):
                 #add additional annotations (w/ different gene names)
                 self.extend_gene_coords(gencode_file)
             snaputil.store_cpickle_file(gene_pickle_file,self.gene_map)
+        #this is to get the cannonical span of a gene name query
         if load_canonical:
             canonical_gene_file = "%s/%s" % (sc.TABIX_DB_PATH,sc.CANONICAL_ANNOTATION)
             canonical_gene_pickle_file = "%s.pkl" % (canonical_gene_file)
@@ -88,7 +89,7 @@ class GeneCoords(object):
                 self.load_canonical_gene_coords(canonical_gene_file)
             snaputil.store_cpickle_file(canonical_gene_pickle_file,self.canonical_gene_map)
        
-        #per transcript exons
+        #per transcript exons, not used by default (and not in snaptron at all)
         if load_transcript:
             transcript_file = "%s/%s" % (sc.TABIX_DB_PATH,sc.TABIX_GENE_INTERVAL_DB)
             transcript_pickle_file = "%s.pkl" % (transcript_file)
