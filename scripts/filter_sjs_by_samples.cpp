@@ -21,10 +21,7 @@ using trie = ac::trie;
 
 using namespace std;
 
-
-//void process_bytes(char* buf, uint32_t bytes_read,uint64_t* line_idx, uint64_t* field_idx, trie* search_samples,char* prefix_buf,char* samples_buf)
-//void process_line(&(buf[last_line_end_idx+1], line_len, sample_col_idx, &sample_search, prefix_buf, samples_buf); 
-void process_line(char* buf, uint32_t line_len, uint32_t sample_col_idx, uint32_t sample_col_end_idx, trie* sample_search, char* prefix_buf, char* samples_buf)
+void process_line(char* buf, uint32_t line_len, uint32_t sample_col_idx, uint32_t sample_col_end_idx, trie* sample_search, char* prefix_buf, char* samples_buf, char delim)
 {
     //do samples search
     buf[sample_col_end_idx+1]='\0';
@@ -63,10 +60,10 @@ void process_line(char* buf, uint32_t line_len, uint32_t sample_col_idx, uint32_
     //process prefix
     //if matching, print prefix
     //temporariy replace tab with null to print
-    buf[sample_col_idx-1]='\0';
+    buf[sample_col_idx-1] = '\0';
     fprintf(stdout,"%s",buf);
-    buf[sample_col_idx-1]='\t';
-    fprintf(stdout,"\t%s",samples_buf);
+    buf[sample_col_idx-1] = delim;
+    fprintf(stdout,"%c%s", delim, samples_buf);
     //TODO: print recalculated: 1) count 2) sum 3) avg (?)
     fprintf(stdout,"\n");
 }
@@ -91,11 +88,15 @@ int main(int argc, char** argv)
 	int o;
 	std::string sample_ids_file;
     uint32_t max_num_samples = 0;
-	while((o  = getopt(argc, argv, "s:n:")) != -1) 
+    char input_delim = '\t';
+    char output_delim = '\t';
+	while((o  = getopt(argc, argv, "s:d:o:n:")) != -1) 
     {
 		switch(o) 
 		{
 			case 's': sample_ids_file = optarg; break;
+			case 'd': input_delim = optarg[0]; break;
+			case 'o': output_delim = optarg[0]; break;
 			case 'n': max_num_samples = atol(optarg); break;
         }
     }
@@ -124,10 +125,6 @@ int main(int argc, char** argv)
     }
     fclose(fin);
     fprintf(stderr,"num samples to filter for %d\n",num_samples);
-    //sample_search.remove_overlaps(); //needed?
-    //auto sample_tokens = sample_search.tokenise(samples);
-    //auto found = sample_search.parse_text(samples);
-    //uint32_t num_found found.size();
        
     char* prefix_buf = new char[extra_field_bytes];
     char* samples_buf = new char[read_size];
@@ -151,8 +148,9 @@ int main(int argc, char** argv)
         fprintf(stderr,"total_bytes_read:%lu\n",total_bytes);
         while(i < bytes_read)
         {
-            if(buf[i] == '\t')
+            if(buf[i] == input_delim)
             {
+                buf[i] = output_delim;
                 field_count++;
                 if(field_count == samples_column)
                     sample_col_idx = line_len + 1;
@@ -161,7 +159,7 @@ int main(int argc, char** argv)
             }
             else if(buf[i] == '\n')
             {
-                process_line(&(buf[last_line_end_idx+1]), line_len, sample_col_idx, sample_col_end_idx, &sample_search, prefix_buf, samples_buf); 
+                process_line(&(buf[last_line_end_idx+1]), line_len, sample_col_idx, sample_col_end_idx, &sample_search, prefix_buf, samples_buf, output_delim); 
                 last_line_end_idx = i;
                 sample_col_idx = 0;
                 sample_col_end_idx = 0;
