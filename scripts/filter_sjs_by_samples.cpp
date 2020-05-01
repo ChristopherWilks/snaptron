@@ -17,6 +17,8 @@
 //supports read from either junctions.bgz or sqlite3 
 //(faster since uncompressed)
 
+int LINE_COUNT_PRINT = 100000;
+
 //1-base
 int samples_column = 12;
 int bytes_per_sample_field = 26;
@@ -156,10 +158,11 @@ int main(int argc, char** argv)
     uint32_t last_line_end_idx = -1;
     //index within line
     uint32_t line_len = 0;
+    uint64_t total_lines = 0;
     while(bytes_read > 0)
     {
         total_bytes += bytes_read;
-        fprintf(stderr,"total_bytes_read:%lu\n",total_bytes);
+        //fprintf(stderr,"total_bytes_read:%lu\n",total_bytes);
         while(i < bytes_read)
         {
             if(buf[i] == input_delim)
@@ -173,6 +176,9 @@ int main(int argc, char** argv)
             }
             else if(buf[i] == '\n')
             {
+                total_lines++;
+                if(total_lines % LINE_COUNT_PRINT == 0)
+                    fprintf(stderr, "lines read:%lu\n",total_lines);
                 process_line(&(buf[last_line_end_idx+1]), line_len, sample_col_idx, sample_col_end_idx, &sample_search, prefix_buf, samples_buf, output_delim); 
                 last_line_end_idx = i;
                 sample_col_idx = 0;
@@ -189,6 +195,7 @@ int main(int argc, char** argv)
         i = 0;
         last_line_end_idx = -1;
     }
+    fprintf(stderr,"total_lines_read:%lu\n",total_lines);
     total_bytes += bytes_read;
     fprintf(stderr,"total_bytes_read:%lu\n",total_bytes);
     fprintf(stderr,"DONE\n");
