@@ -24,11 +24,19 @@ using namespace std;
 
 //void process_bytes(char* buf, uint32_t bytes_read,uint64_t* line_idx, uint64_t* field_idx, trie* search_samples,char* prefix_buf,char* samples_buf)
 //void process_line(&(buf[last_line_end_idx+1], line_len, sample_col_idx, &sample_search, prefix_buf, samples_buf); 
-void process_line(char* buf, uint32_t line_len, uint32_t sample_col_idx, uint32_t sample_col_end_idx, trie* search_samples, char* prefix_buf, char* samples_buf)
+void process_line(char* buf, uint32_t line_len, uint32_t sample_col_idx, uint32_t sample_col_end_idx, trie* sample_search, char* prefix_buf, char* samples_buf)
 {
     //do samples search
-    //for now just copy whole sample column into buf
+    buf[sample_col_end_idx+1]='\0';
+    auto sample_tokens = sample_search->tokenise(string(&(buf[sample_col_idx])));
+    bool matching = false;
+    for(const auto& str_frag : sample_tokens)
+        if(matching = str_frag.is_match())
+            break;
+    if(!matching)
+        return;
     int samples_len = (sample_col_end_idx - sample_col_idx) + 1;
+    //for now just copy whole sample column into buf
     memcpy(samples_buf, &(buf[sample_col_idx]), samples_len); 
     samples_buf[samples_len] = '\0';
     //process prefix
