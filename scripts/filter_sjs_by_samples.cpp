@@ -28,17 +28,38 @@ void process_line(char* buf, uint32_t line_len, uint32_t sample_col_idx, uint32_
 {
     //do samples search
     buf[sample_col_end_idx+1]='\0';
-    auto sample_tokens = sample_search->tokenise(string(&(buf[sample_col_idx])));
+    char* buf_ptr_start_samples = &(buf[sample_col_idx]);
+    auto sample_tokens = sample_search->tokenise(string(buf_ptr_start_samples));
     bool matching = false;
+
+    //loop through the tokens and get those which match (if any)
+    //and their coverages
+    uint32_t buf_pos = sample_col_idx;
+    uint32_t sample_buf_pos = 0;
     for(const auto& str_frag : sample_tokens)
-        if(matching = str_frag.is_match())
-            break;
+    {
+        if(str_frag.is_match())
+        {
+            matching = true;
+            //only want to include the samples and coverages which are in the list, in the output
+            //auto sample_id = str_frag.get_fragment();
+            int start_pos = str_frag.get_emit().get_start();
+            //copy" ,sample_id:coverage" value into sample buffer
+            samples_buf[sample_buf_pos++] = ',';
+            buf_pos = start_pos + 1;
+            while(buf_ptr_start_samples[buf_pos] != ',' && buf_ptr_start_samples[buf_pos] != '\0')
+                samples_buf[sample_buf_pos++] = buf_ptr_start_samples[buf_pos++];
+        }
+    }
+
     if(!matching)
         return;
-    int samples_len = (sample_col_end_idx - sample_col_idx) + 1;
+
     //for now just copy whole sample column into buf
-    memcpy(samples_buf, &(buf[sample_col_idx]), samples_len); 
-    samples_buf[samples_len] = '\0';
+    /*int samples_len = (sample_col_end_idx - sample_col_idx) + 1;
+    memcpy(samples_buf, &(buf[sample_col_idx]), samples_len);
+    samples_buf[samples_len] = '\0';*/
+    samples_buf[sample_buf_pos] = '\0';
     //process prefix
     //if matching, print prefix
     //temporariy replace tab with null to print
@@ -102,7 +123,7 @@ int main(int argc, char** argv)
         bytes_read = getline(&buf, &length, fin);
     }
     fclose(fin);
-    fprintf(stdout,"num samples to filter for %d\n",num_samples);
+    fprintf(stderr,"num samples to filter for %d\n",num_samples);
     //sample_search.remove_overlaps(); //needed?
     //auto sample_tokens = sample_search.tokenise(samples);
     //auto found = sample_search.parse_text(samples);
