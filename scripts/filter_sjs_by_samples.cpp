@@ -10,6 +10,13 @@
 #include <cstdlib>
 #include "aho_corasick.hpp"
 
+//efficient Snaptron formatted junction filter
+//currently supports filtering by:
+//1) list of >=1 sample_ids, list format: ",sample_id:"
+
+//supports read from either junctions.bgz or sqlite3 
+//(faster since uncompressed)
+
 //1-base
 int samples_column = 12;
 int bytes_per_sample_field = 26;
@@ -33,29 +40,38 @@ void process_line(char* buf, uint32_t line_len, uint32_t sample_col_idx, uint32_
     //and their coverages
     uint32_t buf_pos = sample_col_idx;
     uint32_t sample_buf_pos = 0;
+    uint32_t sample_count = 0;
+    uint64_t sample_cov_sum = 0;
     for(const auto& str_frag : sample_tokens)
     {
         if(str_frag.is_match())
         {
             matching = true;
+            sample_count++;
             //only want to include the samples and coverages which are in the list, in the output
             //auto sample_id = str_frag.get_fragment();
             int start_pos = str_frag.get_emit().get_start();
             //copy" ,sample_id:coverage" value into sample buffer
             samples_buf[sample_buf_pos++] = ',';
             buf_pos = start_pos + 1;
+            int cov_start_pos = 0;
             while(buf_ptr_start_samples[buf_pos] != ',' && buf_ptr_start_samples[buf_pos] != '\0')
+            {
+                if(buf_ptr_start_samples[buf_pos] == ':')
+                    cov_start_pos = sample_buf_pos+1;
                 samples_buf[sample_buf_pos++] = buf_ptr_start_samples[buf_pos++];
+            }
+            //add to running total of coverage
+            char temp = samples_buf[sample_buf_pos];
+            samples_buf[sample_buf_pos] = '\0';
+            sample_cov_sum += atol(&(samples_buf[cov_start_pos]));
+            samples_buf[sample_buf_pos] = temp;
         }
     }
 
     if(!matching)
         return;
 
-    //for now just copy whole sample column into buf
-    /*int samples_len = (sample_col_end_idx - sample_col_idx) + 1;
-    memcpy(samples_buf, &(buf[sample_col_idx]), samples_len);
-    samples_buf[samples_len] = '\0';*/
     samples_buf[sample_buf_pos] = '\0';
     //process prefix
     //if matching, print prefix
@@ -63,9 +79,7 @@ void process_line(char* buf, uint32_t line_len, uint32_t sample_col_idx, uint32_
     buf[sample_col_idx-1] = '\0';
     fprintf(stdout,"%s",buf);
     buf[sample_col_idx-1] = delim;
-    fprintf(stdout,"%c%s", delim, samples_buf);
-    //TODO: print recalculated: 1) count 2) sum 3) avg (?)
-    fprintf(stdout,"\n");
+    fprintf(stdout,"%c%s%c%u%c%lu\n", delim, samples_buf, delim, sample_count, delim, sample_cov_sum);
 }
 
 ssize_t read_to_end_of_line(FILE* fin, char* buf)
