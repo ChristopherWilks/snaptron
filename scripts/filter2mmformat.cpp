@@ -33,7 +33,7 @@ using namespace std;
 
 typedef vector<uint64_t> vec64;
 
-void process_line(char* buf, uint32_t line_len, uint32_t sample_col_idx, uint32_t sample_col_end_idx, trie* sample_search, char* prefix_buf, char* samples_buf, char delim, uint64_t* row_idx, uint32_t* sample_id_map)
+void process_line(char* buf, uint32_t line_len, uint32_t sample_col_idx, uint32_t sample_col_end_idx, trie* sample_search, char* prefix_buf, char* samples_buf, char delim, uint64_t* row_idx, uint32_t* sample_id_map, uint64_t* num_non0s, FILE* fout)
 {
     //do samples search
     buf[sample_col_end_idx+1]='\0';
@@ -64,6 +64,8 @@ void process_line(char* buf, uint32_t line_len, uint32_t sample_col_idx, uint32_
                 buf[sample_col_idx-1] = delim;
                 matching = true;
             }
+            //track number of total row/column pairs (with > 0 value)
+            (*num_non0s)++;
             sample_count++;
             //only want to include the samples and coverages which are in the list, in the output
             int start_pos = str_frag.get_emit().get_start();
@@ -84,7 +86,7 @@ void process_line(char* buf, uint32_t line_len, uint32_t sample_col_idx, uint32_
             char eol = buf_ptr_start_samples[buf_pos];
             buf_ptr_start_samples[buf_pos] = '\0';
             uint32_t cov = atol(&(buf_ptr_start_samples[cov_start_pos]));
-            fprintf(stderr,"%lu\t%lu\t%u\n",*row_idx,col_idx,cov);
+            fprintf(fout,"%lu\t%lu\t%u\n",*row_idx,col_idx,cov);
         }
     }
 }
@@ -108,28 +110,32 @@ int main(int argc, char** argv)
 {
 	int o;
 	std::string sample_ids_file;
+	std::string output_file;
     uint32_t max_num_samples = 0;
     char input_delim = '\t';
     char output_delim = '\t';
-	while((o  = getopt(argc, argv, "s:d:o:n:f:")) != -1) 
+	while((o  = getopt(argc, argv, "s:d:p:n:f:")) != -1) 
     {
 		switch(o) 
 		{
             //sample_ids_file should be sorted in the order that sample columns are expected in the sparse matrix format
 			case 's': sample_ids_file = optarg; break;
 			case 'd': input_delim = optarg[0]; break;
-			case 'o': output_delim = optarg[0]; break;
+			case 'p': output_file = optarg; break;
 			case 'n': max_num_samples = atol(optarg); break;
         }
     }
-	if(sample_ids_file.length() == 0 || max_num_samples == 0) 
+	if(sample_ids_file.length() == 0 || max_num_samples == 0 || output_file.length() == 0) 
     {
-		std::cerr << "You must pass a filename containing the list of sample_ids to filter for (-s) and the total number of samples in the entire compilation (-n)\n";
+		std::cerr << "You must pass a filename containing the list of sample_ids to filter for (-s) and the total number of samples in the entire compilation (-n) and the output filename prefix (-p)\n";
 		exit(-1);
 	}
   
     trie sample_search; 
     FILE* fin = fopen(sample_ids_file.c_str(),"r");
+    char* fname = new char[1024];
+    sprintf(fname, "%s.mm", output_file.c_str());
+    FILE* fout = fopen(fname,"wb");
      
 	size_t length = -1;
     uint32_t read_size = (max_num_samples*bytes_per_sample_field)+extra_field_bytes;
@@ -190,10 +196,21 @@ int main(int argc, char** argv)
     uint64_t total_lines = 0;
     //1 base rows
     uint64_t row_idx = 0;
+    uint64_t num_non0s = 0;
+    char* header = new char[1024];
+    int header_len_original = 49;
+    sprintf(header, "%%%%MatrixMarket matrix coordinate integer general\n");
+    //pad out header line to allow writing 2nd #rows,#columns,#non0s at end
+    //40 is maximum number of characters in new line, assuming up to 12 chars per number
+    int header_len_w_padding = header_len_original + 40;
+    header[header_len_original]='%';
+    for(j = header_len_original+1; j < header_len_w_padding-1; j++)
+        header[j]='0';
+    header[j]='\n';
+    fprintf(fout, "%s", header);
     while(bytes_read > 0)
     {
         total_bytes += bytes_read;
-        //fprintf(stderr,"total_bytes_read:%lu\n",total_bytes);
         while(i < bytes_read)
         {
             if(buf[i] == input_delim)
@@ -210,7 +227,7 @@ int main(int argc, char** argv)
                 total_lines++;
                 if(total_lines % LINE_COUNT_PRINT == 0)
                     fprintf(stderr, "lines read:%lu\n",total_lines);
-                process_line(&(buf[last_line_end_idx+1]), line_len, sample_col_idx, sample_col_end_idx, &sample_search, prefix_buf, samples_buf, output_delim, &row_idx, sample_id_map); 
+                process_line(&(buf[last_line_end_idx+1]), line_len, sample_col_idx, sample_col_end_idx, &sample_search, prefix_buf, samples_buf, output_delim, &row_idx, sample_id_map, &num_non0s, fout); 
                 last_line_end_idx = i;
                 sample_col_idx = 0;
                 sample_col_end_idx = 0;
@@ -226,7 +243,14 @@ int main(int argc, char** argv)
         i = 0;
         last_line_end_idx = -1;
     }
-    fprintf(stderr,"total_lines_read:%lu\n",total_lines);
+    //now go back and update the last header line with numbers
+    sprintf(header,"\n%lu\t%u\t%lu\n", row_idx, num_samples, num_non0s);
+    int header_len = strlen(header);
+    int offset = header_len_w_padding - header_len;
+    fseek(fout, offset, SEEK_SET);
+    fprintf(fout, "%s", header);
+    fclose(fout);
+
     total_bytes += bytes_read;
     fprintf(stderr,"total_bytes_read:%lu\n",total_bytes);
     fprintf(stderr,"DONE\n");
