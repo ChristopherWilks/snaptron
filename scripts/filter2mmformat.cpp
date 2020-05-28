@@ -197,6 +197,9 @@ int main(int argc, char** argv)
     //1 base rows
     uint64_t row_idx = 0;
     uint64_t num_non0s = 0;
+    //print headers
+    //jxs header is just the first 11 columns of the snaptron format
+    fprintf(stdout,"snaptron_id	chromosome	start	end	length	strand	annotated	left_motif	right_motif	left_annotated	right_annotated	samples	samples_count	coverage_sum	coverage_avg	coverage_median	source_dataset_id\n");
     char* header = new char[1024];
     int header_len_original = 49;
     sprintf(header, "%%%%MatrixMarket matrix coordinate integer general\n");
