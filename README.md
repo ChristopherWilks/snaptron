@@ -14,11 +14,36 @@ We recommend using the Snaptron under Docker, rather than attempting a full inst
 
 A base docker image exists primarily for testing but which includes a full working install of Snaptron and its dependencies:
 
-https://quay.io/repository/broadsword/snaptron_tests?tab=tags
+https://quay.io/repository/broadsword/snaptron?tab=tags
 
-It also comes with 2 test compilations, a small subset of the srav2 compilation under "test" and a small subset of gtex under "test_gtex".
+The following are the quick 'n dirty Docker commands you can use to git clone the latest Snaptron server code, checkout the compilation of your choice, and get it running w/o any trimmings.
 
-### Full Installation Instructions ###
+We use `encode1159` as a relatively small (~13 GBs), but real world, human compilation example.
+
+### Pull the image ###
+
+`docker pull quay.io/broadsword/snaptron:latest`
+
+### Clone latest Snaptron code and deploy compilation ###
+
+The actual code to run Snaptron server and the data/indexes themeslves are *not* included in the Snaptron container image.
+This is for flexibility in updates for the server code and the size of most of the data backing Snaptron compilations is prohibitively large.  
+
+This means the Snaptron image is only for convenience in setting up the environment to run Snaptron server, it is *not* for reproducibility since it doesn't capture the state of the Snaptron server code at any time.
+
+The following command will use the Snaptron container to clone the Snaptron server code and download/setup the compilation on a local filesystem on the host OS bind mounted into the container:
+
+```docker run --rm -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron deploy encode1159```
+
+You will need to change `/path/to/host/deploy` to a real full path on the *host* (not container) that will be used to store the compilation data and the Snaptron server code.  This should be have enough capacity, for encode1159 >= 20 GBs.
+
+### Run the Docker image on previously deployed compilation ###
+
+```docker run --rm -p 21587:1587 -p 2080:80 -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron run encode1159```
+
+`/path/to/host/deploy` is the same in both docker commands.
+
+## Full Installation Instructions ##
 
 	git clone https://github.com/ChristopherWilks/snaptron.git
 
