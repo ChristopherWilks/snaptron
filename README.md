@@ -20,6 +20,8 @@ The following are the quick 'n dirty Docker commands you can use to git clone th
 
 We use `encode1159` as a relatively small (~13 GBs), but real world, human compilation example.
 
+While the example is relatively small, it will take several minutes to run, please be patient.
+
 ### Pull the image ###
 
 `docker pull quay.io/broadsword/snaptron:latest`
@@ -35,7 +37,9 @@ The following command will use the Snaptron container to clone the Snaptron serv
 
 ```docker run --rm -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron deploy encode1159```
 
-You will need to change `/path/to/host/deploy` to a real full path on the *host* (not container) that will be used to store the compilation data and the Snaptron server code.  This should be have enough capacity, for encode1159 >= 20 GBs.
+You will need to change `/path/to/host/deploy` to a real full path on the *host* (not container) that will be used to store the compilation data and the Snaptron server code.  This should have enough capacity for encode1159 >= 20 GBs.
+
+Most other compilations will require much more space, on the order of 50-200 GBs.
 
 ### Run the Docker image on previously deployed compilation ###
 
