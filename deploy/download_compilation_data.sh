@@ -18,7 +18,10 @@ wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/samples.groups.tsv
 
 echo "+++Downloading Lucene indices"
 wget -e robots=off --recursive --no-parent -nH --cut-dirs=2 -R "index.html*" http://snaptron.cs.jhu.edu/data/${COMP}/new_lucene/lucene_full_standard/
+mv new_lucene/lucene_full_standard ./
 wget -e robots=off --recursive --no-parent -nH --cut-dirs=2 -R "index.html*" http://snaptron.cs.jhu.edu/data/${COMP}/new_lucene/lucene_full_ws/
+mv new_lucene/lucene_full_ws ./
+rm -rf new_lucene
 wget http://snaptron.cs.jhu.edu/data/${COMP}/new_lucene/lucene_indexed_numeric_types.tsv
 
 echo "+++Downloading data and creating SQLite DBs"
