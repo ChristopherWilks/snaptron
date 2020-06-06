@@ -43,9 +43,17 @@ Most other compilations will require much more space, on the order of 50-200 GBs
 
 ### Run the Docker image on previously deployed compilation ###
 
-```docker run --rm -p 21587:1587 -p 2080:80 -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron run encode1159```
+```docker run --rm -p 21587:1587 -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron run encode1159```
 
 `/path/to/host/deploy` is the same in both docker commands.
+
+`-p 21587:1587` sets the internal port which Snaptron is hosted on (1587) to map to the external port on the host OS of 21857.
+
+You can change the 21587 to any avaiable port you choose, this is the port you will connect to Snaptron on, e.g.:
+
+`curl http://localhost:21857/snaptron?regions:CD99` 
+
+to get the jx's within the coordinates of the CD99 gene from the local container hosted Snaptron server you just started.
 
 ## Full Installation Instructions ##
 
