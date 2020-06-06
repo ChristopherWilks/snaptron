@@ -47,11 +47,11 @@ Most other compilations will require much more space, on the order of 50-200 GBs
 
 `/path/to/host/deploy` is the same in both docker commands.
 
-`-p 21587:1587` sets the internal port which Snaptron is hosted on (1587) to map to the external port on the host OS of 21857.
+`-p 21587:1587` sets the container internal port which Snaptron is hosted on (1587) to map to the external port on the host OS of 21587.
 
-You can change the 21587 to any available port you choose, this is the port you will connect to Snaptron on, e.g. to test:
+You can change the 21587 to any available port you like, this is the port you will connect to Snaptron on, e.g. to test:
 
-`curl http://localhost:21857/snaptron?regions:CD99` 
+`curl http://localhost:21587/snaptron?regions:CD99` 
 
 to get the jx's within the coordinates of the CD99 gene from the local container hosted Snaptron server you just started.
 
