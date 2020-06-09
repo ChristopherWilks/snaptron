@@ -18,7 +18,7 @@
 int LINE_COUNT_PRINT = 100000;
 
 //1-base
-int samples_column = 6;
+int samples_column = 11;
 int bytes_per_sample_field = 26;
 //store everything but samples:coverrages
 int extra_field_bytes = 2048;
@@ -47,6 +47,7 @@ void process_line(char* buf, uint32_t line_start_idx, uint32_t sample_col_idx, u
     //offsets from the first sample's ','
     int sid_start_pos = sample_col_idx+2;
     int cov_start_pos = sid_start_pos+3;
+    //go to end of samples/coverages, skip rest of line (dont need it)
     while(buf[i] != '\0')
     {
         if(buf[i] == ',' && i != sample_col_idx+1)
@@ -178,7 +179,7 @@ int main(int argc, char** argv)
     uint64_t row_idx = 0;
     uint64_t num_non0s = 0;
     //print headers
-    fprintf(stdout,"chromosome	start	end	strand	motif\n");
+    fprintf(stdout,"chromosome	start	end	length	strand	annotated	left_motif	right_motif	left_annotated	right_annotated\n");
     char* header = new char[1024];
     int header_len_original = 49;
     sprintf(header, "%%%%MatrixMarket matrix coordinate integer general\n");
@@ -187,7 +188,7 @@ int main(int argc, char** argv)
     int header_len_w_padding = header_len_original + 40;
     header[header_len_original]='%';
     for(j = header_len_original+1; j < header_len_w_padding-1; j++)
-        header[j]='0';
+        header[j]=' ';
     header[j]='\n';
     fprintf(fout, "%s", header);
    
