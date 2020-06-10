@@ -47,9 +47,9 @@ Docker:
 
 Singularity:
 
-```singularity exec -B /path/to/host/deploy:/deploy <snaptron_img_name>.simg /bin/bash -x -c "/snaptron/entrypoint.sh deploy encode1159"```
+```singularity exec -B /path/to/host/deploy:/deploy snaptron-latest.simg /bin/bash -x -c "/snaptron/entrypoint.sh deploy encode1159"```
 
-Singularity only: `<snaptron_img_name>` is the prefix for the Singularity filename.
+(replace `snaptron-latest.simg` with whatever name was used when downloading the image).
 
 You will need to change `/path/to/host/deploy` to a real full path on the *host* (not container) that will be used to store the compilation data and the Snaptron server code.  This should have enough capacity for encode1159 >= 20 GBs.
 
@@ -59,25 +59,24 @@ Most other compilations will require much more space, on the order of 50-200 GBs
 
 Docker:
 
-```docker run --rm -p 21587:1587 -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron run encode1159```
+```docker run --rm -p 1587:1587 -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron run encode1159```
 
-Only for Docker: `-p 21587:1587` sets the container internal port which Snaptron is hosted on (1587) to map to the external port on the host OS of 21587.
+Only for Docker: `-p 1587:1587` sets the container internal port which Snaptron is hosted on (1587) to map to the external port on the host OS of 1587.
 
-You can change the 21587 to any available port you like, this is the port you will connect to Snaptron on, e.g. to test:
+You can change the 1587 to any available port you like, this is the port you will connect to Snaptron on, e.g. to test:
 
 Singularity:
 
-```singularity exec -B /path/to/host/deploy:/deploy <snaptron_img_name>.simg /bin/bash -x -c "/snaptron/entrypoint.sh run encode1159"```
+```singularity exec -B /path/to/host/deploy:/deploy snaptron-latest.simg /bin/bash -x -c "/snaptron/entrypoint.sh run encode1159"```
 
 `/path/to/host/deploy` is the same in all Docker/Singularity commands.
 
 Test:
 
-`curl http://localhost:<port>/snaptron?regions:CD99` 
+`curl http://localhost:1587/snaptron?regions:CD99` 
 
 to get the jx's within the coordinates of the CD99 gene from the local container hosted Snaptron server you just started.
 
-(where `<port>` is either 21587 for the Docker image or 1587 for the Singularity image)
 
 ## Full Installation Instructions ##
 
