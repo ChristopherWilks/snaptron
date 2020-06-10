@@ -16,7 +16,7 @@ A base docker image exists primarily for testing but which includes a full worki
 
 https://quay.io/repository/broadsword/snaptron?tab=tags
 
-The following are the quick 'n dirty Docker commands you can use to git clone the latest Snaptron server code, checkout the compilation of your choice, and get it running w/o any trimmings.
+The following are the quick 'n dirty Docker + Singularity commands you can use to git clone the latest Snaptron server code, checkout the compilation of your choice, and get it running w/o any trimmings.
 
 We use `encode1159` as a relatively small (~9 GBs), but real world, human compilation example.
 
@@ -24,7 +24,13 @@ While the example is relatively small, it will take several minutes to run, plea
 
 ### Pull the image ###
 
+Docker:
+
 `docker pull quay.io/broadsword/snaptron:latest`
+
+Singularity:
+
+`singularity pull docker://quay.io/broadsword/snaptron:latest`
 
 ### Clone latest Snaptron code and deploy compilation ###
 
@@ -35,7 +41,15 @@ This means the Snaptron image is only for convenience in setting up the environm
 
 The following command will use the Snaptron container to clone the Snaptron server code and download/setup the compilation on a local filesystem on the host OS bind mounted into the container:
 
+Docker:
+
 ```docker run --rm -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron deploy encode1159```
+
+Singularity:
+
+```singularity exec -B /path/to/host/deploy:/deploy <snaptron_img_name>.simg /bin/bash -x -c "/snaptron/entrypoint.sh deploy encode1159"```
+
+Singularity only: `<snaptron_img_name>` is the prefix for the Singularity filename.
 
 You will need to change `/path/to/host/deploy` to a real full path on the *host* (not container) that will be used to store the compilation data and the Snaptron server code.  This should have enough capacity for encode1159 >= 20 GBs.
 
@@ -43,17 +57,27 @@ Most other compilations will require much more space, on the order of 50-200 GBs
 
 ### Run the Docker image on previously deployed compilation ###
 
+Docker:
+
 ```docker run --rm -p 21587:1587 -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron run encode1159```
 
-`/path/to/host/deploy` is the same in both docker commands.
-
-`-p 21587:1587` sets the container internal port which Snaptron is hosted on (1587) to map to the external port on the host OS of 21587.
+Only for Docker: `-p 21587:1587` sets the container internal port which Snaptron is hosted on (1587) to map to the external port on the host OS of 21587.
 
 You can change the 21587 to any available port you like, this is the port you will connect to Snaptron on, e.g. to test:
 
-`curl http://localhost:21587/snaptron?regions:CD99` 
+Singularity:
+
+```singularity exec -B /path/to/host/deploy:/deploy <snaptron_img_name>.simg /bin/bash -x -c "/snaptron/entrypoint.sh run encode1159"```
+
+`/path/to/host/deploy` is the same in all Docker/Singularity commands.
+
+Test:
+
+`curl http://localhost:<port>/snaptron?regions:CD99` 
 
 to get the jx's within the coordinates of the CD99 gene from the local container hosted Snaptron server you just started.
+
+(where `<port>` is either 21587 for the Docker image or 1587 for the Singularity image)
 
 ## Full Installation Instructions ##
 
