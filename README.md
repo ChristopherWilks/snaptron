@@ -18,7 +18,7 @@ https://quay.io/repository/broadsword/snaptron?tab=tags
 
 The following are the quick 'n dirty Docker + Singularity commands you can use to git clone the latest Snaptron server code, checkout the compilation of your choice, and get it running w/o any trimmings.
 
-We use `encode1159` as a relatively small (~9 GBs), but real world, human compilation example.
+We use `encode1159` as a relatively small (~13 GBs), but real world, human compilation example.
 
 While the example is relatively small, it will take several minutes to run, please be patient.
 
