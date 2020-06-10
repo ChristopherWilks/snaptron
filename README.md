@@ -12,7 +12,7 @@ http://snaptron.cs.jhu.edu
 
 We recommend using the Snaptron under Docker, rather than attempting a full installation due to the number of dependencies and the complexity of configuration.
 
-A base docker image exists primarily for testing but which includes a full working install of Snaptron and its dependencies:
+A base Docker image exists primarily for testing but which includes a full working install of Snaptron and its dependencies:
 
 https://quay.io/repository/broadsword/snaptron?tab=tags
 
@@ -24,11 +24,11 @@ While the example is relatively small, it will take several minutes to run, plea
 
 ### Pull the image ###
 
-Docker:
+* Docker:
 
 `docker pull quay.io/broadsword/snaptron:latest`
 
-Singularity:
+* Singularity:
 
 `singularity pull docker://quay.io/broadsword/snaptron:latest`
 
@@ -41,13 +41,13 @@ This means the Snaptron image is only for convenience in setting up the environm
 
 The following command will use the Snaptron container to clone the Snaptron server code and download/setup the compilation on a local filesystem on the host OS bind mounted into the container:
 
-Docker:
+* Docker:
 
-```docker run --rm -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron deploy encode1159```
+		docker run --rm -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron deploy 	encode1159
 
-Singularity:
+* Singularity:
 
-```singularity exec -B /path/to/host/deploy:/deploy snaptron-latest.simg /bin/bash -x -c "/snaptron/entrypoint.sh deploy encode1159"```
+		singularity exec -B /path/to/host/deploy:/deploy snaptron-latest.simg /bin/bash -x -c "/snaptron/entrypoint.sh deploy encode1159"```
 
 (replace `snaptron-latest.simg` with whatever name was used when downloading the image).
 
@@ -57,17 +57,17 @@ Most other compilations will require much more space, on the order of 50-200 GBs
 
 ### Run the Docker image on previously deployed compilation ###
 
-Docker:
+* Docker:
 
-```docker run --rm -p 1587:1587 -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron run encode1159```
+		docker run --rm -p 1587:1587 -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron run encode1159```
 
 Only for Docker: `-p 1587:1587` sets the container internal port which Snaptron is hosted on (1587) to map to the external port on the host OS of 1587.
 
 You can change the 1587 to any available port you like, this is the port you will connect to Snaptron on, e.g. to test:
 
-Singularity:
+* Singularity:
 
-```singularity exec -B /path/to/host/deploy:/deploy snaptron-latest.simg /bin/bash -x -c "/snaptron/entrypoint.sh run encode1159"```
+		singularity exec -B /path/to/host/deploy:/deploy snaptron-latest.simg /bin/bash -x -c "/snaptron/entrypoint.sh run encode1159"```
 
 `/path/to/host/deploy` is the same in all Docker/Singularity commands.
 
