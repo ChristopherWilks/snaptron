@@ -1,14 +1,8 @@
 #include <iostream>
-#include <sstream>
-#include <fstream>
-#include <memory>
-#include <array>
 #include <string>
 #include <vector>
 #include <string.h>
 #include <unistd.h>
-#include <cstdlib>
-#include "aho_corasick.hpp"
 
 //efficient Snaptron formatted junction2Matrix Market format converter (only)
 
@@ -108,7 +102,8 @@ int main(int argc, char** argv)
     uint32_t max_num_samples = 0;
     char input_delim = '\t';
     char output_delim = '\t';
-    while((o  = getopt(argc, argv, "s:d:p:n:f:")) != -1) 
+    char padding_char = '-';
+    while((o  = getopt(argc, argv, "s:d:p:n:f:c:")) != -1) 
     {
         switch(o) 
         {
@@ -117,6 +112,7 @@ int main(int argc, char** argv)
             case 'd': input_delim = optarg[0]; break;
             case 'p': output_file = optarg; break;
             case 'n': max_num_samples = atol(optarg); break;
+            case 'c': padding_char = optarg[0]; break;
         }
     }
     if(sample_ids_file.length() == 0 || max_num_samples == 0 || output_file.length() == 0) 
@@ -181,15 +177,16 @@ int main(int argc, char** argv)
     //print headers
     fprintf(stdout,"chromosome	start	end	length	strand	annotated	left_motif	right_motif	left_annotated	right_annotated\n");
     char* header = new char[1024];
-    int header_len_original = 49;
     sprintf(header, "%%%%MatrixMarket matrix coordinate integer general\n");
+    int header_len_original = strlen(header);
     //pad out header line to allow writing 2nd #rows,#columns,#non0s at end
-    //40 is maximum number of characters in new line, assuming up to 12 chars per number
-    int header_len_w_padding = header_len_original + 40;
+    //maximum number of characters in new line, assuming up to 19 chars per number + tabs/NL + null terminator
+    int header_len_w_padding = header_len_original + 61;
     header[header_len_original]='%';
     for(j = header_len_original+1; j < header_len_w_padding-1; j++)
-        header[j]=' ';
+        header[j]=padding_char;
     header[j]='\n';
+    header[j+1]='\0';
     fprintf(fout, "%s", header);
    
     uint64_t i = 0;
@@ -199,7 +196,6 @@ int main(int argc, char** argv)
     
     uint64_t line_count = 0;
     uint64_t field_count = 1;
-    //fprintf(stdout, "bytes read %d\n", bytes_read);
     while(bytes_read > 0)
     {
         total_bytes += bytes_read;
