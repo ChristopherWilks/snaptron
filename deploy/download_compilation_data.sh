@@ -48,11 +48,10 @@ if [ -e exons.sqlite ]; then
 fi
 ${scripts}/build_sqlite_db.sh exons exons.bgz
 
-wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/all_transcripts.gtf.bgz
-wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/all_transcripts.gtf.bgz.tbi
 wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/refseq_transcripts_by_hgvs.tsv
 wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/ucsc_known_canonical_transcript.tsv
-wget -nc http://snaptron.cs.jhu.edu/data/${COMP}/gencode.v25.annotation.gff3.gz
+wget -nc http://snaptron.cs.jhu.edu/data/srav2/gencode.v25.annotation.gff3.gz
+wget -nc http://snaptron.cs.jhu.edu/data/mesa/gencode.vM15.basic.annotation.gff3.gz
 
 ln -fs junctions.bgz junctions_uncompressed.bgz
 ln -fs junctions.bgz.tbi junctions_uncompressed.bgz.tbi
