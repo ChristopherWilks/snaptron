@@ -22,11 +22,12 @@ typedef struct config_def {
 	int axis;
 	char* op;
 	char* label;
+    int filter;
 } config_settings;
 
 //tokenize each line to get the coordinates and the list of sample counts
 //if doing a axis=COLUMN computation do it per row here
-int process_line(int first, char* line, char* delim, double** vals, double** vals2, config_settings config_def, int print_coord, double* total_sum)
+int process_line(int first, char* line, char* delim, double** vals, double** vals2, config_settings config_def, int print_coord, double* total_sum, uint64_t* ilen)
 {
 	char* line_copy = strdup(line);
 	char* tok = strtok(line_copy, delim);
@@ -68,8 +69,13 @@ int process_line(int first, char* line, char* delim, double** vals, double** val
 		i++;
 		tok = strtok(NULL,delim);
 	}
-	if(!first && print_coord)
-		fprintf(stdout,"%s\t%lu\t%lu",chrm,start,end);
+    if(!first)
+    {
+        //assume BED format (start half open interval)
+        (*ilen) = end - start;
+        if(print_coord)
+            fprintf(stdout,"%s\t%lu\t%lu",chrm,start,end);
+    }
 	if(line_copy)
 		free(line_copy);
 	if(!first && chrm)
@@ -105,8 +111,9 @@ config_settings setup(int argc, char*** argv)
 	config_def.axis=COL_AXIS;
 	config_def.op = "sum";
 	config_def.label = "";
+	config_def.filter=501;
 
-	opt_ = getopt_long(argc, *argv, "a:o:l:", long_opts, &opt_idx);
+	opt_ = getopt_long(argc, *argv, "a:o:l:f:", long_opts, &opt_idx);
 	while(opt_ != -1)
 	{
 		switch(opt_)
@@ -120,6 +127,8 @@ config_settings setup(int argc, char*** argv)
 		case 'l':
 			config_def.label = optarg;
 			break;
+		case 'f':
+			config_def.filter = atoi(optarg);
 		case '?':
 			break;
 		default:
@@ -168,7 +177,8 @@ int main(int argc, char** argv)
 		//assumes no header
 		num_rows++;
         total_sum = 0.0;
-		int num_toks = process_line(first, strdup(line), "\t", &vals, &vals2, config_def, print_coords_per_row, &total_sum);
+        uint64_t ilen = 0;
+		int num_toks = process_line(first, strdup(line), "\t", &vals, &vals2, config_def, print_coords_per_row, &total_sum, &ilen);
 		//if the first line, we need to know the total # of samples, so make 2 passes through the line
 		if(first)
 		{
@@ -178,7 +188,7 @@ int main(int argc, char** argv)
 			vals2 = calloc(num_vals,sizeof(double));
 			first = 0;
             total_sum = 0.0;
-			num_toks = process_line(first, strdup(line), "\t", &vals, &vals2, config_def, print_coords_per_row, &total_sum);
+			num_toks = process_line(first, strdup(line), "\t", &vals, &vals2, config_def, print_coords_per_row, &total_sum, &ilen);
 		}
 		if(config_def.axis == COL_AXIS)
 		{
@@ -186,12 +196,12 @@ int main(int argc, char** argv)
 				fprintf(stdout,"\t%.0f",total_sum);
 				//fprintf(stdout,"\t%.0f",vals[0]);
 			if(mean || all) {
-                total_mean = total_sum/num_vals;
+                total_mean = total_sum/ilen;
 				fprintf(stdout,"\t%.3f",total_mean);
 				//fprintf(stdout,"\t%.3f",vals[0]/num_vals);
             }
             if(all) {
-                num_filtered = filter_vals(vals2, num_vals, total_mean);
+                num_filtered = filter_vals(vals2, num_vals, config_def.filter);
 				fprintf(stdout,"\t%lu",num_filtered);
             }
 			printf("\n");
