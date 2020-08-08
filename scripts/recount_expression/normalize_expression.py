@@ -23,6 +23,7 @@ def load_metadata(args):
         if args.auc_col == -1:
             args.auc_col = len(fields) - 1 
         aucs = {}
+        zero_aucs = set()
         sids = []
         for x in lines:
             fields = x.split('\t')
@@ -34,18 +35,26 @@ def load_metadata(args):
             if not has_base_coverage_column or fields[-1] == 'true':
                 #print fields[args.auc_col]
                 aucs[fields[args.sample_id_col]]=fields[args.auc_col]
+                #a few samples may have a AUC of 0, slightly offset them so the division goes through
+                if float(fields[args.auc_col]) == 0.0:
+                    zero_aucs.add(fields[args.sample_id_col])
+                    aucs[fields[args.sample_id_col]] = '0.00000001'
                 sids.append(fields[args.sample_id_col])
-        return (aucs, sids)
+        return (aucs, sids, zero_aucs)
 
-def normalize_counts(args, aucs, sids):
+def normalize_counts(args, aucs, sids, zero_aucs):
     header = {}
     if args.snaptron_format:
         sys.stdout.write("gene_id")
         [sys.stdout.write("\t"+x) for x in sids]
         sys.stdout.write("\n")
-    with gzip.open(args.counts_file,"rb") as fin:
+    zero_auc_positions = []
+    zlength1 = len(zero_aucs)
+    zlength2 = 0
+    #with gzip.open(args.counts_file,"rb") as fin:
+    if True:
         #maps column position
-        for line in fin:
+        for line in sys.stdin:
             fields = None
             fields__ = line.rstrip().split('\t')
             if args.snaptron_format:
@@ -63,8 +72,14 @@ def normalize_counts(args, aucs, sids):
                     sids = fields__[args.count_start_col:]
                     continue
                 else:
-                    fields = {sids[i]:int(count) for (i,count) in enumerate(fields__[args.count_start_col:])}
+                    fields = {sids[i]:int(float(count)) for (i,count) in enumerate(fields__[args.count_start_col:])}
+            if zlength2 == 0 and zlength1 > 0:
+                zero_auc_positions = [z for (z,sid) in enumerate(sids) if sid in zero_aucs]
+                zlength2 = len(zero_auc_positions)
             fields = [int(clsnaputil.round_like_R((RECOUNT_TARGET * float(fields[sid]))/float(aucs[sid]),0)) for sid in sids]
+            #adjust normalized count for those samples with 0 AUC, should be a relatively small set
+            for zpos in zero_auc_positions:
+                fields[zpos] = 0
             if args.skip_0_rows:
                 zeros = [1 for x in fields if x == 0]
                 if len(zeros) == len(fields):
@@ -73,7 +88,7 @@ def normalize_counts(args, aucs, sids):
 
 def main():
     parser = argparse.ArgumentParser(description='Normalization of raw counts')
-    parser.add_argument('--counts-file', metavar='/path/to/counts_file', type=str, default=None, help='path to a TSV file with matrix of counts', required=True)
+    #parser.add_argument('--counts-file', metavar='/path/to/counts_file', type=str, default=None, help='path to a TSV file with matrix of counts', required=True)
     parser.add_argument('--metadata-file', metavar='/path/to/sample_metadata_file', type=str, default=None, help='path to a TSV file with the Snaptron sample metadata', required=True)
     parser.add_argument('--auc-col', metavar='-1', type=int, default=-1, help='which column in the sample metadata contains the AUC, default is the last')
     parser.add_argument('--count-start-col', metavar='1', type=int, default=1, help='which column in the raw coverage file start the counts')
@@ -86,8 +101,8 @@ def main():
     if args.snaptron_format:
         args.count_start_col = 0
 
-    (aucs, sids) = load_metadata(args)
-    normalize_counts(args, aucs, sids)
+    (aucs, sids, zero_aucs) = load_metadata(args)
+    normalize_counts(args, aucs, sids, zero_aucs)
 
 if __name__ == '__main__':
     main()
