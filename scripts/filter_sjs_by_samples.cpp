@@ -118,7 +118,7 @@ int main(int argc, char** argv)
     }
 	if(sample_ids_file.length() == 0 || max_num_samples == 0) 
     {
-		std::cerr << "You must pass a filename containing the list of sample_ids to filter for (-s) and the total number of samples in the entire compilation (-n)\n";
+		std::cerr << "You must pass a filename containing the list of sample_ids to filter for (-s) [format \",rid:\" on each line] and the total number of samples in the entire compilation (-n)\n";
 		exit(-1);
 	}
    
