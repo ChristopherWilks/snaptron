@@ -12,9 +12,12 @@
 #output format
 #tab-delimited: snaptron_id,chr,start,end,length,strand,unused,unused,unused,unused,unused,sample_id_coverage_list,sample_count,coverage_sum,coverage_avg,coverage_median,data_source_id
 #get this script's path
-p=`perl -e '@f=split("/","'$0'"); pop(@f); print "".join("/",@f)."\n";'`
+p=$(dirname $0)
 
 echo $p
+
+#use appropriate temp directory
+#export TMPDIR=/data5/tmp
 
 #print header
 perl -e 'print "".join("\t",("snaptron_id","chromosome","start","end","length","strand","NA","NA","NA","exon_count","gene_id:gene_name:gene_type:bp_length","samples","samples_count","coverage_sum","coverage_avg","coverage_median","compilation_id"))."\n";'
@@ -27,13 +30,14 @@ sqlite3 $db < ${p}/snaptron_schema.sql
 rm -f ./import_exons
 mkfifo ./import_exons
 
-cmd="cat ${1}"
+cmd="pigz --stdout -p 2 -d ${1}"
 if [[ ! -z $6 ]]; then
-    cmd="cat <(cat $6) <(cat ${1})"
+    cmd="cat <(cat $6) <(pigz --stdout -p 2 -d ${1} | tail -n+2)"
 fi
 
+export LC_ALL=C
 #this will sort the output by coordinate, but because the snaptron_id has already been assigned by process_genes_exons.py, it will not be in order
-eval $cmd | pypy ${p}/../annotations/process_genes_exons.py --annotation ${2} --sample-source ${3} --sample-metadata ${4} --annot-type exon --with-coords --as-ints --monorail | sort -t'	' -k2,2 -k3,3n -k4,4n | ${p}/compute_stats_per_record.sh ${5} | tee ./import_exons | ~/bgzip > ${3}.exons.tsv.bgz &
+eval $cmd | pypy ${p}/../annotations/process_genes_exons.py --annotation ${2} --sample-source ${3} --sample-metadata ${4} --annot-type exon --with-coords --as-ints --monorail | sort -T$TMPDIR -t'	' -k2,2 -k3,3n -k4,4n | ${p}/compute_stats_per_record.sh ${5} | tee ./import_exons | ~/bgzip > ${3}.exons.tsv.bgz &
 sqlite3 $db -cmd '.separator "\t"' ".import ./import_exons intron"
 sqlite3 $db < ${p}/snaptron_schema_index.sql
 ~/tabix -s2 -b3 -e4 ${3}.exons.tsv.bgz
