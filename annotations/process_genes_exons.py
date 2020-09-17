@@ -29,16 +29,16 @@ def load_annotation(args, annot_type, annotation_file):
                     gene2num_exons[subfields['gene_id']] = 0
                 gene2num_exons[subfields['gene_id']]+=1
                 continue
-            if annot_type == 'exon' and args.monorail:
+            #if annot_type == 'exon' and args.monorail:
                 #exon format:
                 #chr1    HAVANA  exon    11869   12227   .       +       .       ID=exon:ENST00000456328.2:1;Parent=ENST00000456328.2;gene_id=ENSG00000223972.5;transcript_id=ENST00000456328.2;gene_type=transcribed_unprocessed_pseudogene;gene_name=DDX11L1;transcript_type=processed_transcript;transcript_name=DDX11L1-002;exon_number=1;exon_id=ENSE00002234944.1;level=2;transcript_support_level=1;tag=basic;havana_gene=OTTHUMG00000000961.2;havana_transcript=OTTHUMT00000362751.1
-                exon_id = subfields['exon_id']
-                subfields['gene_id'] = subfields['exon_id']
+                #exon_id = subfields['exon_id']
+                #subfields['gene_id'] = subfields['exon_id']
             gene2coords[subfields['gene_id']]=[chrom,start,end,strand,subfields['gene_name'],subfields['gene_type']]
     return (gene2coords, gene2num_exons)
 
 
-sample_id_col_map={'srav2':1,'gtex':1, 'gtexv2':2, 'tcga':23, 'tcgav2':23, 'supermouse':0,'encode1159':0}
+sample_id_col_map={'srav2':1,'gtex':1, 'gtexv2':2, 'tcga':23, 'tcgav2':23, 'supermouse':0,'encode1159':0, 'srav3h':1, 'srav1m':1}
 def load_sample_id_map(sample_file, source):
     #we want the SRR accession2rail_id mapping
     sample2ids = {}
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     parser.add_argument('--as-ints', action='store_const', const=True, 
             default=False, help='convert all floating point to integers (if there is no non-0 decimal part)')
     parser.add_argument('--monorail', action='store_const', const=True, 
-            default=False, help='input comes come from Monorail pipeline (different format from earlier, only applies to exons)')
+            default=False, help='handle gene/exon ids differently; allow for multiple gene_ids')
 
     args = parser.parse_args()
    
@@ -93,9 +93,9 @@ if __name__ == '__main__':
     if args.with_coords:
         #no symbol was passed in if we also have coordinates
         field_offset += 2
-    if args.annot_type == 'exon' and args.monorail:
-        field_offset += 1
-        field_offset_offset = 5
+    #if args.annot_type == 'exon' and args.monorail:
+    #    field_offset += 1
+    #    field_offset_offset = 5
     fin = None
     for line in sys.stdin:
         fields = line.strip().split('\t')
@@ -112,6 +112,7 @@ if __name__ == '__main__':
             snaptron_id = 0
             continue
         gene_id = fields[0]
+        #all_genes = []
         bp_length = fields[1]
         if args.annot_type == 'exon':
             if args.monorail:
@@ -119,6 +120,9 @@ if __name__ == '__main__':
                 for gid in gene_ids:
                     if gid in gene2coords:
                         gene_id = gid
+                        #if args.multigene:
+                            #(chrom, start, end, strand, gene_name, gene_type) = gene2coords[gid]
+                            #all_genes.append(gene_name
                         break 
                 bp_length = fields[4] 
                 exon_id = 1
@@ -158,4 +162,4 @@ if __name__ == '__main__':
                 sys.stdout.write(','.join([fields[i] for i in xrange(field_offset,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping])+"\n")
         snaptron_id+=1
         exon_id+=1
-    fin.close()
+    #fin.close()
