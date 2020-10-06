@@ -38,7 +38,7 @@ def load_annotation(args, annot_type, annotation_file):
     return (gene2coords, gene2num_exons)
 
 
-sample_id_col_map={'srav2':1,'gtex':1, 'gtexv2':2, 'tcga':23, 'tcgav2':23, 'supermouse':0,'encode1159':0, 'srav3h':1, 'srav1m':1}
+sample_id_col_map={'srav2':1,'gtex':1, 'gtexv2':2, 'tcga':23, 'tcgav2':1, 'supermouse':0,'encode1159':0, 'srav3h':1, 'srav1m':1}
 def load_sample_id_map(sample_file, source):
     #we want the SRR accession2rail_id mapping
     sample2ids = {}
@@ -112,6 +112,7 @@ if __name__ == '__main__':
             snaptron_id = 0
             continue
         gene_id = fields[0]
+        gene_id_orig = gene_id
         #all_genes = []
         bp_length = fields[1]
         if args.annot_type == 'exon':
@@ -131,15 +132,18 @@ if __name__ == '__main__':
                     gene_id = gene_id.split(':')[0]
                 if gene_id != current_gene_id:
                     exon_id = 1
+        (chrom, start, end, strand, gene_name, gene_type) = (None, None, None, '?', "", "")
         if gene_id not in gene2coords:
             sys.stderr.write("%s:MISSING_GENE_ID\t%s\n" % (args.annot_type,gene_id))
-            continue
+            if not args.with_coords:
+                continue
+        else:
+            (chrom, start, end, strand, gene_name, gene_type) = gene2coords[gene_id]
         current_gene_id = gene_id
-        (chrom, start, end, strand, gene_name, gene_type) = gene2coords[gene_id]
         #start of sample counts, assuming a symbol was also passed in (ignored)
         if args.with_coords:
             #no symbol was passed in if we also have coordinates
-            start_offset = field_offset-field_offset_offset
+            start_offset = field_offset - field_offset_offset
             end_offset = start_offset + 3
             (chrom, start, end) = fields[start_offset:end_offset]
         exon_count = exon_id
@@ -149,7 +153,7 @@ if __name__ == '__main__':
         length = str((int(end)- int(start)) + 1)
         sample_ids = [sample_id_mapping[i] for i in xrange(field_offset,len(fields)) if float(fields[i]) > 0 and i in sample_id_mapping]
         #skip any with no samples
-        sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id,gene_name,gene_type,bp_length])]))
+        sys.stdout.write("\t".join([str(snaptron_id), chrom, start, end, length, strand, "", "", "", str(exon_count), ":".join([gene_id_orig,gene_id,gene_name,gene_type,bp_length])]))
         if len(sample_ids) == 0:
             sys.stderr.write("%s: no samples with counts > 0\t%s\n" % (args.annot_type,gene_id))
             sys.stdout.write("\t\t\n")
