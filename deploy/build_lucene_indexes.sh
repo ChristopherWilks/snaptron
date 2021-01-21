@@ -8,7 +8,7 @@ create_all=$2
 
 #import that we can override default python path via
 #an environment var when needed (to support a custom python which has PyLucene)
-PYTHON_PATH='python'
+PYTHON_PATH='python2'
 if [[ ! -z $PYPATH ]]; then
     PYTHON_PATH=$PYPATH
 fi
