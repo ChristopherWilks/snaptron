@@ -25,6 +25,8 @@ To cite Snaptron:
         Bioinformatics, (2017), btx547,
         https://doi.org/10.1093/bioinformatics/btx547
 
+There is also the `snapcount <http://www.bioconductor.org/packages/release/bioc/html/snapcount.html>`_ package by Rone Charles in the Landmead group for querying junctions, genes, and exon counts via R/Bioconductor by region (queries Snaptron web services under the hood).
+
 .. toctree::
    :maxdepth: 2
    :caption: Table of Contents
