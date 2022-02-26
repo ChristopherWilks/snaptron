@@ -73,7 +73,7 @@ You can change the 1587 to any available port you like, this is the port you wil
 
 Test:
 
-`curl http://localhost:1587/snaptron?regions:CD99` 
+`curl http://localhost:1587/snaptron?regions=CD99` 
 
 to get the jx's within the coordinates of the CD99 gene from the local container hosted Snaptron server you just started.
 
