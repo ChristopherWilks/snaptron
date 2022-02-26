@@ -284,3 +284,5 @@ time tabix_zstd ./data/bases/b chr11:82973133-83071923 | cut -f 4- | perl -F'\t'
 time tabix_zstd ./data/bases/b chr11:82973133-83071923 | cut -f 4- | perl -F'\t' -ane '$c++; $i=0; map { $sums[$i++]+=$_; } @F; END { for $sum (@sums) { printf("\t%.3f",$sum/$c); } print "\n";}' > a1m
 
 time curl -s "http://snaptron.cs.jhu.edu/test/bases?regions=chr11:82973133-83071923&label=bob&calc=1&calc_axis=0&calc_op=mean" | head
+
+docker run --rm -p 21656:1656 -i -t --name snaptron --volume /data7/stest:/deploy:rw --entrypoint "/bin/bash" snaptron
