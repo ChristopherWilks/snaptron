@@ -59,7 +59,7 @@ Most other compilations will require much more space, on the order of 50-200 GBs
 
 * Docker:
 
-		docker run --rm -p 1587:1587 -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron run encode1159```
+		docker run --rm -p 1587:1587 -i -t --name snaptron_encode1159 --volume /path/to/host/deploy:/deploy:rw quay.io/broadsword/snaptron run encode1159
 
 Only for Docker: `-p 1587:1587` sets the container internal port which Snaptron is hosted on (1587) to map to the external port on the host OS of 1587.
 
@@ -67,7 +67,7 @@ You can change the 1587 to any available port you like, this is the port you wil
 
 * Singularity:
 
-		singularity exec -B /path/to/host/deploy:/deploy snaptron-latest.simg /bin/bash -x -c "/snaptron/entrypoint.sh run encode1159"```
+		singularity exec -B /path/to/host/deploy:/deploy snaptron-latest.simg /bin/bash -x -c "/snaptron/entrypoint.sh run encode1159"
 
 `/path/to/host/deploy` is the same in all Docker/Singularity commands.
 
