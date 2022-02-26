@@ -4,6 +4,13 @@
 #HOST="162.129.223.10"
 HOST="snaptron.cs.jhu.edu"
 
+declare -a insts=( "srav1m" "srav3h" "gtexv2" "tcgav2")
+for x in "${insts[@]}"
+do
+	echo "testing $x junctions"
+	curl "http://${HOST}/${x}/snaptron?regions=CD99&rfilter=samples_count:20" 2>/dev/null| grep -i "${x}:I" | head -1 | cut -f 1-10
+done
+
 declare -a insts=( "srav1" "srav2" "gtex" "tcga")
 for x in "${insts[@]}"
 do
@@ -19,7 +26,7 @@ do
 done
 
 
-declare -a insts=( "encode1159" "supermouse" "ct_h_s" "ct_m_s")
+declare -a insts=( "encode1159" "ct_h_s" "ct_m_s")
 for x in "${insts[@]}"
 do
 	echo "testing $x junctions"
