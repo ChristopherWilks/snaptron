@@ -37,7 +37,8 @@ elif [ "$1" == "run" ] ; then
    ln -fs ../mods-available/lbmethod_byrequests.load /etc/apache2/mods-enabled/
    ln -fs ../mods-available/proxy_http.load /etc/apache2/mods-enabled/
    /etc/init.d/apache2 start
-   cd /${DEPLOY_DIR}/${compilation} && python /${DEPLOY_DIR}/${compilation}/snaptron_server --no-daemon
+   server_exec=$(ls /${DEPLOY_DIR}/${compilation}/*_snaptron_server)
+   cd /${DEPLOY_DIR}/${compilation} && python $server_exec --no-daemon
 else
    echo "Did not understand command: \"$*\""
 fi
