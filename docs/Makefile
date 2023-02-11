@@ -56,8 +56,8 @@ html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	cat $(BUILDDIR)/html/index.html | perl insert_ga_script.pl > $(BUILDDIR)/html/index.html.new
 	mv $(BUILDDIR)/html/index.html.new $(BUILDDIR)/html/index.html
-	rm $(BUILDDIR)/html/_static/jquery-1.11.1.js
-	rm $(BUILDDIR)/html/_static/jquery.js
+	rm -rf $(BUILDDIR)/html/_static/jquery-1.11.1.js
+	rm -rf $(BUILDDIR)/html/_static/jquery.js
 	curl https://code.jquery.com/jquery-1.12.4.js > $(BUILDDIR)/html/_static/jquery-1.12.4.js
 	ln -s jquery-1.12.0.js $(BUILDDIR)/html/_static/jquery.js
 	@echo
