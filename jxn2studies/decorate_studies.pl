@@ -32,4 +32,4 @@ while(my $line=<STDIN>) {
     }
     print "</p>\n";
 }
-print "</body></html>\n";
+print "</body></html>\n\r";
