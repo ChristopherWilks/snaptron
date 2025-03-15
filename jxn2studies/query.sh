@@ -4,18 +4,21 @@ dir=$(dirname $0)
 COMPILATION_JXN2STUDIES_PATHS_FILE=${dir}/compilation_jxn2studies_paths.tsv
 TABIX=/datascope/recount03/miniconda3e1/bin/tabix
 
-#e.g. "compilation=gtexv2&jid=5&chrom=chr4"
+##e.g. "compilation=gtexv2&jid=5&chrom=chr4"
+#UPDATED for faster index query times: e.g. "compilation=gtexv2&jid=5&cords=chr4:5-10"
 query=$1
 
 #e.g. compilation=gtexv2&jid=5&chrom=chr4
 compilation=$(echo "$query" | tr $'&' $'\n' | fgrep "compilation=" | cut -d'=' -f2)
 jid=$(echo "$query" | tr $'&' $'\n' | fgrep "jid=" | cut -d'=' -f2)
-chrom=$(echo "$query" | tr $'&' $'\n' | fgrep "chrom=" | cut -d'=' -f2)
+coords=$(echo "$query" | tr $'&' $'\n' | fgrep "coords=" | cut -d'=' -f2)
+chrom=$(echo "$query" | tr $'&' $'\n' | fgrep "coords=" | cut -d'=' -f2 | cut -d':' -f1)
 
 #TODO: look up jxn2studies file for 1) compilation and 2) chromosomes and then query it with jxnID
 cpath=$(fgrep $'\t'"$compilation"$'\t' $COMPILATION_JXN2STUDIES_PATHS_FILE | cut -f 3)
 #NOTE: leaves no files on disk for now
-msg=$($TABIX $cpath/${chrom}.jxn2studies.gz ${jid}:1-1 | cut -f 3- | perl $dir/decorate_studies.pl "$compilation" "$jid")
+msg=$($TABIX $cpath/${chrom}.jxn2studies.gz $coords | fgrep $'\t'"$jid"$'\t' | cut -f 2- | tr -s "," $'\n' | perl $dir/decorate_studies.pl "$compilation" "$coords" "$jid")
+#msg=$($TABIX $cpath/${chrom}.jxn2studies.gz ${jid}:1-1 | cut -f 3- | perl $dir/decorate_studies.pl "$compilation" "$jid")
 #msg=$($TABIX $cpath/${chrom}.jxn2studies.gz ${jid}:1-1 2>/dev/null)
 #msg="$TABIX $cpath/${chrom}.jxns2studies.gz ${jid}:1-1 2>/dev/null"
 ##based liberally on:
