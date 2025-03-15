@@ -2,6 +2,8 @@
 import sys
 import copy
 from operator import itemgetter, attrgetter
+#e.g. cmd line for this script:
+#/usr/bin/time -v tabix junctions.bgz chr1 2> run1 | python3 map_jxns2studies.py samples.tissues.tsv.cut | pigz --fast -p4 > chr1.jxns2studies.gz
 
 #~7 samples worth
 MAX_SHORT_LIST_LEN=56
