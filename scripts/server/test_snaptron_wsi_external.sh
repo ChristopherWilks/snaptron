@@ -2,7 +2,8 @@
 #set -x
 
 #HOST="162.129.223.10"
-HOST="snaptron.cs.jhu.edu"
+#HOST="snaptron.cs.jhu.edu"
+HOST="localhost"
 
 declare -a insts=( "srav1m" "srav3h" "gtexv2" "tcgav2")
 for x in "${insts[@]}"
@@ -26,7 +27,7 @@ do
 done
 
 
-declare -a insts=( "encode1159" "ct_h_s" "ct_m_s")
+declare -a insts=( "encode1159" "ct_h_s" "ct_m_s", "mesa")
 for x in "${insts[@]}"
 do
 	echo "testing $x junctions"
