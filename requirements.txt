@@ -4,5 +4,5 @@ lockfile==0.9.1
 pycparser==2.10
 six==1.7.3
 python-daemon==1.6.1
-numpy==1.9.3
+numpy==1.22.0
 pyahocorasick==1.1.4
