@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Splice Junction Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h1, h2 {
+      color: #2c3e50;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+      background-color: #fff;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+    th {
+      background-color: #ecf0f1;
+    }
+    .note, .citation {
+      margin-top: 30px;
+      font-size: 0.95em;
+    }
+    a {
+      color: #2980b9;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Splice Junction Report</h1>
+
+  <h2>Junction Details</h2>
+  <p><strong>Exon-exon splice-junction ID:</strong> REPLACE:ID</p>
+  <p><strong>Coordinates (GRCh38/hg38 for human, GRCm38/mm10 for mouse):</strong> REPLACE:RECOUNT_ID</p>
+
+  <h2>Sequence Statistics</h2>
+  <p><strong>Total count of sequence runs (~samples) with >= 1 split-read:</strong> REPLACE:COUNT</p>
+  <p><strong>Total split-read coverage across all samples:</strong> REPLACE:COVERAGE</p>
+
+  <h2>Study/Tissue Distribution across REPLACE:COMPILATION</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Study/Tissue/Region/Celltype</th>
+        <th>% of Sample Count</th>
+        <th>% of Coverage Sum</th>
+      </tr>
+    </thead>
+    <tbody>
+      REPLACE:ROWS
+    </tbody>
+  </table>
+  <div class="note">
+    <p><em>*Note:</em> Percentages are truncated to integers. Studies/tissues with 0% are omitted, so totals may not add up to 100%.</p>
+  </div>
+  <div class="citation">
+    <p>Questions about the recount3 data, Monorail pipeline, or Snaptron web services? Post at:
+    <a href="https://github.com/langmead-lab/monorail-external/issues" target="_blank">Monorail Issues</a></p>
+
+    <p>If used in a publication, please cite:</p>
+    <p>
+      Wilks C, Zheng SC, Chen FY, Charles R, Solomon B, Ling JP, Imada EL, Zhang D, Joseph L, Leek JT et al.<br>
+      <strong>recount3: summaries and queries for large-scale RNA-seq expression and splicing.</strong><br>
+      <em>Genome Biol.</em> 2021 Nov 29;22(1):323. PMID: 34844637; PMC: PMC8628444
+    </p>
+  </div>
+</body>
+</html>
